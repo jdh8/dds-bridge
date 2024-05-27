@@ -1,9 +1,10 @@
 use crate::contract::Strain;
+use bitflags::bitflags;
 use core::fmt;
 use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum Seat {
     North,
@@ -12,7 +13,7 @@ pub enum Seat {
     West,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Card {
     pub suit: Strain,
     pub rank: u8,
@@ -42,7 +43,7 @@ pub trait SmallSet<T> {
     fn toggle(&mut self, value: T) -> bool;
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
 
 impl SmallSet<u8> for Holding {
@@ -145,7 +146,7 @@ impl fmt::Display for Holding {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hand(Holding, Holding, Holding, Holding);
 
 impl Index<Strain> for Hand {
@@ -282,7 +283,7 @@ impl Sub for Hand {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Deal([Hand; 4]);
 
 impl Index<Seat> for Deal {
@@ -312,7 +313,18 @@ impl fmt::Display for Deal {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct StrainFlags : u8 {
+        const CLUBS = 0x01;
+        const DIAMONDS = 0x02;
+        const HEARTS = 0x04;
+        const SPADES = 0x08;
+        const NOTRUMP = 0x10;
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Deck {
     pub cards: Vec<Card>,
 }

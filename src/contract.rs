@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 #[repr(u8)]
 pub enum Strain {
     Clubs,
@@ -8,7 +8,7 @@ pub enum Strain {
     Notrump,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Bid {
     pub level: u8,
     pub strain: Strain,
@@ -20,7 +20,7 @@ impl Bid {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Call {
     Pass,
     Double,
@@ -34,14 +34,14 @@ impl From<Bid> for Call {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Penalty {
     Passed,
     Doubled,
     Redoubled,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Contract {
     pub bid: Bid,
     pub penalty: Penalty,

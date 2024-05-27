@@ -10,5 +10,6 @@ categories = ["game-development"]
 keywords = ["bridge", "double-dummy"]
 
 [dependencies]
+bitflags = "2.5.0"
 dds-bridge-sys = "1.0.1"
 rand = "0.8.5"
