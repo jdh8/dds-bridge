@@ -10,4 +10,4 @@ categories = ["game-development"]
 keywords = ["bridge", "double-dummy"]
 
 [dependencies]
-dds-bridge-sys = "0.1.0"
+dds-bridge-sys = "1.0.0"
