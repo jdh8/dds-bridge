@@ -6,8 +6,11 @@ edition = "2021"
 description = "Rusty API for DDS, the double dummy solver for bridge"
 repository = "https://github.com/jdh8/dds-bridge"
 license = "Apache-2.0"
-categories = ["game-development"]
+categories = ["game-development", "no-std"]
 keywords = ["bridge", "double-dummy"]
 
 [dependencies]
-dds-bridge-sys = "1.0.0"
+dds-bridge-sys = "1.0.1"
+
+[dev-dependencies]
+rand = "0.8.5"
