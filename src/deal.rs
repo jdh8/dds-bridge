@@ -4,45 +4,75 @@ use core::fmt;
 use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
+/// Position at the table
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum Seat {
+    /// Dealer of Board 1, partner of [`Seat::South`]
     North,
+    /// Dealer of Board 2, partner of [`Seat::West`]
     East,
+    /// Dealer of Board 3, partner of [`Seat::North`]
     South,
+    /// Dealer of Board 4, partner of [`Seat::East`]
     West,
 }
 
+/// A playing card
 #[derive(Debug, Clone, Copy)]
 pub struct Card {
+    /// The suit of the card
     pub suit: Strain,
+
+    /// The rank of the card
+    ///
+    /// The rank is a number from 2 to 14.  J, Q, K, A are denoted as 11, 12,
+    /// 13, 14 respectively.
     pub rank: u8,
 }
 
 impl Card {
+    /// Create a card from suit and rank
+    #[must_use]
     pub const fn new(suit: Strain, rank: u8) -> Self {
         Self { suit, rank }
     }
 }
 
-pub trait SmallSet<T> {
+/// A bitset whose size is known at compile time
+pub trait SmallSet<T>: Copy + PartialEq + BitAnd + BitOr + BitXor + Not + Sub {
+    /// Get an empty set
+    #[must_use]
     fn empty() -> Self;
-    fn all() -> Self;
-    fn len(&self) -> usize;
 
-    fn is_empty(&self) -> bool
-    where
-        Self: Sized + PartialEq<Self>,
-    {
-        self == &Self::empty()
+    /// Get a set containing all possible values
+    #[must_use]
+    fn all() -> Self;
+
+    /// The number of elements in the set
+    #[must_use]
+    fn len(self) -> usize;
+
+    /// Whether the set is empty
+    #[must_use]
+    fn is_empty(self) -> bool {
+        self == Self::empty()
     }
 
-    fn contains(&self, value: T) -> bool;
+    /// Whether the set contains a value
+    fn contains(self, value: T) -> bool;
+
+    /// Insert a value into the set
     fn insert(&mut self, value: T) -> bool;
+
+    /// Remove a value from the set
     fn remove(&mut self, value: T) -> bool;
+
+    /// Toggle a value in the set
     fn toggle(&mut self, value: T) -> bool;
 }
 
+/// Holding for a suit in a hand
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
 
@@ -55,11 +85,11 @@ impl SmallSet<u8> for Holding {
         Self(Self::ALL)
     }
 
-    fn len(&self) -> usize {
+    fn len(self) -> usize {
         self.0.count_ones() as usize
     }
 
-    fn contains(&self, rank: u8) -> bool {
+    fn contains(self, rank: u8) -> bool {
         self.0 & 1 << rank != 0
     }
 
@@ -85,10 +115,14 @@ impl SmallSet<u8> for Holding {
 impl Holding {
     const ALL: u16 = 0x7FFC;
 
+    /// As a bitset of ranks
+    #[must_use]
     pub const fn bits(self) -> u16 {
         self.0
     }
 
+    /// Create a holding from a bitset of ranks
+    #[must_use]
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits & Self::ALL)
     }
@@ -146,6 +180,7 @@ impl fmt::Display for Holding {
     }
 }
 
+/// A hand of playing cards
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hand(Holding, Holding, Holding, Holding);
 
@@ -189,11 +224,11 @@ impl SmallSet<Card> for Hand {
         )
     }
 
-    fn len(&self) -> usize {
+    fn len(self) -> usize {
         self.0.len() + self.1.len() + self.2.len() + self.3.len()
     }
 
-    fn contains(&self, card: Card) -> bool {
+    fn contains(self, card: Card) -> bool {
         self[card.suit].contains(card.rank)
     }
 
@@ -283,6 +318,7 @@ impl Sub for Hand {
     }
 }
 
+/// A deal of four hands
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Deal([Hand; 4]);
 
@@ -314,22 +350,32 @@ impl fmt::Display for Deal {
 }
 
 bitflags! {
+    /// Flags for the solver to solve for a strain
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct StrainFlags : u8 {
+        /// Solve for clubs ([`Strain::Clubs`])
         const CLUBS = 0x01;
+        /// Solve for diamonds ([`Strain::Diamonds`])
         const DIAMONDS = 0x02;
+        /// Solve for hearts ([`Strain::Hearts`])
         const HEARTS = 0x04;
+        /// Solve for spades ([`Strain::Spades`])
         const SPADES = 0x08;
+        /// Solve for notrump ([`Strain::Notrump`])
         const NOTRUMP = 0x10;
     }
 }
 
+/// A deck of playing cards
 #[derive(Debug, Clone, Default)]
 pub struct Deck {
+    /// The cards in the deck
     pub cards: Vec<Card>,
 }
 
 impl Deck {
+    /// Create a standard 52-card deck
+    #[must_use]
     pub fn standard_52() -> Self {
         let suits = [
             Strain::Clubs,
@@ -343,6 +389,8 @@ impl Deck {
         }
     }
 
+    /// Deal the deck into four hands
+    #[must_use]
     pub fn deal(&self) -> Deal {
         let mut deal = Deal::default();
 
@@ -354,11 +402,14 @@ impl Deck {
         deal
     }
 
+    /// Shuffle the deck
     pub fn shuffle(&mut self) {
         self.cards.shuffle(&mut rand::thread_rng());
     }
 }
 
+/// Create a shuffled standard 52-card deck
+#[must_use]
 pub fn shuffled_standard_52_deck() -> Deck {
     let mut deck = Deck::standard_52();
     deck.shuffle();
