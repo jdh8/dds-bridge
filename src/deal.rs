@@ -41,13 +41,11 @@ impl Card {
 
 /// A bitset whose size is known at compile time
 pub trait SmallSet<T>: Copy + PartialEq + BitAnd + BitOr + BitXor + Not + Sub {
-    /// Get an empty set
-    #[must_use]
-    fn empty() -> Self;
+    /// The empty set
+    const EMPTY: Self;
 
-    /// Get a set containing all possible values
-    #[must_use]
-    fn all() -> Self;
+    /// The set containing all possible values
+    const ALL: Self;
 
     /// The number of elements in the set
     #[must_use]
@@ -56,7 +54,7 @@ pub trait SmallSet<T>: Copy + PartialEq + BitAnd + BitOr + BitXor + Not + Sub {
     /// Whether the set is empty
     #[must_use]
     fn is_empty(self) -> bool {
-        self == Self::empty()
+        self == Self::EMPTY
     }
 
     /// Whether the set contains a value
@@ -77,13 +75,8 @@ pub trait SmallSet<T>: Copy + PartialEq + BitAnd + BitOr + BitXor + Not + Sub {
 pub struct Holding(u16);
 
 impl SmallSet<u8> for Holding {
-    fn empty() -> Self {
-        Self(0)
-    }
-
-    fn all() -> Self {
-        Self(Self::ALL)
-    }
+    const EMPTY: Self = Self(0);
+    const ALL: Self = Self(0x7FFC);
 
     fn len(self) -> usize {
         self.0.count_ones() as usize
@@ -94,7 +87,7 @@ impl SmallSet<u8> for Holding {
     }
 
     fn insert(&mut self, rank: u8) -> bool {
-        let insertion = 1 << rank & Self::ALL;
+        let insertion = 1 << rank & Self::ALL.0;
         let inserted = insertion & !self.0 != 0;
         self.0 |= insertion;
         inserted
@@ -107,14 +100,12 @@ impl SmallSet<u8> for Holding {
     }
 
     fn toggle(&mut self, rank: u8) -> bool {
-        self.0 ^= 1 << rank & Self::ALL;
+        self.0 ^= 1 << rank & Self::ALL.0;
         self.contains(rank)
     }
 }
 
 impl Holding {
-    const ALL: u16 = 0x7FFC;
-
     /// As a bitset of ranks
     #[must_use]
     pub const fn bits(self) -> u16 {
@@ -124,7 +115,7 @@ impl Holding {
     /// Create a holding from a bitset of ranks
     #[must_use]
     pub const fn from_bits(bits: u16) -> Self {
-        Self(bits & Self::ALL)
+        Self(bits & Self::ALL.0)
     }
 }
 
@@ -211,18 +202,14 @@ impl IndexMut<Strain> for Hand {
 }
 
 impl SmallSet<Card> for Hand {
-    fn empty() -> Self {
-        Self::default()
-    }
+    const EMPTY: Self = Self(
+        Holding::EMPTY,
+        Holding::EMPTY,
+        Holding::EMPTY,
+        Holding::EMPTY,
+    );
 
-    fn all() -> Self {
-        Self(
-            Holding::all(),
-            Holding::all(),
-            Holding::all(),
-            Holding::all(),
-        )
-    }
+    const ALL: Self = Self(Holding::ALL, Holding::ALL, Holding::ALL, Holding::ALL);
 
     fn len(self) -> usize {
         self.0.len() + self.1.len() + self.2.len() + self.3.len()
