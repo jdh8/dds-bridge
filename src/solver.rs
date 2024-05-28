@@ -129,6 +129,14 @@ impl From<Deal> for sys::ddTableDeal {
     }
 }
 
+/// Solve a single deal with [`sys::CalcDDtable`]
+#[must_use]
+pub fn solve_deal(deal: Deal) -> TricksTable {
+    let mut result = sys::ddTableResults::default();
+    unsafe { sys::CalcDDtable(deal.into(), &mut result); }
+    result.into()
+}
+
 /// Solve a deal segment with [`sys::CalcAllTables`]
 ///
 /// - `deals`: A slice of deals to solve
