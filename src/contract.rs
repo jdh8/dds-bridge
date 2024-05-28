@@ -1,30 +1,85 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
+/// Denomination, a suit or notrump
+///
+/// We choose this representation over `Option<Suit>` because we are not sure if
+/// the latter can be optimized to a single byte.
+///
+/// The order of the suits deviates from [`dds`][dds], but this order provides
+/// natural ordering by deriving [`PartialOrd`] and [`Ord`].
+///
+/// [dds]: https://github.com/dds-bridge/dds
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Strain {
+    /// ♣
     Clubs,
+    /// ♦
     Diamonds,
+    /// ♥
     Hearts,
+    /// ♠
     Spades,
+    /// NT, the strain not proposing a trump suit
     Notrump,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
+impl Strain {
+    /// Whether this strain is a minor suit (clubs or diamonds)
+    #[must_use]
+    pub const fn is_minor(self) -> bool {
+        matches!(self, Self::Clubs | Self::Diamonds)
+    }
+
+    /// Whether this strain is a major suit (hearts or spades)
+    #[must_use]
+    pub const fn is_major(self) -> bool {
+        matches!(self, Self::Hearts | Self::Spades)
+    }
+
+    /// Whether this strain is a suit
+    #[must_use]
+    pub const fn is_suit(self) -> bool {
+        !matches!(self, Self::Notrump)
+    }
+
+    /// Whether this strain is notrump
+    #[must_use]
+    pub const fn is_notrump(self) -> bool {
+        matches!(self, Self::Notrump)
+    }
+}
+
+/// A call that proposes a contract
+///
+/// The order of the fields ensures natural ordering by deriving [`PartialOrd`]
+/// and [`Ord`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bid {
+    /// The number of tricks (adding the book of 6 tricks) to take to fulfill
+    /// the contract
     pub level: u8,
+
+    /// The strain of the contract
     pub strain: Strain,
 }
 
 impl Bid {
+    /// Create a bid from level and strain
+    #[must_use]
     pub const fn new(level: u8, strain: Strain) -> Self {
         Self { level, strain }
     }
 }
 
+/// Any legal announcement in the bidding stage
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Call {
+    /// A call indicating no wish to change the contract
     Pass,
+    /// A call increasing penalties and bonuses for the contract
     Double,
+    /// A call doubling the score to the previous double
     Redouble,
+    /// A call proposing a contract
     Bid(Bid),
 }
 
@@ -34,16 +89,25 @@ impl From<Bid> for Call {
     }
 }
 
+/// Penalty inflicted on a contract
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Penalty {
+    /// No penalty
     Passed,
+    /// Penalty by [`Call::Double`]
     Doubled,
+    /// Penalty by [`Call::Redouble`]
     Redoubled,
 }
 
+/// The statement of the pair winning the bidding that they will take at least
+/// the number of tricks (in addition to the book of 6 tricks), and the strain
+/// denotes the trump suit.
 #[derive(Debug, Clone, Copy)]
 pub struct Contract {
+    /// The basic part of a contract
     pub bid: Bid,
+    /// The penalty inflicted on the contract
     pub penalty: Penalty,
 }
 
@@ -71,6 +135,8 @@ const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
 }
 
 impl Contract {
+    /// Create a contract from level, strain, and penalty
+    #[must_use]
     pub const fn new(level: u8, strain: Strain, penalty: Penalty) -> Self {
         Self {
             bid: Bid::new(level, strain),
@@ -78,28 +144,28 @@ impl Contract {
         }
     }
 
-    // Base score for making this contract
-    // https://en.wikipedia.org/wiki/Bridge_scoring#Contract_points
-    pub fn points(self) -> i32 {
-        let level = i32::from(self.bid.level);
-        let per_trick = if self.bid.strain >= Strain::Hearts {
-            30
-        } else {
-            20
-        };
-        let notrump = if self.bid.strain == Strain::Notrump {
-            10
-        } else {
-            0
-        };
+    /// Base score for making this contract
+    ///
+    /// <https://en.wikipedia.org/wiki/Bridge_scoring#Contract_points>
+    #[must_use]
+    pub const fn contract_points(self) -> i32 {
+        let level = self.bid.level as i32;
+        let per_trick = self.bid.strain.is_minor() as i32 * -10 + 30;
+        let notrump = self.bid.strain.is_notrump() as i32 * 10;
         (per_trick * level + notrump) << (self.penalty as u8)
     }
 
-    pub fn score(self, tricks: u8, vulnerable: bool) -> i32 {
-        let overtricks = i32::from(tricks) - i32::from(self.bid.level) - 6;
+    /// Score for this contract given the number of taken tricks and
+    /// vulnerability
+    ///
+    /// The score is positive if the declarer makes the contract, and negative
+    /// if the declarer fails.
+    #[must_use]
+    pub const fn score(self, tricks: u8, vulnerable: bool) -> i32 {
+        let overtricks = tricks as i32 - self.bid.level as i32 - 6;
 
         if overtricks >= 0 {
-            let base = self.points();
+            let base = self.contract_points();
             let game = if base < 100 {
                 50
             } else if vulnerable {
@@ -110,31 +176,13 @@ impl Contract {
             let doubled = self.penalty as i32 * 50;
 
             let slam = match self.bid.level {
-                6 => {
-                    if vulnerable {
-                        750
-                    } else {
-                        500
-                    }
-                }
-                7 => {
-                    if vulnerable {
-                        1500
-                    } else {
-                        1000
-                    }
-                }
+                6 => (vulnerable as i32 + 2) * 250,
+                7 => (vulnerable as i32 + 2) * 500,
                 _ => 0,
             };
 
             let per_trick = match self.penalty {
-                Penalty::Passed => {
-                    if self.bid.strain >= Strain::Hearts {
-                        30
-                    } else {
-                        20
-                    }
-                }
+                Penalty::Passed => self.bid.strain.is_minor() as i32 * -10 + 30,
                 penalty => penalty as i32 * if vulnerable { 200 } else { 100 },
             };
 
