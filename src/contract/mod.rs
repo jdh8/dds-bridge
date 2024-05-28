@@ -49,6 +49,18 @@ impl Strain {
     pub const fn is_notrump(self) -> bool {
         matches!(self, Self::Notrump)
     }
+
+    /// Helper constant for iteration over all strains
+    pub const ALL: [Self; 5] = [
+        Self::Clubs,
+        Self::Diamonds,
+        Self::Hearts,
+        Self::Spades,
+        Self::Notrump,
+    ];
+
+    /// Helper constant for iteration over all suits
+    pub const SUITS: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
 }
 
 /// A call that proposes a contract

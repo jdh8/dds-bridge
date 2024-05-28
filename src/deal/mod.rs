@@ -367,15 +367,12 @@ impl Deck {
     /// Create a standard 52-card deck
     #[must_use]
     pub fn standard_52() -> Self {
-        let suits = [
-            Strain::Clubs,
-            Strain::Diamonds,
-            Strain::Hearts,
-            Strain::Spades,
-        ];
-        let product = suits.iter().flat_map(|x| core::iter::repeat(x).zip(2..15));
         Self {
-            cards: product.map(|(suit, rank)| Card::new(*suit, rank)).collect(),
+            cards: Strain::SUITS
+                .into_iter()
+                .flat_map(|x| core::iter::repeat(x).zip(2..=14))
+                .map(|(suit, rank)| Card::new(suit, rank))
+                .collect(),
         }
     }
 
