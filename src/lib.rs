@@ -12,3 +12,6 @@ pub mod contract;
 
 /// Data structures about dealing and playing
 pub mod deal;
+
+/// Solver functions for double dummy problems
+pub mod solver;

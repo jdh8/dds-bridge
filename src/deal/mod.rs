@@ -2,7 +2,6 @@
 mod test;
 
 use crate::contract::Strain;
-use bitflags::bitflags;
 use core::fmt;
 use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
@@ -326,23 +325,6 @@ impl fmt::Display for Deal {
             self[Seat::South],
             self[Seat::West]
         )
-    }
-}
-
-bitflags! {
-    /// Flags for the solver to solve for a strain
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct StrainFlags : u8 {
-        /// Solve for clubs ([`Strain::Clubs`])
-        const CLUBS = 0x01;
-        /// Solve for diamonds ([`Strain::Diamonds`])
-        const DIAMONDS = 0x02;
-        /// Solve for hearts ([`Strain::Hearts`])
-        const HEARTS = 0x04;
-        /// Solve for spades ([`Strain::Spades`])
-        const SPADES = 0x08;
-        /// Solve for notrump ([`Strain::Notrump`])
-        const NOTRUMP = 0x10;
     }
 }
 
