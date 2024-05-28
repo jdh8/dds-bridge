@@ -3,6 +3,179 @@ use crate::deal::{Deal, Seat};
 use bitflags::bitflags;
 use core::fmt;
 use dds_bridge_sys as sys;
+use thiserror::Error;
+
+/// Errors that can occur in the solver
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[repr(i32)]
+pub enum Error {
+    /// Success, no error
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_NO_FAULT) })]
+    #[allow(clippy::cast_possible_wrap)]
+    Success = sys::RETURN_NO_FAULT as i32,
+
+    /// A general or unknown error
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_UNKNOWN_FAULT) })]
+    UnknownFault = sys::RETURN_UNKNOWN_FAULT,
+
+    /// Zero cards
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_ZERO_CARDS) })]
+    ZeroCards = sys::RETURN_ZERO_CARDS,
+
+    /// Target exceeds number of tricks
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_TOO_HIGH) })]
+    TargetTooHigh = sys::RETURN_TARGET_TOO_HIGH,
+
+    /// Duplicate cards
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_DUPLICATE_CARDS) })]
+    DuplicateCards = sys::RETURN_DUPLICATE_CARDS,
+
+    /// Target tricks < 0
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_WRONG_LO) })]
+    NegativeTarget = sys::RETURN_TARGET_WRONG_LO,
+
+    /// Target tricks > 13
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_WRONG_HI) })]
+    InvalidTarget = sys::RETURN_TARGET_WRONG_HI,
+
+    /// Solving parameter < 1
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SOLNS_WRONG_LO) })]
+    LowSolvingParameter = sys::RETURN_SOLNS_WRONG_LO,
+
+    /// Solving parameter > 3
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SOLNS_WRONG_HI) })]
+    HighSolvingParameter = sys::RETURN_SOLNS_WRONG_HI,
+
+    /// Too many cards
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_CARDS) })]
+    TooManyCards = sys::RETURN_TOO_MANY_CARDS,
+
+    /// Wrong current suit or rank
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SUIT_OR_RANK) })]
+    CurrentSuitOrRank = sys::RETURN_SUIT_OR_RANK,
+
+    /// Wrong played card
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PLAYED_CARD) })]
+    PlayedCard = sys::RETURN_PLAYED_CARD,
+
+    /// Wrong card count
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_CARD_COUNT) })]
+    CardCount = sys::RETURN_CARD_COUNT,
+
+    /// Wrong thread index
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_INDEX) })]
+    ThreadIndex = sys::RETURN_THREAD_INDEX,
+
+    /// Mode parameter < 0
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_MODE_WRONG_LO) })]
+    NegativeModeParameter = sys::RETURN_MODE_WRONG_LO,
+
+    /// Mode parameter > 2
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_MODE_WRONG_HI) })]
+    HighModeParameter = sys::RETURN_MODE_WRONG_HI,
+
+    /// Wrong trump suit
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TRUMP_WRONG) })]
+    Trump = sys::RETURN_TRUMP_WRONG,
+
+    /// Wrong "first"
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_FIRST_WRONG) })]
+    First = sys::RETURN_FIRST_WRONG,
+
+    /// `AnalysePlay*()` family of functions.
+    /// (a) Less than 0 or more than 52 cards supplied.
+    /// (b) Invalid suit or rank supplied.
+    /// (c) A played card is not held by the right player.
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PLAY_FAULT) })]
+    AnalysePlay = sys::RETURN_PLAY_FAULT,
+
+    /// Invalid PBN
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PBN_FAULT) })]
+    PBN = sys::RETURN_PBN_FAULT,
+
+    /// Too many boards
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_BOARDS) })]
+    TooManyBoards = sys::RETURN_TOO_MANY_BOARDS,
+
+    /// Cannot create a new thread
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_CREATE) })]
+    ThreadCreate = sys::RETURN_THREAD_CREATE,
+
+    /// Failed to wait for a thread
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_WAIT) })]
+    ThreadWait = sys::RETURN_THREAD_WAIT,
+
+    /// Missing threading system
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_MISSING) })]
+    ThreadMissing = sys::RETURN_THREAD_MISSING,
+
+    /// No suit to solve
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_NO_SUIT) })]
+    NoSuit = sys::RETURN_NO_SUIT,
+
+    /// Too many tables
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_TABLES) })]
+    TooManyTables = sys::RETURN_TOO_MANY_TABLES,
+
+    /// Invalid chunk size
+    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_CHUNK_SIZE) })]
+    ChunkSize = sys::RETURN_CHUNK_SIZE,
+}
+
+impl From<i32> for Error {
+    fn from(status: i32) -> Self {
+        #[allow(clippy::cast_possible_wrap)]
+        const SUCCESS: i32 = sys::RETURN_NO_FAULT as i32;
+
+        match status {
+            0 | SUCCESS => Self::Success,
+            sys::RETURN_ZERO_CARDS => Self::ZeroCards,
+            sys::RETURN_TARGET_TOO_HIGH => Self::TargetTooHigh,
+            sys::RETURN_DUPLICATE_CARDS => Self::DuplicateCards,
+            sys::RETURN_TARGET_WRONG_LO => Self::NegativeTarget,
+            sys::RETURN_TARGET_WRONG_HI => Self::InvalidTarget,
+            sys::RETURN_SOLNS_WRONG_LO => Self::LowSolvingParameter,
+            sys::RETURN_SOLNS_WRONG_HI => Self::HighSolvingParameter,
+            sys::RETURN_TOO_MANY_CARDS => Self::TooManyCards,
+            sys::RETURN_SUIT_OR_RANK => Self::CurrentSuitOrRank,
+            sys::RETURN_PLAYED_CARD => Self::PlayedCard,
+            sys::RETURN_CARD_COUNT => Self::CardCount,
+            sys::RETURN_THREAD_INDEX => Self::ThreadIndex,
+            sys::RETURN_MODE_WRONG_LO => Self::NegativeModeParameter,
+            sys::RETURN_MODE_WRONG_HI => Self::HighModeParameter,
+            sys::RETURN_TRUMP_WRONG => Self::Trump,
+            sys::RETURN_FIRST_WRONG => Self::First,
+            sys::RETURN_PLAY_FAULT => Self::AnalysePlay,
+            sys::RETURN_PBN_FAULT => Self::PBN,
+            sys::RETURN_TOO_MANY_BOARDS => Self::TooManyBoards,
+            sys::RETURN_THREAD_CREATE => Self::ThreadCreate,
+            sys::RETURN_THREAD_WAIT => Self::ThreadWait,
+            sys::RETURN_THREAD_MISSING => Self::ThreadMissing,
+            sys::RETURN_NO_SUIT => Self::NoSuit,
+            sys::RETURN_TOO_MANY_TABLES => Self::TooManyTables,
+            sys::RETURN_CHUNK_SIZE => Self::ChunkSize,
+            _ => Self::UnknownFault,
+        }
+    
+    }
+}
+
+bitflags! {
+    /// Flags for the solver to solve for a strain
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct StrainFlags : u8 {
+        /// Solve for clubs ([`Strain::Clubs`])
+        const CLUBS = 0x01;
+        /// Solve for diamonds ([`Strain::Diamonds`])
+        const DIAMONDS = 0x02;
+        /// Solve for hearts ([`Strain::Hearts`])
+        const HEARTS = 0x04;
+        /// Solve for spades ([`Strain::Spades`])
+        const SPADES = 0x08;
+        /// Solve for notrump ([`Strain::Notrump`])
+        const NOTRUMP = 0x10;
+    }
+}
 
 /// Tricks that each seat can take as declarer for a strain
 #[derive(Debug, Clone, Copy)]
@@ -62,23 +235,6 @@ impl fmt::Display for TricksTable {
     }
 }
 
-bitflags! {
-    /// Flags for the solver to solve for a strain
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct StrainFlags : u8 {
-        /// Solve for clubs ([`Strain::Clubs`])
-        const CLUBS = 0x01;
-        /// Solve for diamonds ([`Strain::Diamonds`])
-        const DIAMONDS = 0x02;
-        /// Solve for hearts ([`Strain::Hearts`])
-        const HEARTS = 0x04;
-        /// Solve for spades ([`Strain::Spades`])
-        const SPADES = 0x08;
-        /// Solve for notrump ([`Strain::Notrump`])
-        const NOTRUMP = 0x10;
-    }
-}
-
 const fn make_row(row: [i32; 4]) -> TricksRow {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     TricksRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
@@ -130,11 +286,18 @@ impl From<Deal> for sys::ddTableDeal {
 }
 
 /// Solve a single deal with [`sys::CalcDDtable`]
-#[must_use]
-pub fn solve_deal(deal: Deal) -> TricksTable {
+///
+/// # Errors
+/// An [`enum@Error`] propagated from DDS
+pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
-    unsafe { sys::CalcDDtable(deal.into(), &mut result); }
-    result.into()
+    let status: Error = unsafe { sys::CalcDDtable(deal.into(), &mut result) }.into();
+
+    if status == Error::Success {
+        Ok(result.into())
+    } else {
+        Err(status)
+    }
 }
 
 /// Solve a deal segment with [`sys::CalcAllTables`]
