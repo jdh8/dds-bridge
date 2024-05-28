@@ -84,8 +84,8 @@ const fn make_row(row: [i32; 4]) -> TricksRow {
     TricksRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
 }
 
-impl From<&sys::ddTableResults> for TricksTable {
-    fn from(table: &sys::ddTableResults) -> Self {
+impl From<sys::ddTableResults> for TricksTable {
+    fn from(table: sys::ddTableResults) -> Self {
         Self([
             make_row(table.resTable[Strain::Spades as usize]),
             make_row(table.resTable[Strain::Hearts as usize]),
@@ -191,12 +191,12 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
 
     for i in 0..q {
         let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], filter) };
-        tables.extend(res.results[..length].iter().map(TricksTable::from));
+        tables.extend(res.results[..length].iter().copied().map(TricksTable::from));
     }
 
     if r > 0 {
         let res = unsafe { solve_deal_segment(&deals[q * length..], filter) };
-        tables.extend(res.results[..r].iter().map(TricksTable::from));
+        tables.extend(res.results[..r].iter().copied().map(TricksTable::from));
     }
 
     tables
