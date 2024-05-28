@@ -122,41 +122,44 @@ pub enum Error {
     ChunkSize = sys::RETURN_CHUNK_SIZE,
 }
 
-impl From<i32> for Error {
-    fn from(status: i32) -> Self {
-        #[allow(clippy::cast_possible_wrap)]
-        const SUCCESS: i32 = sys::RETURN_NO_FAULT as i32;
-
+impl Error {
+    /// Propagate a status code to an error
+    ///
+    /// - `x`: Arbitrary data to return if `status` is non-negative (success)
+    /// - `status`: The status code from a DDS function
+    ///
+    /// # Errors
+    /// An [`enum@Error`] specified by `status`
+    pub const fn propagate<T: Copy>(x: T, status: i32) -> Result<T, Self> {
         match status {
-            0 | SUCCESS => Self::Success,
-            sys::RETURN_ZERO_CARDS => Self::ZeroCards,
-            sys::RETURN_TARGET_TOO_HIGH => Self::TargetTooHigh,
-            sys::RETURN_DUPLICATE_CARDS => Self::DuplicateCards,
-            sys::RETURN_TARGET_WRONG_LO => Self::NegativeTarget,
-            sys::RETURN_TARGET_WRONG_HI => Self::InvalidTarget,
-            sys::RETURN_SOLNS_WRONG_LO => Self::LowSolvingParameter,
-            sys::RETURN_SOLNS_WRONG_HI => Self::HighSolvingParameter,
-            sys::RETURN_TOO_MANY_CARDS => Self::TooManyCards,
-            sys::RETURN_SUIT_OR_RANK => Self::CurrentSuitOrRank,
-            sys::RETURN_PLAYED_CARD => Self::PlayedCard,
-            sys::RETURN_CARD_COUNT => Self::CardCount,
-            sys::RETURN_THREAD_INDEX => Self::ThreadIndex,
-            sys::RETURN_MODE_WRONG_LO => Self::NegativeModeParameter,
-            sys::RETURN_MODE_WRONG_HI => Self::HighModeParameter,
-            sys::RETURN_TRUMP_WRONG => Self::Trump,
-            sys::RETURN_FIRST_WRONG => Self::First,
-            sys::RETURN_PLAY_FAULT => Self::AnalysePlay,
-            sys::RETURN_PBN_FAULT => Self::PBN,
-            sys::RETURN_TOO_MANY_BOARDS => Self::TooManyBoards,
-            sys::RETURN_THREAD_CREATE => Self::ThreadCreate,
-            sys::RETURN_THREAD_WAIT => Self::ThreadWait,
-            sys::RETURN_THREAD_MISSING => Self::ThreadMissing,
-            sys::RETURN_NO_SUIT => Self::NoSuit,
-            sys::RETURN_TOO_MANY_TABLES => Self::TooManyTables,
-            sys::RETURN_CHUNK_SIZE => Self::ChunkSize,
-            _ => Self::UnknownFault,
+            0.. => Ok(x),
+            sys::RETURN_ZERO_CARDS => Err(Self::ZeroCards),
+            sys::RETURN_TARGET_TOO_HIGH => Err(Self::TargetTooHigh),
+            sys::RETURN_DUPLICATE_CARDS => Err(Self::DuplicateCards),
+            sys::RETURN_TARGET_WRONG_LO => Err(Self::NegativeTarget),
+            sys::RETURN_TARGET_WRONG_HI => Err(Self::InvalidTarget),
+            sys::RETURN_SOLNS_WRONG_LO => Err(Self::LowSolvingParameter),
+            sys::RETURN_SOLNS_WRONG_HI => Err(Self::HighSolvingParameter),
+            sys::RETURN_TOO_MANY_CARDS => Err(Self::TooManyCards),
+            sys::RETURN_SUIT_OR_RANK => Err(Self::CurrentSuitOrRank),
+            sys::RETURN_PLAYED_CARD => Err(Self::PlayedCard),
+            sys::RETURN_CARD_COUNT => Err(Self::CardCount),
+            sys::RETURN_THREAD_INDEX => Err(Self::ThreadIndex),
+            sys::RETURN_MODE_WRONG_LO => Err(Self::NegativeModeParameter),
+            sys::RETURN_MODE_WRONG_HI => Err(Self::HighModeParameter),
+            sys::RETURN_TRUMP_WRONG => Err(Self::Trump),
+            sys::RETURN_FIRST_WRONG => Err(Self::First),
+            sys::RETURN_PLAY_FAULT => Err(Self::AnalysePlay),
+            sys::RETURN_PBN_FAULT => Err(Self::PBN),
+            sys::RETURN_TOO_MANY_BOARDS => Err(Self::TooManyBoards),
+            sys::RETURN_THREAD_CREATE => Err(Self::ThreadCreate),
+            sys::RETURN_THREAD_WAIT => Err(Self::ThreadWait),
+            sys::RETURN_THREAD_MISSING => Err(Self::ThreadMissing),
+            sys::RETURN_NO_SUIT => Err(Self::NoSuit),
+            sys::RETURN_TOO_MANY_TABLES => Err(Self::TooManyTables),
+            sys::RETURN_CHUNK_SIZE => Err(Self::ChunkSize),
+            _ => Err(Self::UnknownFault),
         }
-    
     }
 }
 
@@ -291,13 +294,8 @@ impl From<Deal> for sys::ddTableDeal {
 /// An [`enum@Error`] propagated from DDS
 pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
-    let status: Error = unsafe { sys::CalcDDtable(deal.into(), &mut result) }.into();
-
-    if status == Error::Success {
-        Ok(result.into())
-    } else {
-        Err(status)
-    }
+    let status = unsafe { sys::CalcDDtable(deal.into(), &mut result) };
+    Error::propagate(result.into(), status)
 }
 
 /// Solve a deal segment with [`sys::CalcAllTables`]
@@ -311,8 +309,10 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
 /// # Safety
 /// The length of `deals` times the number of strains to solve for must not
 /// exceed [`sys::MAXNOOFBOARDS`].
-#[must_use]
-unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> sys::ddTablesRes {
+/// 
+/// # Errors
+/// An [`enum@Error`] propagated from DDS
+unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> Result<sys::ddTablesRes, Error> {
     let mut res = sys::ddTablesRes::default();
 
     debug_assert!(
@@ -331,7 +331,7 @@ unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> sys::ddTab
         .enumerate()
         .for_each(|(i, deal)| pack.deals[i] = deal.into());
 
-    sys::CalcAllTables(
+    let status = sys::CalcAllTables(
         &mut pack,
         -1,
         &mut filter[0],
@@ -339,15 +339,17 @@ unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> sys::ddTab
         core::ptr::null_mut(),
     );
 
-    res
+    Error::propagate(res, status)
 }
 
 /// Solve deals in parallel for given strains
 ///
 /// - `deals`: A slice of deals to solve
 /// - `flags`: Flags of strains to solve for
-#[must_use]
-pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
+/// 
+/// # Errors
+/// An [`enum@Error`] propagated from DDS
+pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
     let filter = [
         i32::from(!flags.contains(StrainFlags::SPADES)),
         i32::from(!flags.contains(StrainFlags::HEARTS)),
@@ -361,14 +363,14 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
     let mut tables = Vec::new();
 
     for i in 0..q {
-        let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], filter) };
+        let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], filter) }?;
         tables.extend(res.results[..length].iter().copied().map(TricksTable::from));
     }
 
     if r > 0 {
-        let res = unsafe { solve_deal_segment(&deals[q * length..], filter) };
+        let res = unsafe { solve_deal_segment(&deals[q * length..], filter) }?;
         tables.extend(res.results[..r].iter().copied().map(TricksTable::from));
     }
 
-    tables
+    Ok(tables)
 }
