@@ -150,7 +150,7 @@ impl Not for Holding {
     type Output = Self;
 
     fn not(self) -> Self {
-        Self::from_bits(!self.0)
+        Self::ALL ^ self
     }
 }
 
@@ -158,7 +158,7 @@ impl Sub for Holding {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        Self(self.0 & !rhs.0)
+        self & !rhs
     }
 }
 
@@ -176,46 +176,53 @@ impl fmt::Display for Holding {
 
 /// A hand of playing cards
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Hand(Holding, Holding, Holding, Holding);
+pub struct Hand([Holding; 4]);
 
 impl Index<Strain> for Hand {
     type Output = Holding;
 
     fn index(&self, suit: Strain) -> &Holding {
-        match suit {
-            Strain::Clubs => &self.0,
-            Strain::Diamonds => &self.1,
-            Strain::Hearts => &self.2,
-            Strain::Spades => &self.3,
-            Strain::Notrump => panic!("Notrump is not a suit"),
-        }
+        &self.0[suit as usize]
     }
 }
 
 impl IndexMut<Strain> for Hand {
     fn index_mut(&mut self, suit: Strain) -> &mut Holding {
-        match suit {
-            Strain::Clubs => &mut self.0,
-            Strain::Diamonds => &mut self.1,
-            Strain::Hearts => &mut self.2,
-            Strain::Spades => &mut self.3,
-            Strain::Notrump => panic!("Notrump is not a suit"),
-        }
+        &mut self.0[suit as usize]
+    }
+}
+
+impl Hand {
+    /// As a bitset of cards
+    #[must_use]
+    pub const fn to_bits(self) -> u64 {
+        unsafe { core::mem::transmute(self.0) }
+    }
+
+    /// Create a hand from a bitset of cards
+    ///
+    /// This function removes invalid cards.
+    #[must_use]
+    pub const fn from_bits(bits: u64) -> Self {
+        Self(unsafe { core::mem::transmute(bits & Self::ALL.to_bits()) })
+    }
+
+    /// Create a hand from a bitset of cards without checking
+    ///
+    /// # Safety
+    /// The bitset must not contain invalid cards.
+    #[must_use]
+    pub const unsafe fn from_bits_unchecked(bits: u64) -> Self {
+        Self(core::mem::transmute(bits))
     }
 }
 
 impl SmallSet<Card> for Hand {
-    const EMPTY: Self = Self(
-        Holding::EMPTY,
-        Holding::EMPTY,
-        Holding::EMPTY,
-        Holding::EMPTY,
-    );
-
-    const ALL: Self = Self(Holding::ALL, Holding::ALL, Holding::ALL, Holding::ALL);
+    const EMPTY: Self = Self([Holding::EMPTY; 4]);
+    const ALL: Self = Self([Holding::ALL; 4]);
 
     fn len(self) -> usize {
-        self.0.len() + self.1.len() + self.2.len() + self.3.len()
+        self.to_bits().count_ones() as usize
     }
 
     fn contains(self, card: Card) -> bool {
@@ -252,12 +259,8 @@ impl BitAnd for Hand {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self {
-        Self(
-            self.0 & rhs.0,
-            self.1 & rhs.1,
-            self.2 & rhs.2,
-            self.3 & rhs.3,
-        )
+        // SAFETY: safe when both operands are valid
+        unsafe { Self::from_bits_unchecked(self.to_bits() & rhs.to_bits()) }
     }
 }
 
@@ -265,12 +268,8 @@ impl BitOr for Hand {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self {
-        Self(
-            self.0 | rhs.0,
-            self.1 | rhs.1,
-            self.2 | rhs.2,
-            self.3 | rhs.3,
-        )
+        // SAFETY: safe when both operands are valid
+        unsafe { Self::from_bits_unchecked(self.to_bits() | rhs.to_bits()) }
     }
 }
 
@@ -278,12 +277,8 @@ impl BitXor for Hand {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
-        Self(
-            self.0 ^ rhs.0,
-            self.1 ^ rhs.1,
-            self.2 ^ rhs.2,
-            self.3 ^ rhs.3,
-        )
+        // SAFETY: safe when both operands are valid
+        unsafe { Self::from_bits_unchecked(self.to_bits() ^ rhs.to_bits()) }
     }
 }
 
@@ -291,7 +286,7 @@ impl Not for Hand {
     type Output = Self;
 
     fn not(self) -> Self {
-        Self(!self.0, !self.1, !self.2, !self.3)
+        Self::ALL ^ self
     }
 }
 
@@ -299,12 +294,7 @@ impl Sub for Hand {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        Self(
-            self.0 - rhs.0,
-            self.1 - rhs.1,
-            self.2 - rhs.2,
-            self.3 - rhs.3,
-        )
+        self & !rhs
     }
 }
 

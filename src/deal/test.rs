@@ -52,6 +52,7 @@ fn test_sub() {
 fn test_not() {
     all_holdings().for_each(|v| {
         assert_eq!(!v, Holding::ALL - v);
+        assert_eq!(!v, Holding::ALL ^ v);
     });
 }
 
