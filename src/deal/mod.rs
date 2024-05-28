@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use crate::contract::Strain;
 use bitflags::bitflags;
 use core::fmt;
@@ -40,7 +43,7 @@ impl Card {
 }
 
 /// A bitset whose size is known at compile time
-pub trait SmallSet<T>: Copy + PartialEq + BitAnd + BitOr + BitXor + Not + Sub {
+pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
     /// The empty set
     const EMPTY: Self;
 
@@ -108,7 +111,7 @@ impl SmallSet<u8> for Holding {
 impl Holding {
     /// As a bitset of ranks
     #[must_use]
-    pub const fn bits(self) -> u16 {
+    pub const fn to_bits(self) -> u16 {
         self.0
     }
 
@@ -390,15 +393,15 @@ impl Deck {
     }
 
     /// Shuffle the deck
-    pub fn shuffle(&mut self) {
-        self.cards.shuffle(&mut rand::thread_rng());
+    pub fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized)) {
+        self.cards.shuffle(rng);
     }
 }
 
 /// Create a shuffled standard 52-card deck
 #[must_use]
-pub fn shuffled_standard_52_deck() -> Deck {
+pub fn shuffled_standard_52_deck(rng: &mut (impl rand::Rng + ?Sized)) -> Deck {
     let mut deck = Deck::standard_52();
-    deck.shuffle();
+    deck.shuffle(rng);
     deck
 }
