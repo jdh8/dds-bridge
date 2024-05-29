@@ -164,53 +164,6 @@ impl Error {
     }
 }
 
-/// Target tricks and number of solutions to find
-///
-/// This enum corresponds to a tuple of `target` and `solutions` in
-/// [`sys::SolveBoard`].  The `target` tricks given as an associated value must
-/// be in the range of `-1..=13`, where `-1` instructs the solver to find cards
-/// that give the most tricks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Target {
-    /// Find any card that fulfills the target
-    ///
-    /// - `0..=13`: Find any card scoring at least `target` tricks
-    /// - `-1`: Find any card scoring the most tricks
-    Any(i8),
-
-    /// Find all cards that fulfill the target
-    ///
-    /// - `0..=13`: Find all cards scoring at least `target` tricks
-    /// - `-1`: Find all cards scoring the most tricks
-    All(i8),
-
-    /// Solve for all legal plays
-    ///
-    /// Cards are sorted with their scores in descending order.
-    Legal,
-}
-
-impl Target {
-    /// Get the `target` argument for [`sys::SolveBoard`]
-    #[must_use]
-    pub const fn target(self) -> c_int {
-        match self {
-            Self::Any(target) | Self::All(target) => target as c_int,
-            Self::Legal => -1,
-        }
-    }
-
-    /// Get the `solutions` argument for [`sys::SolveBoard`]
-    #[must_use]
-    pub const fn solutions(self) -> c_int {
-        match self {
-            Self::Any(_) => 1,
-            Self::All(_) => 2,
-            Self::Legal => 3,
-        }
-    }
-}
-
 bitflags! {
     /// Flags for the solver to solve for a strain
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -424,4 +377,70 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     }
 
     Ok(tables)
+}
+
+/// Target tricks and number of solutions to find
+///
+/// This enum corresponds to a tuple of `target` and `solutions` in
+/// [`sys::SolveBoard`].  The `target` tricks given as an associated value must
+/// be in the range of `-1..=13`, where `-1` instructs the solver to find cards
+/// that give the most tricks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    /// Find any card that fulfills the target
+    ///
+    /// - `0..=13`: Find any card scoring at least `target` tricks
+    /// - `-1`: Find any card scoring the most tricks
+    Any(i8),
+
+    /// Find all cards that fulfill the target
+    ///
+    /// - `0..=13`: Find all cards scoring at least `target` tricks
+    /// - `-1`: Find all cards scoring the most tricks
+    All(i8),
+
+    /// Solve for all legal plays
+    ///
+    /// Cards are sorted with their scores in descending order.
+    Legal,
+}
+
+impl Target {
+    /// Get the `target` argument for [`sys::SolveBoard`]
+    #[must_use]
+    pub const fn target(self) -> c_int {
+        match self {
+            Self::Any(target) | Self::All(target) => target as c_int,
+            Self::Legal => -1,
+        }
+    }
+
+    /// Get the `solutions` argument for [`sys::SolveBoard`]
+    #[must_use]
+    pub const fn solutions(self) -> c_int {
+        match self {
+            Self::Any(_) => 1,
+            Self::All(_) => 2,
+            Self::Legal => 3,
+        }
+    }
+}
+
+struct Board {
+    deal: Deal,
+}
+
+impl From<Board> for sys::deal {
+    fn from(board: Board) -> Self {
+        Self {
+            remainCards: sys::ddTableDeal::from(board.deal).cards,
+            ..Default::default()
+        }
+    }
+}
+
+fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, Error> {
+    let mut result = sys::futureTricks::default();
+    let status = unsafe { sys::SolveBoard(board.into(), target.target(), target.solutions(), 0, &mut result, 0) };
+    Error::propagate(result, status)
 }
