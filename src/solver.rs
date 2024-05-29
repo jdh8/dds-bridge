@@ -163,6 +163,53 @@ impl Error {
     }
 }
 
+/// Target tricks and number of solutions to find
+///
+/// This enum corresponds to a tuple of `target` and `solutions` in
+/// [`sys::SolveBoard`].  The `target` tricks given as an associated value must
+/// be in the range of `-1..=13`, where `-1` instructs the solver to find cards
+/// that give the most tricks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    /// Find any card that fulfills the target
+    ///
+    /// - `0..=13`: Find any card scoring at least `target` tricks
+    /// - `-1`: Find any card scoring the most tricks
+    Any(i8),
+
+    /// Find all cards that fulfill the target
+    ///
+    /// - `0..=13`: Find all cards scoring at least `target` tricks
+    /// - `-1`: Find all cards scoring the most tricks
+    All(i8),
+
+    /// Solve for all legal plays
+    ///
+    /// Cards are sorted with their scores in descending order.
+    Legal,
+}
+
+impl Target {
+    /// Get the `target` argument for [`sys::SolveBoard`]
+    #[must_use]
+    pub const fn target(self) -> core::ffi::c_int {
+        match self {
+            Self::Any(target) | Self::All(target) => target as core::ffi::c_int,
+            Self::Legal => -1,
+        }
+    }
+
+    /// Get the `solutions` argument for [`sys::SolveBoard`]
+    #[must_use]
+    pub const fn solutions(self) -> core::ffi::c_int {
+        match self {
+            Self::Any(_) => 1,
+            Self::All(_) => 2,
+            Self::Legal => 3,
+        }
+    }
+}
+
 bitflags! {
     /// Flags for the solver to solve for a strain
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
