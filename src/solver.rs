@@ -1,6 +1,7 @@
 use crate::contract::Strain;
 use crate::deal::{Deal, Seat};
 use bitflags::bitflags;
+use core::ffi::c_int;
 use core::fmt;
 use dds_bridge_sys as sys;
 use thiserror::Error;
@@ -192,16 +193,16 @@ pub enum Target {
 impl Target {
     /// Get the `target` argument for [`sys::SolveBoard`]
     #[must_use]
-    pub const fn target(self) -> core::ffi::c_int {
+    pub const fn target(self) -> c_int {
         match self {
-            Self::Any(target) | Self::All(target) => target as core::ffi::c_int,
+            Self::Any(target) | Self::All(target) => target as c_int,
             Self::Legal => -1,
         }
     }
 
     /// Get the `solutions` argument for [`sys::SolveBoard`]
     #[must_use]
-    pub const fn solutions(self) -> core::ffi::c_int {
+    pub const fn solutions(self) -> c_int {
         match self {
             Self::Any(_) => 1,
             Self::All(_) => 2,
@@ -285,7 +286,7 @@ impl fmt::Display for TricksTable {
     }
 }
 
-const fn make_row(row: [i32; 4]) -> TricksRow {
+const fn make_row(row: [c_int; 4]) -> TricksRow {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     TricksRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
 }
@@ -361,7 +362,7 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
 /// An [`enum@Error`] propagated from DDS
 unsafe fn solve_deal_segment(
     deals: &[Deal],
-    mut filter: [i32; 5],
+    mut filter: [c_int; 5],
 ) -> Result<sys::ddTablesRes, Error> {
     let mut res = sys::ddTablesRes::default();
 
@@ -371,7 +372,7 @@ unsafe fn solve_deal_segment(
 
     let mut pack = sys::ddTableDeals {
         #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
-        noOfTables: deals.len() as i32,
+        noOfTables: deals.len() as c_int,
         ..Default::default()
     };
 
@@ -401,11 +402,11 @@ unsafe fn solve_deal_segment(
 /// An [`enum@Error`] propagated from DDS
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
     let filter = [
-        i32::from(!flags.contains(StrainFlags::SPADES)),
-        i32::from(!flags.contains(StrainFlags::HEARTS)),
-        i32::from(!flags.contains(StrainFlags::DIAMONDS)),
-        i32::from(!flags.contains(StrainFlags::CLUBS)),
-        i32::from(!flags.contains(StrainFlags::NOTRUMP)),
+        c_int::from(!flags.contains(StrainFlags::SPADES)),
+        c_int::from(!flags.contains(StrainFlags::HEARTS)),
+        c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
+        c_int::from(!flags.contains(StrainFlags::CLUBS)),
+        c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
     ];
 
     let length = (sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize;
