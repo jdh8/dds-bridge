@@ -106,9 +106,10 @@ impl From<Bid> for Call {
 
 /// Penalty inflicted on a contract
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Penalty {
     /// No penalty
-    Passed,
+    None,
     /// Penalty by [`Call::Double`]
     Doubled,
     /// Penalty by [`Call::Redouble`]
@@ -130,7 +131,7 @@ impl From<Bid> for Contract {
     fn from(bid: Bid) -> Self {
         Self {
             bid,
-            penalty: Penalty::Passed,
+            penalty: Penalty::None,
         }
     }
 }
@@ -197,14 +198,14 @@ impl Contract {
             };
 
             let per_trick = match self.penalty {
-                Penalty::Passed => self.bid.strain.is_minor() as i32 * -10 + 30,
+                Penalty::None => self.bid.strain.is_minor() as i32 * -10 + 30,
                 penalty => penalty as i32 * if vulnerable { 200 } else { 100 },
             };
 
             base + game + slam + doubled + overtricks * per_trick
         } else {
             match self.penalty {
-                Penalty::Passed => overtricks * if vulnerable { 100 } else { 50 },
+                Penalty::None => overtricks * if vulnerable { 100 } else { 50 },
                 penalty => penalty as i32 * -compute_doubled_penalty(-overtricks, vulnerable),
             }
         }

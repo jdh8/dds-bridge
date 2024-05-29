@@ -8,19 +8,19 @@ macro_rules! static_assert {
     };
 }
 
-static_assert!(Contract::new(1, Clubs, Passed).score(9, false) == 110);
-static_assert!(Contract::new(1, Hearts, Passed).score(9, false) == 140);
-static_assert!(Contract::new(1, Notrump, Passed).score(7, false) == 90);
+static_assert!(Contract::new(1, Clubs, None).score(9, false) == 110);
+static_assert!(Contract::new(1, Hearts, None).score(9, false) == 140);
+static_assert!(Contract::new(1, Notrump, None).score(7, false) == 90);
 
-static_assert!(Contract::new(3, Notrump, Passed).score(9, false) == 400);
-static_assert!(Contract::new(3, Notrump, Passed).score(9, true) == 600);
-static_assert!(Contract::new(4, Hearts, Passed).score(10, false) == 420);
-static_assert!(Contract::new(4, Spades, Passed).score(10, true) == 620);
-static_assert!(Contract::new(5, Clubs, Passed).score(11, false) == 400);
-static_assert!(Contract::new(5, Diamonds, Passed).score(11, true) == 600);
+static_assert!(Contract::new(3, Notrump, None).score(9, false) == 400);
+static_assert!(Contract::new(3, Notrump, None).score(9, true) == 600);
+static_assert!(Contract::new(4, Hearts, None).score(10, false) == 420);
+static_assert!(Contract::new(4, Spades, None).score(10, true) == 620);
+static_assert!(Contract::new(5, Clubs, None).score(11, false) == 400);
+static_assert!(Contract::new(5, Diamonds, None).score(11, true) == 600);
 
-static_assert!(Contract::new(6, Spades, Passed).score(12, true) == 1430);
-static_assert!(Contract::new(6, Notrump, Passed).score(12, false) == 990);
+static_assert!(Contract::new(6, Spades, None).score(12, true) == 1430);
+static_assert!(Contract::new(6, Notrump, None).score(12, false) == 990);
 
 static_assert!(Contract::new(2, Clubs, Doubled).score(8, false) == 180);
 static_assert!(Contract::new(2, Clubs, Doubled).score(9, false) == 280);
@@ -31,7 +31,7 @@ static_assert!(Contract::new(7, Spades, Redoubled).score(13, false) == 2240);
 
 const _: () = {
     const fn test_set_contract(bid: super::Bid) {
-        let undoubled = Contract::new(bid.level, bid.strain, Passed);
+        let undoubled = Contract::new(bid.level, bid.strain, None);
         let mut tricks = 0;
 
         while tricks < bid.level + 6 {

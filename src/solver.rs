@@ -309,10 +309,13 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
 /// # Safety
 /// The length of `deals` times the number of strains to solve for must not
 /// exceed [`sys::MAXNOOFBOARDS`].
-/// 
+///
 /// # Errors
 /// An [`enum@Error`] propagated from DDS
-unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> Result<sys::ddTablesRes, Error> {
+unsafe fn solve_deal_segment(
+    deals: &[Deal],
+    mut filter: [i32; 5],
+) -> Result<sys::ddTablesRes, Error> {
     let mut res = sys::ddTablesRes::default();
 
     debug_assert!(
@@ -346,7 +349,7 @@ unsafe fn solve_deal_segment(deals: &[Deal], mut filter: [i32; 5]) -> Result<sys
 ///
 /// - `deals`: A slice of deals to solve
 /// - `flags`: Flags of strains to solve for
-/// 
+///
 /// # Errors
 /// An [`enum@Error`] propagated from DDS
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
