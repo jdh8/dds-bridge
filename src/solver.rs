@@ -182,7 +182,7 @@ bitflags! {
 }
 
 /// Tricks that each seat can take as declarer for a strain
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TricksRow(u16);
 
 impl TricksRow {
@@ -218,7 +218,7 @@ impl fmt::Display for TricksRow {
 }
 
 /// Tricks that each seat can take as declarer for all strains
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TricksTable([TricksRow; 5]);
 
 impl core::ops::Index<Strain> for TricksTable {
@@ -338,9 +338,21 @@ pub unsafe fn solve_deal_segment(
             c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
         ][0],
         &mut res,
-        core::ptr::null_mut(),
+        &mut sys::allParResults::default(),
     );
     Error::propagate(res, status)
+}
+
+#[test]
+fn test_solving_deals() {
+    const N: usize = 1000;
+    let deals: [Deal; N] = core::array::from_fn(|_| {
+        crate::deal::shuffled_standard_52_deck(&mut rand::thread_rng()).deal()
+    });
+    let array: [TricksTable; N] =
+        core::array::from_fn(|i| solve_deal(deals[i]).expect("Failed to solve one deal"));
+    let vec = solve_deals(&deals, StrainFlags::all()).expect("Failed to solve all deals");
+    assert_eq!(array, vec.as_slice());
 }
 
 /// Solve deals in parallel for given strains
