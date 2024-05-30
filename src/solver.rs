@@ -299,50 +299,47 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     Error::propagate(result.into(), status)
 }
 
-/// Solve a deal segment with [`sys::CalcAllTables`]
+/// Solve deals with a single call of [`sys::CalcAllTables`]
 ///
 /// - `deals`: A slice of deals to solve
-/// - `filter`: Reverse filter in [spades, hearts, diamonds, clubs, notrump]
-///
-/// Note that zero entries in the filter means to solve for that strain.  For
-/// example, `[0, 0, 1, 1, 1]` means to solve for major suits only.
+/// - `flags`: Flags of strains to solve for
 ///
 /// # Safety
-/// The length of `deals` times the number of strains to solve for must not
-/// exceed [`sys::MAXNOOFBOARDS`].
+/// `deals.len() * flags.bits().count_ones()` must not exceed
+/// [`sys::MAXNOOFBOARDS`].
 ///
 /// # Errors
 /// An [`enum@Error`] propagated from DDS
-unsafe fn solve_deal_segment(
+pub unsafe fn solve_deal_segment(
     deals: &[Deal],
-    mut filter: [c_int; 5],
+    flags: StrainFlags,
 ) -> Result<sys::ddTablesRes, Error> {
-    let mut res = sys::ddTablesRes::default();
-
-    debug_assert!(
-        deals.len() * filter.iter().copied().filter(|&i| i == 0).count() <= res.results.len()
-    );
-
+    debug_assert!(deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize);
     let mut pack = sys::ddTableDeals {
         #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
         noOfTables: deals.len() as c_int,
         ..Default::default()
     };
-
     deals
         .iter()
         .copied()
         .enumerate()
         .for_each(|(i, deal)| pack.deals[i] = deal.into());
 
+    let mut res = sys::ddTablesRes::default();
     let status = sys::CalcAllTables(
         &mut pack,
         -1,
-        &mut filter[0],
+        &mut [
+            c_int::from(!flags.contains(StrainFlags::SPADES)),
+            c_int::from(!flags.contains(StrainFlags::HEARTS)),
+            c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
+            c_int::from(!flags.contains(StrainFlags::CLUBS)),
+            c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
+        ][0],
         &mut res,
         core::ptr::null_mut(),
     );
-
     Error::propagate(res, status)
 }
 
@@ -354,25 +351,17 @@ unsafe fn solve_deal_segment(
 /// # Errors
 /// An [`enum@Error`] propagated from DDS
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
-    let filter = [
-        c_int::from(!flags.contains(StrainFlags::SPADES)),
-        c_int::from(!flags.contains(StrainFlags::HEARTS)),
-        c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
-        c_int::from(!flags.contains(StrainFlags::CLUBS)),
-        c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
-    ];
-
     let length = (sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize;
     let (q, r) = (deals.len() / length, deals.len() % length);
     let mut tables = Vec::new();
 
     for i in 0..q {
-        let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], filter) }?;
+        let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], flags) }?;
         tables.extend(res.results[..length].iter().copied().map(TricksTable::from));
     }
 
     if r > 0 {
-        let res = unsafe { solve_deal_segment(&deals[q * length..], filter) }?;
+        let res = unsafe { solve_deal_segment(&deals[q * length..], flags) }?;
         tables.extend(res.results[..r].iter().copied().map(TricksTable::from));
     }
 
@@ -441,6 +430,15 @@ impl From<Board> for sys::deal {
 
 fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, Error> {
     let mut result = sys::futureTricks::default();
-    let status = unsafe { sys::SolveBoard(board.into(), target.target(), target.solutions(), 0, &mut result, 0) };
+    let status = unsafe {
+        sys::SolveBoard(
+            board.into(),
+            target.target(),
+            target.solutions(),
+            0,
+            &mut result,
+            0,
+        )
+    };
     Error::propagate(result, status)
 }
