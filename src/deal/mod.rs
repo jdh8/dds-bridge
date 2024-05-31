@@ -332,7 +332,7 @@ impl fmt::Display for Deal {
 #[derive(Debug, Clone, Default)]
 struct Deck {
     /// The cards in the deck
-    pub cards: Vec<Card>,
+    cards: Vec<Card>,
 }
 
 impl Deck {
