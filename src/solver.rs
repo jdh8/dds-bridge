@@ -343,6 +343,7 @@ pub unsafe fn solve_deal_segment(
     Error::propagate(res, status)
 }
 
+#[cfg(test)]
 #[test]
 fn test_solving_deals() {
     const N: usize = 1000;

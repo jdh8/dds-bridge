@@ -11,6 +11,6 @@ keywords = ["bridge", "double-dummy"]
 
 [dependencies]
 bitflags = "2.5.0"
-dds-bridge-sys = "1.1.0"
+dds-bridge-sys = "1.1.5"
 rand = "0.8.5"
 thiserror = "1.0.61"
