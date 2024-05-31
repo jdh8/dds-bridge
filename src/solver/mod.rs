@@ -2,13 +2,13 @@
 mod test;
 
 use crate::contract::Strain;
-use crate::deal::{Deal, Hand, Seat, Suit};
+use crate::deal::{Card, Deal, Hand, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
 use dds_bridge_sys as sys;
-use thiserror::Error;
 use std::sync::{Mutex, MutexGuard, PoisonError};
+use thiserror::Error;
 
 static THREAD_POOL: Mutex<()> = Mutex::new(());
 
@@ -440,14 +440,34 @@ impl Target {
 }
 
 struct Board {
+    trump: Strain,
+    lead: Seat,
+    current_cards: arrayvec::ArrayVec<Card, 3>,
     deal: Deal,
 }
 
 impl From<Board> for sys::deal {
     fn from(board: Board) -> Self {
+        let mut suits = [0; 3];
+        let mut ranks = [0; 3];
+
+        for (i, card) in board.current_cards.iter().enumerate() {
+            suits[i] = 3 - card.suit as c_int;
+            ranks[i] = c_int::from(card.rank);
+        }
+
         Self {
+            trump: match board.trump {
+                Strain::Spades => 0,
+                Strain::Hearts => 1,
+                Strain::Diamonds => 2,
+                Strain::Clubs => 3,
+                Strain::Notrump => 4,
+            },
+            first: board.lead as c_int,
+            currentTrickSuit: suits,
+            currentTrickRank: ranks,
             remainCards: sys::ddTableDeal::from(board.deal).cards,
-            ..Default::default()
         }
     }
 }
