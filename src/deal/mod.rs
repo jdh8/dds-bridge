@@ -330,7 +330,7 @@ impl fmt::Display for Deal {
 
 /// A deck of playing cards
 #[derive(Debug, Clone, Default)]
-pub struct Deck {
+struct Deck {
     /// The cards in the deck
     pub cards: Vec<Card>,
 }
@@ -338,7 +338,7 @@ pub struct Deck {
 impl Deck {
     /// Create a standard 52-card deck
     #[must_use]
-    pub fn standard_52() -> Self {
+    fn standard_52() -> Self {
         Self {
             cards: Strain::SUITS
                 .into_iter()
@@ -350,7 +350,7 @@ impl Deck {
 
     /// Deal the deck into four hands
     #[must_use]
-    pub fn deal(&self) -> Deal {
+    fn deal(&self) -> Deal {
         let mut deal = Deal::default();
 
         for (index, card) in self.cards.iter().enumerate() {
@@ -362,15 +362,16 @@ impl Deck {
     }
 
     /// Shuffle the deck
-    pub fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized)) {
+    fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized)) {
         self.cards.shuffle(rng);
     }
 }
 
-/// Create a shuffled standard 52-card deck
-#[must_use]
-pub fn shuffled_standard_52_deck(rng: &mut (impl rand::Rng + ?Sized)) -> Deck {
-    let mut deck = Deck::standard_52();
-    deck.shuffle(rng);
-    deck
+impl Deal {
+    /// Create a deal from a shuffled standard 52-card deck
+    pub fn new(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
+        let mut deck = Deck::standard_52();
+        deck.shuffle(rng);
+        deck.deal()
+    }
 }

@@ -59,7 +59,7 @@ fn test_not() {
 #[test]
 fn test_random_deals() {
     (0..1_000_000).for_each(|_| {
-        let hands = shuffled_standard_52_deck(&mut rand::thread_rng()).deal().0;
+        let hands = Deal::new(&mut rand::thread_rng()).0;
         assert_eq!(hands[0] | hands[1] | hands[2] | hands[3], Hand::ALL);
         assert_eq!(hands[0] & hands[1], Hand::EMPTY);
         assert_eq!(hands[0] & hands[2], Hand::EMPTY);

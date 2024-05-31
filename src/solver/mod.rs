@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use crate::contract::Strain;
 use crate::deal::{Deal, Seat};
 use bitflags::bitflags;
@@ -5,6 +8,8 @@ use core::ffi::c_int;
 use core::fmt;
 use dds_bridge_sys as sys;
 use thiserror::Error;
+
+static THREAD_POOL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Errors that can occur in the solver
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
@@ -295,6 +300,7 @@ impl From<Deal> for sys::ddTableDeal {
 /// An [`enum@Error`] propagated from DDS
 pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
+    let _guard = THREAD_POOL.lock().map_err(|_| Error::ThreadWait)?;
     let status = unsafe { sys::CalcDDtable(deal.into(), &mut result) };
     Error::propagate(result.into(), status)
 }
@@ -327,6 +333,7 @@ pub unsafe fn solve_deal_segment(
         .for_each(|(i, deal)| pack.deals[i] = deal.into());
 
     let mut res = sys::ddTablesRes::default();
+    let _guard = THREAD_POOL.lock().map_err(|_| Error::ThreadWait)?;
     let status = sys::CalcAllTables(
         &mut pack,
         -1,
@@ -341,19 +348,6 @@ pub unsafe fn solve_deal_segment(
         &mut sys::allParResults::default(),
     );
     Error::propagate(res, status)
-}
-
-#[cfg(test)]
-#[test]
-fn test_solving_deals() {
-    const N: usize = 1000;
-    let deals: [Deal; N] = core::array::from_fn(|_| {
-        crate::deal::shuffled_standard_52_deck(&mut rand::thread_rng()).deal()
-    });
-    let array: [TricksTable; N] =
-        core::array::from_fn(|i| solve_deal(deals[i]).expect("Failed to solve one deal"));
-    let vec = solve_deals(&deals, StrainFlags::all()).expect("Failed to solve all deals");
-    assert_eq!(array, vec.as_slice());
 }
 
 /// Solve deals in parallel for given strains
