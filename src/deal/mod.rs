@@ -6,6 +6,36 @@ use core::fmt;
 use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
+/// A suit of playing cards
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum Suit {
+    /// ♣
+    Clubs,
+    /// ♦
+    Diamonds,
+    /// ♥
+    Hearts,
+    /// ♠
+    Spades,
+}
+
+impl Suit {
+    /// Helper constant for iteration over all suits
+    pub const ALL: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
+}
+
+impl From<Suit> for Strain {
+    fn from(suit: Suit) -> Self {
+        match suit {
+            Suit::Clubs => Self::Clubs,
+            Suit::Diamonds => Self::Diamonds,
+            Suit::Hearts => Self::Hearts,
+            Suit::Spades => Self::Spades,
+        }
+    }
+}
+
 /// Position at the table
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -24,7 +54,7 @@ pub enum Seat {
 #[derive(Debug, Clone, Copy)]
 pub struct Card {
     /// The suit of the card
-    pub suit: Strain,
+    pub suit: Suit,
 
     /// The rank of the card
     ///
@@ -36,7 +66,7 @@ pub struct Card {
 impl Card {
     /// Create a card from suit and rank
     #[must_use]
-    pub const fn new(suit: Strain, rank: u8) -> Self {
+    pub const fn new(suit: Suit, rank: u8) -> Self {
         Self { suit, rank }
     }
 }
@@ -177,16 +207,16 @@ impl fmt::Display for Holding {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hand([Holding; 4]);
 
-impl Index<Strain> for Hand {
+impl Index<Suit> for Hand {
     type Output = Holding;
 
-    fn index(&self, suit: Strain) -> &Holding {
+    fn index(&self, suit: Suit) -> &Holding {
         &self.0[suit as usize]
     }
 }
 
-impl IndexMut<Strain> for Hand {
-    fn index_mut(&mut self, suit: Strain) -> &mut Holding {
+impl IndexMut<Suit> for Hand {
+    fn index_mut(&mut self, suit: Suit) -> &mut Holding {
         &mut self.0[suit as usize]
     }
 }
@@ -246,10 +276,10 @@ impl fmt::Display for Hand {
         write!(
             f,
             "{}.{}.{}.{}",
-            self[Strain::Spades],
-            self[Strain::Hearts],
-            self[Strain::Diamonds],
-            self[Strain::Clubs]
+            self[Suit::Spades],
+            self[Suit::Hearts],
+            self[Suit::Diamonds],
+            self[Suit::Clubs]
         )
     }
 }
@@ -340,7 +370,7 @@ impl Deck {
     #[must_use]
     fn standard_52() -> Self {
         Self {
-            cards: Strain::SUITS
+            cards: Suit::ALL
                 .into_iter()
                 .flat_map(|x| core::iter::repeat(x).zip(2..=14))
                 .map(|(suit, rank)| Card::new(suit, rank))

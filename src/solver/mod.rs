@@ -2,7 +2,7 @@
 mod test;
 
 use crate::contract::Strain;
-use crate::deal::{Deal, Seat};
+use crate::deal::{Deal, Hand, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
@@ -273,44 +273,39 @@ const fn make_row(row: [c_int; 4]) -> TricksRow {
 
 impl From<sys::ddTableResults> for TricksTable {
     fn from(table: sys::ddTableResults) -> Self {
+        const S: usize = 0;
+        const H: usize = 1;
+        const D: usize = 2;
+        const C: usize = 3;
+        const NT: usize = 4;
+
         Self([
-            make_row(table.resTable[Strain::Spades as usize]),
-            make_row(table.resTable[Strain::Hearts as usize]),
-            make_row(table.resTable[Strain::Diamonds as usize]),
-            make_row(table.resTable[Strain::Clubs as usize]),
-            make_row(table.resTable[Strain::Notrump as usize]),
+            make_row(table.resTable[C]),
+            make_row(table.resTable[D]),
+            make_row(table.resTable[H]),
+            make_row(table.resTable[S]),
+            make_row(table.resTable[NT]),
         ])
     }
 }
 
 impl From<Deal> for sys::ddTableDeal {
     fn from(deal: Deal) -> Self {
+        fn convert(hand: Hand) -> [core::ffi::c_uint; 4] {
+            [
+                hand[Suit::Spades].to_bits().into(),
+                hand[Suit::Hearts].to_bits().into(),
+                hand[Suit::Diamonds].to_bits().into(),
+                hand[Suit::Clubs].to_bits().into(),
+            ]
+        }
+
         Self {
             cards: [
-                [
-                    deal[Seat::North][Strain::Spades].to_bits().into(),
-                    deal[Seat::North][Strain::Hearts].to_bits().into(),
-                    deal[Seat::North][Strain::Diamonds].to_bits().into(),
-                    deal[Seat::North][Strain::Clubs].to_bits().into(),
-                ],
-                [
-                    deal[Seat::East][Strain::Spades].to_bits().into(),
-                    deal[Seat::East][Strain::Hearts].to_bits().into(),
-                    deal[Seat::East][Strain::Diamonds].to_bits().into(),
-                    deal[Seat::East][Strain::Clubs].to_bits().into(),
-                ],
-                [
-                    deal[Seat::South][Strain::Spades].to_bits().into(),
-                    deal[Seat::South][Strain::Hearts].to_bits().into(),
-                    deal[Seat::South][Strain::Diamonds].to_bits().into(),
-                    deal[Seat::South][Strain::Clubs].to_bits().into(),
-                ],
-                [
-                    deal[Seat::West][Strain::Spades].to_bits().into(),
-                    deal[Seat::West][Strain::Hearts].to_bits().into(),
-                    deal[Seat::West][Strain::Diamonds].to_bits().into(),
-                    deal[Seat::West][Strain::Clubs].to_bits().into(),
-                ],
+                convert(deal[Seat::North]),
+                convert(deal[Seat::East]),
+                convert(deal[Seat::South]),
+                convert(deal[Seat::West]),
             ],
         }
     }

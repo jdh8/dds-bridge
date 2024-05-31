@@ -58,9 +58,6 @@ impl Strain {
         Self::Spades,
         Self::Notrump,
     ];
-
-    /// Helper constant for iteration over all suits
-    pub const SUITS: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
 }
 
 /// A call that proposes a contract
