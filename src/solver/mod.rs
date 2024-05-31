@@ -8,13 +8,14 @@ use core::ffi::c_int;
 use core::fmt;
 use dds_bridge_sys as sys;
 use thiserror::Error;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
-static THREAD_POOL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static THREAD_POOL: Mutex<()> = Mutex::new(());
 
-/// Errors that can occur in the solver
+/// Errors that occurred in [`dds_bridge_sys`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
-pub enum Error {
+pub enum SystemError {
     /// Success, no error
     #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_NO_FAULT) })]
     #[allow(clippy::cast_possible_wrap)]
@@ -128,14 +129,14 @@ pub enum Error {
     ChunkSize = sys::RETURN_CHUNK_SIZE,
 }
 
-impl Error {
+impl SystemError {
     /// Propagate a status code to an error
     ///
     /// - `x`: Arbitrary data to return if `status` is non-negative (success)
     /// - `status`: The status code from a DDS function
     ///
     /// # Errors
-    /// An [`enum@Error`] specified by `status`
+    /// A [`SystemError`] specified by `status`
     pub const fn propagate<T: Copy>(x: T, status: i32) -> Result<T, Self> {
         match status {
             0.. => Ok(x),
@@ -166,6 +167,27 @@ impl Error {
             sys::RETURN_CHUNK_SIZE => Err(Self::ChunkSize),
             _ => Err(Self::UnknownFault),
         }
+    }
+}
+
+/// The sum type of all solver errors
+#[derive(Debug)]
+pub enum Error {
+    /// An error propagated from [`dds_bridge_sys`]
+    System(SystemError),
+    /// A poisoned mutex of the thread pool
+    Lock(PoisonError<MutexGuard<'static, ()>>),
+}
+
+impl From<SystemError> for Error {
+    fn from(err: SystemError) -> Self {
+        Self::System(err)
+    }
+}
+
+impl From<PoisonError<MutexGuard<'static, ()>>> for Error {
+    fn from(err: PoisonError<MutexGuard<'static, ()>>) -> Self {
+        Self::Lock(err)
     }
 }
 
@@ -297,12 +319,12 @@ impl From<Deal> for sys::ddTableDeal {
 /// Solve a single deal with [`sys::CalcDDtable`]
 ///
 /// # Errors
-/// An [`enum@Error`] propagated from DDS
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
-    let _guard = THREAD_POOL.lock().map_err(|_| Error::ThreadWait)?;
+    let _guard = THREAD_POOL.lock()?;
     let status = unsafe { sys::CalcDDtable(deal.into(), &mut result) };
-    Error::propagate(result.into(), status)
+    Ok(SystemError::propagate(result.into(), status)?)
 }
 
 /// Solve deals with a single call of [`sys::CalcAllTables`]
@@ -315,7 +337,7 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
 /// [`sys::MAXNOOFBOARDS`].
 ///
 /// # Errors
-/// An [`enum@Error`] propagated from DDS
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub unsafe fn solve_deal_segment(
     deals: &[Deal],
     flags: StrainFlags,
@@ -333,7 +355,7 @@ pub unsafe fn solve_deal_segment(
         .for_each(|(i, deal)| pack.deals[i] = deal.into());
 
     let mut res = sys::ddTablesRes::default();
-    let _guard = THREAD_POOL.lock().map_err(|_| Error::ThreadWait)?;
+    let _guard = THREAD_POOL.lock()?;
     let status = sys::CalcAllTables(
         &mut pack,
         -1,
@@ -347,7 +369,7 @@ pub unsafe fn solve_deal_segment(
         &mut res,
         &mut sys::allParResults::default(),
     );
-    Error::propagate(res, status)
+    Ok(SystemError::propagate(res, status)?)
 }
 
 /// Solve deals in parallel for given strains
@@ -356,7 +378,7 @@ pub unsafe fn solve_deal_segment(
 /// - `flags`: Flags of strains to solve for
 ///
 /// # Errors
-/// An [`enum@Error`] propagated from DDS
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
     let length = (sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize;
     let (q, r) = (deals.len() / length, deals.len() % length);
@@ -435,7 +457,7 @@ impl From<Board> for sys::deal {
     }
 }
 
-fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, Error> {
+fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, SystemError> {
     let mut result = sys::futureTricks::default();
     let status = unsafe {
         sys::SolveBoard(
@@ -447,5 +469,5 @@ fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, Error>
             0,
         )
     };
-    Error::propagate(result, status)
+    SystemError::propagate(result, status)
 }
