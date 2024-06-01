@@ -376,17 +376,12 @@ pub unsafe fn solve_deal_segment(
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
     let length = (sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize;
-    let (q, r) = (deals.len() / length, deals.len() % length);
     let mut tables = Vec::new();
-
-    for i in 0..q {
-        let res = unsafe { solve_deal_segment(&deals[i * length..(i + 1) * length], flags) }?;
-        tables.extend(res.results[..length].iter().copied().map(TricksTable::from));
-    }
-
-    if r > 0 {
-        let res = unsafe { solve_deal_segment(&deals[q * length..], flags) }?;
-        tables.extend(res.results[..r].iter().copied().map(TricksTable::from));
+    
+    for chunk in deals.chunks(length) {
+        let res = unsafe { solve_deal_segment(chunk, flags) }?;
+        let res = res.results[..chunk.len()];
+        tables.extend(res.iter().copied().map(TricksTable::from));
     }
 
     Ok(tables)
