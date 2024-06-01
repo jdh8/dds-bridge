@@ -380,8 +380,7 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     
     for chunk in deals.chunks(length) {
         let res = unsafe { solve_deal_segment(chunk, flags) }?;
-        let res = res.results[..chunk.len()];
-        tables.extend(res.iter().copied().map(TricksTable::from));
+        tables.extend(res.results[..chunk.len()].iter().copied().map(TricksTable::from));
     }
 
     Ok(tables)
