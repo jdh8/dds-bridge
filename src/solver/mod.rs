@@ -2,7 +2,7 @@
 mod test;
 
 use crate::contract::Strain;
-use crate::deal::{Card, Deal, Hand, Seat, Suit};
+use crate::deal::{Card, Deal, Hand, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
@@ -439,15 +439,21 @@ impl Target {
     }
 }
 
-struct Board {
-    trump: Strain,
-    lead: Seat,
-    current_cards: arrayvec::ArrayVec<Card, 3>,
-    deal: Deal,
+/// A snapshot of a board
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Board {
+    /// The strain of the contract
+    pub trump: Strain,
+    /// The player leading the trick
+    pub lead: Seat,
+    /// The played cards in the current trick
+    pub current_cards: arrayvec::ArrayVec<Card, 3>,
+    /// The remaining cards in the deal
+    pub deal: Deal,
 }
 
-impl From<Board> for sys::deal {
-    fn from(board: Board) -> Self {
+impl From<&Board> for sys::deal {
+    fn from(board: &Board) -> Self {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
 
@@ -472,17 +478,117 @@ impl From<Board> for sys::deal {
     }
 }
 
-fn solve_board(board: Board, target: Target) -> Result<sys::futureTricks, SystemError> {
+/// A play and its consequences
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Play {
+    /// The card to play, the highest in a sequence
+    ///
+    /// For example, if the solution is to play a card from ♥KQJ, this field
+    /// would be ♥K.
+    pub card: Card,
+
+    /// Lower equals in the sequence
+    ///
+    /// Playing any card in a sequence is equal in bridge and many trick-taking
+    /// games.  This field contains lower cards in the sequence as `card`.  For
+    /// example, if the solution is to play KQJ, this field would contain QJ.
+    pub equals: Holding,
+
+    /// Tricks this play would score
+    pub score: i8,
+}
+
+/// Solved plays for a board
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FoundPlays {
+    /// The plays and their consequences
+    pub plays: arrayvec::ArrayVec<Play, 13>,
+    /// The number of nodes searched by the solver
+    pub nodes: u32,
+}
+
+impl From<sys::futureTricks> for FoundPlays {
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    fn from(future: sys::futureTricks) -> Self {
+        let mut plays = arrayvec::ArrayVec::new();
+        for i in 0..future.cards as usize {
+            let card = Card {
+                suit: Suit::DESCENDING[future.suit[i] as usize],
+                rank: future.rank[i] as u8,
+            };
+            let equals = Holding::from_bits(future.equals[i] as u16);
+            let score = future.score[i] as i8;
+            plays.push(Play {
+                card,
+                equals,
+                score,
+            });
+        }
+        Self {
+            plays,
+            nodes: future.nodes as u32,
+        }
+    }
+}
+
+/// Solve a single board with [`sys::SolveBoard`]
+///
+/// - `board`: The board to solve
+/// - `target`: The target tricks and number of solutions to find
+///
+/// # Errors
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
+pub fn solve_board(board: &Board, target: Target) -> Result<FoundPlays, Error> {
     let mut result = sys::futureTricks::default();
     let status = unsafe {
+        let _guard = THREAD_POOL.lock()?;
         sys::SolveBoard(
             board.into(),
             target.target(),
             target.solutions(),
             0,
             &mut result,
+            //TODO: Enable multithreading
             0,
         )
     };
-    SystemError::propagate(result, status)
+    Ok(SystemError::propagate(result, status)?.into())
+}
+
+/// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
+///
+/// - `args`: A slice of boards and their targets to solve
+///
+/// # Safety
+/// `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
+///
+/// # Errors
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
+pub unsafe fn solve_board_segment(args: &[(&Board, Target)]) -> Result<sys::solvedBoards, Error> {
+    debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
+    let mut pack = sys::boards {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+        noOfBoards: args.len() as c_int,
+        ..Default::default()
+    };
+    args.iter().enumerate().for_each(|(i, (board, target))| {
+        pack.deals[i] = (*board).into();
+        pack.target[i] = target.target();
+        pack.solutions[i] = target.solutions();
+    });
+    let mut res = sys::solvedBoards::default();
+    let _guard = THREAD_POOL.lock()?;
+    let status = unsafe { sys::SolveAllBoardsBin(&mut pack, &mut res) };
+    Ok(SystemError::propagate(res, status)?)
+}
+
+/// Solve boards in parallel
+///
+/// - `args`: A slice of boards and their targets to solve
+///
+/// # Errors
+/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
+fn solve_boards(args: &[(&Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
+    args.chunks(sys::MAXNOOFBOARDS as usize);
+    todo!()
 }

@@ -21,8 +21,11 @@ pub enum Suit {
 }
 
 impl Suit {
-    /// Helper constant for iteration over all suits
-    pub const ALL: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
+    /// Suits in ascending order, the order in this crate
+    pub const ASCENDING: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
+
+    /// Suits in descending order, the order in [`dds_bridge_sys`]
+    pub const DESCENDING: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
 }
 
 impl From<Suit> for Strain {
@@ -37,7 +40,7 @@ impl From<Suit> for Strain {
 }
 
 /// Position at the table
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Seat {
     /// Dealer of Board 1, partner of [`Seat::South`]
@@ -51,7 +54,7 @@ pub enum Seat {
 }
 
 /// A playing card
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card {
     /// The suit of the card
     pub suit: Suit,
@@ -102,7 +105,7 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
     fn toggle(&mut self, value: T) -> bool;
 }
 
-/// Holding for a suit in a hand
+/// A set of cards of the same suit
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
 
@@ -370,7 +373,7 @@ impl Deck {
     #[must_use]
     fn standard_52() -> Self {
         Self {
-            cards: Suit::ALL
+            cards: Suit::ASCENDING
                 .into_iter()
                 .flat_map(|x| core::iter::repeat(x).zip(2..=14))
                 .map(|(suit, rank)| Card::new(suit, rank))
