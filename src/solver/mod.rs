@@ -582,7 +582,11 @@ pub unsafe fn solve_board_segment(args: &[(&Board, Target)]) -> Result<sys::solv
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-fn solve_boards(args: &[(&Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
-    args.chunks(sys::MAXNOOFBOARDS as usize);
-    todo!()
+pub fn solve_boards(args: &[(&Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
+    let mut solutions = Vec::new();
+    for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
+        let result = unsafe { solve_board_segment(chunk); }?;
+        solutions.extend(result.solvedBoard[..chunk.len()].iter().copied().map(FoundPlays::from));
+    }
+    Ok(solutions)
 }
