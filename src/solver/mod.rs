@@ -387,6 +387,35 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     Ok(tables)
 }
 
+bitflags! {
+    /// Vulnerability of pairs
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct Vulnerability: u8 {
+        /// North-South are vulnerable
+        const NS = 1;
+        /// East-West are vulnerable
+        const EW = 2;
+    }
+}
+
+impl Vulnerability {
+    /// Convert to encoding in [`dds_bridge_sys`]
+    #[must_use]
+    pub const fn to_sys(self) -> i32 {
+        const ALL: u8 = Vulnerability::all().bits();
+        const NS: u8 = Vulnerability::NS.bits();
+        const EW: u8 = Vulnerability::EW.bits();
+
+        match self.bits() {
+            0 => 0,
+            ALL => 1,
+            NS => 2,
+            EW => 3,
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Target tricks and number of solutions to find
 ///
 /// This enum corresponds to a tuple of `target` and `solutions` in
