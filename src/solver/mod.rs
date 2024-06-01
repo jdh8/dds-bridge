@@ -375,14 +375,15 @@ pub unsafe fn solve_deal_segment(
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
-    let length = (sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize;
     let mut tables = Vec::new();
-    
-    for chunk in deals.chunks(length) {
-        let res = unsafe { solve_deal_segment(chunk, flags) }?;
-        tables.extend(res.results[..chunk.len()].iter().copied().map(TricksTable::from));
+    for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
+        tables.extend(
+            unsafe { solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
+                .iter()
+                .copied()
+                .map(TricksTable::from),
+        );
     }
-
     Ok(tables)
 }
 
@@ -585,8 +586,12 @@ pub unsafe fn solve_board_segment(args: &[(&Board, Target)]) -> Result<sys::solv
 pub fn solve_boards(args: &[(&Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
     let mut solutions = Vec::new();
     for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
-        let result = unsafe { solve_board_segment(chunk) }?;
-        solutions.extend(result.solvedBoard[..chunk.len()].iter().copied().map(FoundPlays::from));
+        solutions.extend(
+            unsafe { solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
+                .iter()
+                .copied()
+                .map(FoundPlays::from),
+        );
     }
     Ok(solutions)
 }
