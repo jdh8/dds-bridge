@@ -7,16 +7,18 @@ use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
 /// A suit of playing cards
+///
+/// Suits are convertible to [`Strain`]s since suits form a subset of strains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Suit {
-    /// ♣
+    /// ♣, convertible to [`Strain::Clubs`]
     Clubs,
-    /// ♦
+    /// ♦, convertible to [`Strain::Diamonds`]
     Diamonds,
-    /// ♥
+    /// ♥, convertible to [`Strain::Hearts`]
     Hearts,
-    /// ♠
+    /// ♠, convertible to [`Strain::Spades`]
     Spades,
 }
 
