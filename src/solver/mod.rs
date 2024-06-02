@@ -7,10 +7,14 @@ use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
 use dds_bridge_sys as sys;
+use once_cell::sync::Lazy;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
-static THREAD_POOL: Mutex<()> = Mutex::new(());
+static THREAD_POOL: Lazy<Mutex<()>> = Lazy::new(|| {
+    unsafe { sys::SetMaxThreads(0) };
+    Mutex::new(())
+});
 
 /// Errors that occurred in [`dds_bridge_sys`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
