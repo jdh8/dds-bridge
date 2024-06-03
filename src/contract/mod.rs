@@ -116,7 +116,7 @@ pub enum Penalty {
 /// The statement of the pair winning the bidding that they will take at least
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Contract {
     /// The basic part of a contract
     pub bid: Bid,

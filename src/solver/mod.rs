@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::contract::Strain;
+use crate::contract::{Contract, Penalty, Strain};
 use crate::deal::{Card, Deal, Hand, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
@@ -293,6 +293,21 @@ impl From<sys::ddTableResults> for TricksTable {
     }
 }
 
+impl From<TricksTable> for sys::ddTableResults {
+    fn from(table: TricksTable) -> Self {
+        Self {
+            resTable: table.0.map(|row| {
+                [
+                    row.at(Seat::North) as c_int,
+                    row.at(Seat::East) as c_int,
+                    row.at(Seat::South) as c_int,
+                    row.at(Seat::West) as c_int,
+                ]
+            }),
+        }
+    }
+}
+
 impl From<Deal> for sys::ddTableDeal {
     fn from(deal: Deal) -> Self {
         fn convert(hand: Hand) -> [core::ffi::c_uint; 4] {
@@ -418,6 +433,75 @@ impl Vulnerability {
             _ => unreachable!(),
         }
     }
+}
+
+/// Par score and contracts
+#[derive(Debug, Clone)]
+pub struct Par {
+    /// The par score
+    pub score: i32,
+
+    /// The contracts that achieve the par score
+    ///
+    /// Each tuple contains a contract, the declarer, and the number of
+    /// overtricks (undertricks in negative).
+    pub contracts: Vec<(Contract, Seat, i8)>,
+}
+
+impl From<sys::parResultsMaster> for Par {
+    fn from(par: sys::parResultsMaster) -> Self {
+        #[allow(clippy::cast_sign_loss)]
+        let contracts = par.contracts[..par.number as usize]
+            .iter()
+            .map(|contract| {
+                let strain = [
+                    Strain::Spades,
+                    Strain::Hearts,
+                    Strain::Diamonds,
+                    Strain::Clubs,
+                    Strain::Notrump,
+                ][contract.denom as usize];
+
+                #[allow(clippy::cast_possible_truncation)]
+                let (penalty, overtricks) = if contract.overTricks >= 0 {
+                    (Penalty::None, contract.overTricks as i8)
+                } else {
+                    (Penalty::Doubled, -contract.underTricks as i8)
+                };
+
+                #[allow(clippy::cast_possible_truncation)]
+                (
+                    Contract::new(contract.level as u8, strain, penalty),
+                    unsafe { core::mem::transmute(contract.seats as u8) },
+                    overtricks,
+                )
+            })
+            .collect();
+
+        Self {
+            score: par.score,
+            contracts,
+        }
+    }
+}
+
+/// Calculate par score and contracts for a deal
+///
+/// - `tricks`: The number of tricks each seat can take as declarer for each strain
+/// - `vul`: The vulnerability of pairs
+/// - `dealer`: The dealer of the deal
+///
+/// # Errors
+/// A [`SystemError`] propagated from DDS
+pub fn calculate_par(
+    tricks: TricksTable,
+    vul: Vulnerability,
+    dealer: Seat,
+) -> Result<Par, SystemError> {
+    let mut par = sys::parResultsMaster::default();
+    let status =
+        unsafe { sys::DealerParBin(&mut tricks.into(), &mut par, vul.to_sys(), dealer as c_int) };
+    Ok(SystemError::propagate(par, status)?.into())
 }
 
 /// Target tricks and number of solutions to find
