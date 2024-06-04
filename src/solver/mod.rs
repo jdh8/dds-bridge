@@ -2,7 +2,7 @@
 mod test;
 
 use crate::contract::{Contract, Penalty, Strain};
-use crate::deal::{Card, Deal, Hand, Holding, Seat, Suit};
+use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
@@ -275,20 +275,28 @@ const fn make_row(row: [c_int; 4]) -> TricksRow {
     TricksRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
 }
 
+impl Strain {
+    /// Convert to the index in [`dds_bridge_sys`]
+    #[must_use]
+    const fn to_sys(self) -> usize {
+        match self {
+            Self::Spades => 0,
+            Self::Hearts => 1,
+            Self::Diamonds => 2,
+            Self::Clubs => 3,
+            Self::Notrump => 4,
+        }
+    }
+}
+
 impl From<sys::ddTableResults> for TricksTable {
     fn from(table: sys::ddTableResults) -> Self {
-        const S: usize = 0;
-        const H: usize = 1;
-        const D: usize = 2;
-        const C: usize = 3;
-        const NT: usize = 4;
-
         Self([
-            make_row(table.resTable[C]),
-            make_row(table.resTable[D]),
-            make_row(table.resTable[H]),
-            make_row(table.resTable[S]),
-            make_row(table.resTable[NT]),
+            make_row(table.resTable[Strain::Clubs.to_sys()]),
+            make_row(table.resTable[Strain::Diamonds.to_sys()]),
+            make_row(table.resTable[Strain::Hearts.to_sys()]),
+            make_row(table.resTable[Strain::Spades.to_sys()]),
+            make_row(table.resTable[Strain::Notrump.to_sys()]),
         ])
     }
 }
@@ -447,13 +455,7 @@ impl From<sys::parResultsMaster> for Par {
         let contracts = par.contracts[..par.number as usize]
             .iter()
             .map(|contract| {
-                let strain = [
-                    Strain::Spades,
-                    Strain::Hearts,
-                    Strain::Diamonds,
-                    Strain::Clubs,
-                    Strain::Notrump,
-                ][contract.denom as usize];
+                let strain = Strain::SYS[contract.denom as usize];
 
                 #[allow(clippy::cast_possible_truncation)]
                 let (penalty, overtricks) = if contract.overTricks >= 0 {
