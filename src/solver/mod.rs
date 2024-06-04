@@ -504,6 +504,19 @@ pub fn calculate_par(
     Ok(SystemError::propagate(par, status)?.into())
 }
 
+/// Calculate par scores for both pairs
+///
+/// - `tricks`: The number of tricks each seat can take as declarer for each strain
+/// - `vul`: The vulnerability of pairs
+///
+/// # Errors
+/// A [`SystemError`] propagated from DDS
+pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> Result<[Par; 2], SystemError> {
+    let mut pars = [sys::parResultsMaster::default(); 2];
+    let status = unsafe { sys::SidesParBin(&mut tricks.into(), &mut pars[0], vul.to_sys()) };
+    Ok(SystemError::propagate(pars, status)?.map(Into::into))
+}
+
 /// Target tricks and number of solutions to find
 ///
 /// This enum corresponds to a tuple of `target` and `solutions` in
