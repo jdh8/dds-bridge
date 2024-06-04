@@ -298,10 +298,10 @@ impl From<TricksTable> for sys::ddTableResults {
         Self {
             resTable: table.0.map(|row| {
                 [
-                    row.at(Seat::North) as c_int,
-                    row.at(Seat::East) as c_int,
-                    row.at(Seat::South) as c_int,
-                    row.at(Seat::West) as c_int,
+                    c_int::from(row.at(Seat::North)),
+                    c_int::from(row.at(Seat::East)),
+                    c_int::from(row.at(Seat::South)),
+                    c_int::from(row.at(Seat::West)),
                 ]
             }),
         }
