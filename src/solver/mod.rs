@@ -310,22 +310,15 @@ impl From<TricksTable> for sys::ddTableResults {
 
 impl From<Deal> for sys::ddTableDeal {
     fn from(deal: Deal) -> Self {
-        fn convert(hand: Hand) -> [core::ffi::c_uint; 4] {
-            [
-                hand[Suit::Spades].to_bits().into(),
-                hand[Suit::Hearts].to_bits().into(),
-                hand[Suit::Diamonds].to_bits().into(),
-                hand[Suit::Clubs].to_bits().into(),
-            ]
-        }
-
         Self {
-            cards: [
-                convert(deal[Seat::North]),
-                convert(deal[Seat::East]),
-                convert(deal[Seat::South]),
-                convert(deal[Seat::West]),
-            ],
+            cards: deal.hands.map(|hand| {
+                [
+                    hand[Suit::Spades].to_bits().into(),
+                    hand[Suit::Hearts].to_bits().into(),
+                    hand[Suit::Diamonds].to_bits().into(),
+                    hand[Suit::Clubs].to_bits().into(),
+                ]
+            }),
         }
     }
 }

@@ -334,19 +334,22 @@ impl Sub for Hand {
 
 /// A deal of four hands
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Deal([Hand; 4]);
+pub struct Deal {
+    /// The hands in the order of [`Seat`]s
+    pub hands: [Hand; 4],
+}
 
 impl Index<Seat> for Deal {
     type Output = Hand;
 
     fn index(&self, seat: Seat) -> &Hand {
-        &self.0[seat as usize]
+        &self.hands[seat as usize]
     }
 }
 
 impl IndexMut<Seat> for Deal {
     fn index_mut(&mut self, seat: Seat) -> &mut Hand {
-        &mut self.0[seat as usize]
+        &mut self.hands[seat as usize]
     }
 }
 
