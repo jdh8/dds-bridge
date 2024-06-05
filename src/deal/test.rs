@@ -73,3 +73,17 @@ fn test_random_deals() {
         assert_eq!(hands[3].len(), 13);
     });
 }
+
+#[test]
+fn test_seat_arithmetics() {
+    // Any rotation should work
+    const SEATS: [Seat; 4] = [Seat::South, Seat::West, Seat::North, Seat::East];
+
+    (0..4).for_each(|x| {
+        (0..4).for_each(|y| {
+            assert_eq!(SEATS[usize::from(x)] + Wrapping(y), SEATS[usize::from(y)] + Wrapping(x));
+            assert_eq!(SEATS[usize::from(x)] + Wrapping(y), SEATS[usize::from((x + y) & 3)]);
+            assert_eq!(SEATS[usize::from(x)] - Wrapping(y), SEATS[usize::from((x + 4 - y) & 3)]);
+        });
+    });
+}

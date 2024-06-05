@@ -3,7 +3,8 @@ mod test;
 
 use crate::contract::Strain;
 use core::fmt;
-use core::ops::{BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
+use core::num::Wrapping;
+use core::ops::{Add, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
 /// A suit of playing cards
@@ -53,6 +54,22 @@ pub enum Seat {
     South,
     /// Dealer of Board 4, partner of [`Seat::East`]
     West,
+}
+
+impl Add<Wrapping<u8>> for Seat {
+    type Output = Self;
+
+    fn add(self, rhs: Wrapping<u8>) -> Self {
+        unsafe { core::mem::transmute((Wrapping(self as u8) + rhs).0 & 3) }
+    }
+}
+
+impl Sub<Wrapping<u8>> for Seat {
+    type Output = Self;
+
+    fn sub(self, rhs: Wrapping<u8>) -> Self {
+        unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
+    }
 }
 
 /// A playing card
