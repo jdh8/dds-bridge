@@ -77,7 +77,7 @@ fn test_random_deals() {
 #[test]
 fn test_seat_arithmetics() {
     // Any rotation should work
-    const SEATS: [Seat; 4] = [Seat::South, Seat::West, Seat::North, Seat::East];
+    const SEATS: [Seat; 4] = [Seat::East, Seat::South, Seat::West, Seat::North];
 
     (0..4).for_each(|x| {
         (0..4).for_each(|y| {
