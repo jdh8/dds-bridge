@@ -554,8 +554,8 @@ impl From<&Board> for sys::deal {
         let mut ranks = [0; 3];
 
         for (i, card) in board.current_cards.iter().enumerate() {
-            suits[i] = 3 - card.suit as c_int;
-            ranks[i] = c_int::from(card.rank);
+            suits[i] = 3 - card.suit() as c_int;
+            ranks[i] = c_int::from(card.rank());
         }
 
         Self {
@@ -608,10 +608,10 @@ impl From<sys::futureTricks> for FoundPlays {
     fn from(future: sys::futureTricks) -> Self {
         let mut plays = arrayvec::ArrayVec::new();
         for i in 0..future.cards as usize {
-            let card = Card {
-                suit: Suit::DESCENDING[future.suit[i] as usize],
-                rank: future.rank[i] as u8,
-            };
+            let card = Card::new(
+                Suit::DESCENDING[future.suit[i] as usize],
+                future.rank[i] as u8,
+            );
             let equals = Holding::from_bits(future.equals[i] as u16);
             let score = future.score[i] as i8;
             plays.push(Play {

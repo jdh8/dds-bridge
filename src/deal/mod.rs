@@ -3,7 +3,7 @@ mod test;
 
 use crate::contract::Strain;
 use core::fmt;
-use core::num::Wrapping;
+use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
 
@@ -85,22 +85,37 @@ impl From<Seat> for char {
 
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Card {
+pub struct Card(NonZeroU8);
+
+impl Card {
+    /// Create a card from suit and rank
+    ///
+    /// The rank is a number from 2 to 14.  J, Q, K, A are encoded as 11, 12,
+    /// 13, 14 respectively.
+    ///
+    /// # Panics
+    /// Panics if the rank is not in the range 2..=14.
+    #[must_use]
+    pub const fn new(suit: Suit, rank: u8) -> Self {
+        assert!(rank >= 2 && rank <= 14);
+        // SAFETY: rank is guaranteed to be non-zero
+        Self(unsafe { NonZeroU8::new_unchecked(rank << 2 | suit as u8) })
+    }
+
     /// The suit of the card
-    pub suit: Suit,
+    #[must_use]
+    pub const fn suit(self) -> Suit {
+        // SAFETY: suit is guaranteed to be valid, in (0..=3)
+        unsafe { core::mem::transmute(self.0.get() & 3) }
+    }
 
     /// The rank of the card
     ///
     /// The rank is a number from 2 to 14.  J, Q, K, A are denoted as 11, 12,
     /// 13, 14 respectively.
-    pub rank: u8,
-}
-
-impl Card {
-    /// Create a card from suit and rank
     #[must_use]
-    pub const fn new(suit: Suit, rank: u8) -> Self {
-        Self { suit, rank }
+    pub const fn rank(self) -> u8 {
+        self.0.get() >> 2
     }
 }
 
@@ -288,19 +303,19 @@ impl SmallSet<Card> for Hand {
     }
 
     fn contains(self, card: Card) -> bool {
-        self[card.suit].contains(card.rank)
+        self[card.suit()].contains(card.rank())
     }
 
     fn insert(&mut self, card: Card) -> bool {
-        self[card.suit].insert(card.rank)
+        self[card.suit()].insert(card.rank())
     }
 
     fn remove(&mut self, card: Card) -> bool {
-        self[card.suit].remove(card.rank)
+        self[card.suit()].remove(card.rank())
     }
 
     fn toggle(&mut self, card: Card) -> bool {
-        self[card.suit].toggle(card.rank)
+        self[card.suit()].toggle(card.rank())
     }
 }
 
