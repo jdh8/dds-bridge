@@ -16,3 +16,6 @@ dds-bridge-sys = "2.0.0"
 once_cell = "1.19.0"
 rand = "0.8.5"
 thiserror = "1.0.61"
+
+[profile.dev]
+opt-level = 2
