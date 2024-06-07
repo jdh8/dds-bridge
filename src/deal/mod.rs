@@ -87,6 +87,8 @@ impl From<Seat> for char {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(NonZeroU8);
 
+const _: () = assert!(core::mem::size_of::<Option<Card>>() == 1);
+
 impl Card {
     /// Create a card from suit and rank
     ///

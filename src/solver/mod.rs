@@ -543,7 +543,7 @@ pub struct Board {
     /// The player leading the trick
     pub lead: Seat,
     /// The played cards in the current trick
-    pub current_cards: arrayvec::ArrayVec<Card, 3>,
+    pub current_cards: [Option<Card>; 3],
     /// The remaining cards in the deal
     pub deal: Deal,
 }
@@ -553,7 +553,7 @@ impl From<&Board> for sys::deal {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
 
-        for (i, card) in board.current_cards.iter().enumerate() {
+        for (i, card) in board.current_cards.into_iter().flatten().enumerate() {
             suits[i] = 3 - card.suit() as c_int;
             ranks[i] = c_int::from(card.rank());
         }
