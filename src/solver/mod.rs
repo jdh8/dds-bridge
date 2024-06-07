@@ -230,7 +230,7 @@ impl TricksRow {
 
     /// Get the number of tricks a seat can take as declarer
     #[must_use]
-    pub const fn at(self, seat: Seat) -> u8 {
+    pub const fn get(self, seat: Seat) -> u8 {
         (self.0 >> (4 * seat as u8) & 0xF) as u8
     }
 }
@@ -240,10 +240,10 @@ impl fmt::Display for TricksRow {
         write!(
             f,
             "{:X}{:X}{:X}{:X}",
-            self.at(Seat::North),
-            self.at(Seat::East),
-            self.at(Seat::South),
-            self.at(Seat::West)
+            self.get(Seat::North),
+            self.get(Seat::East),
+            self.get(Seat::South),
+            self.get(Seat::West)
         )
     }
 }
@@ -306,10 +306,10 @@ impl From<TricksTable> for sys::ddTableResults {
         Self {
             resTable: table.0.map(|row| {
                 [
-                    c_int::from(row.at(Seat::North)),
-                    c_int::from(row.at(Seat::East)),
-                    c_int::from(row.at(Seat::South)),
-                    c_int::from(row.at(Seat::West)),
+                    c_int::from(row.get(Seat::North)),
+                    c_int::from(row.get(Seat::East)),
+                    c_int::from(row.get(Seat::South)),
+                    c_int::from(row.get(Seat::West)),
                 ]
             }),
         }
