@@ -370,19 +370,6 @@ impl IndexMut<Seat> for Deal {
     }
 }
 
-impl fmt::Display for Deal {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "N:{} {} {} {}",
-            self[Seat::North],
-            self[Seat::East],
-            self[Seat::South],
-            self[Seat::West]
-        )
-    }
-}
-
 /// A deck of playing cards
 #[derive(Debug, Clone, Default)]
 struct Deck {

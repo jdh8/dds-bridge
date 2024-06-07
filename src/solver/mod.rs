@@ -5,7 +5,6 @@ use crate::contract::{Contract, Penalty, Strain};
 use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
-use core::fmt;
 use dds_bridge_sys as sys;
 use once_cell::sync::Lazy;
 use std::sync::{Mutex, MutexGuard, PoisonError};
@@ -235,19 +234,6 @@ impl TricksRow {
     }
 }
 
-impl fmt::Display for TricksRow {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:X}{:X}{:X}{:X}",
-            self.get(Seat::North),
-            self.get(Seat::East),
-            self.get(Seat::South),
-            self.get(Seat::West)
-        )
-    }
-}
-
 /// Tricks that each seat can take as declarer for all strains
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TricksTable([TricksRow; 5]);
@@ -257,16 +243,6 @@ impl core::ops::Index<Strain> for TricksTable {
 
     fn index(&self, strain: Strain) -> &TricksRow {
         &self.0[strain as usize]
-    }
-}
-
-impl fmt::Display for TricksTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}{}{}{}{}",
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4]
-        )
     }
 }
 
