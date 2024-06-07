@@ -72,6 +72,17 @@ impl Sub<Wrapping<u8>> for Seat {
     }
 }
 
+impl From<Seat> for char {
+    fn from(seat: Seat) -> Self {
+        match seat {
+            Seat::North => 'N',
+            Seat::East => 'E',
+            Seat::South => 'S',
+            Seat::West => 'W',
+        }
+    }
+}
+
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card {
@@ -409,11 +420,36 @@ impl Deck {
     }
 }
 
+struct DealDisplay {
+    deal: Deal,
+    seat: Seat,
+}
+
+impl fmt::Display for DealDisplay {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}:{} {} {} {}",
+            char::from(self.seat),
+            self.deal[self.seat],
+            self.deal[self.seat + Wrapping(1)],
+            self.deal[self.seat + Wrapping(2)],
+            self.deal[self.seat + Wrapping(3)],
+        )
+    }
+}
+
 impl Deal {
     /// Create a deal from a shuffled standard 52-card deck
     pub fn new(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
         let mut deck = Deck::standard_52();
         deck.shuffle(rng);
         deck.deal()
+    }
+
+    /// Display the deal from a seat's perspective
+    #[must_use]
+    pub fn display(self, seat: Seat) -> impl fmt::Display {
+        DealDisplay { deal: self, seat }
     }
 }

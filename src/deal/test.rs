@@ -81,9 +81,18 @@ fn test_seat_arithmetics() {
 
     (0..4).for_each(|x| {
         (0..4).for_each(|y| {
-            assert_eq!(SEATS[usize::from(x)] + Wrapping(y), SEATS[usize::from(y)] + Wrapping(x));
-            assert_eq!(SEATS[usize::from(x)] + Wrapping(y), SEATS[usize::from((x + y) & 3)]);
-            assert_eq!(SEATS[usize::from(x)] - Wrapping(y), SEATS[usize::from((x + 4 - y) & 3)]);
+            assert_eq!(
+                SEATS[usize::from(x)] + Wrapping(y),
+                SEATS[usize::from(y)] + Wrapping(x)
+            );
+            assert_eq!(
+                SEATS[usize::from(x)] + Wrapping(y),
+                SEATS[usize::from((x + y) & 3)]
+            );
+            assert_eq!(
+                SEATS[usize::from(x)] - Wrapping(y),
+                SEATS[usize::from((x + 4 - y) & 3)]
+            );
         });
     });
 }
