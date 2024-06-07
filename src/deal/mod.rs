@@ -392,12 +392,12 @@ impl Deck {
 
     /// Deal the deck into four hands
     #[must_use]
-    fn deal(&self) -> Deal {
+    fn deal(self) -> Deal {
         let mut deal = Deal::default();
 
-        for (index, card) in self.cards.iter().enumerate() {
+        for (index, card) in self.cards.into_iter().enumerate() {
             #[allow(clippy::cast_possible_truncation)]
-            deal[unsafe { core::mem::transmute((index & 0x3) as u8) }].insert(*card);
+            deal[unsafe { core::mem::transmute((index & 0x3) as u8) }].insert(card);
         }
 
         deal
