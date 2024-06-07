@@ -10,7 +10,6 @@ categories = ["game-development"]
 keywords = ["bridge", "double-dummy"]
 
 [dependencies]
-arrayvec = "0.7.4"
 bitflags = "2.5.0"
 dds-bridge-sys = "2.0.0"
 once_cell = "1.19.0"

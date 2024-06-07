@@ -536,7 +536,7 @@ impl Target {
 }
 
 /// A snapshot of a board
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Board {
     /// The strain of the contract
     pub trump: Strain,
@@ -548,8 +548,8 @@ pub struct Board {
     pub deal: Deal,
 }
 
-impl From<&Board> for sys::deal {
-    fn from(board: &Board) -> Self {
+impl From<Board> for sys::deal {
+    fn from(board: Board) -> Self {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
 
@@ -594,11 +594,13 @@ pub struct Play {
     pub score: i8,
 }
 
+const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of::<Play>());
+
 /// Solved plays for a board
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FoundPlays {
     /// The plays and their consequences
-    pub plays: arrayvec::ArrayVec<Play, 13>,
+    pub plays: [Option<Play>; 13],
     /// The number of nodes searched by the solver
     pub nodes: u32,
 }
@@ -606,20 +608,24 @@ pub struct FoundPlays {
 impl From<sys::futureTricks> for FoundPlays {
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn from(future: sys::futureTricks) -> Self {
-        let mut plays = arrayvec::ArrayVec::new();
-        for i in 0..future.cards as usize {
-            let card = Card::new(
-                Suit::DESCENDING[future.suit[i] as usize],
-                future.rank[i] as u8,
-            );
-            let equals = Holding::from_bits(future.equals[i] as u16);
-            let score = future.score[i] as i8;
-            plays.push(Play {
-                card,
-                equals,
-                score,
+        let mut plays = [None; 13];
+        plays
+            .iter_mut()
+            .enumerate()
+            .take(future.cards as usize)
+            .for_each(|(i, play)| {
+                let card = Card::new(
+                    Suit::DESCENDING[future.suit[i] as usize],
+                    future.rank[i] as u8,
+                );
+                let equals = Holding::from_bits(future.equals[i] as u16);
+                let score = future.score[i] as i8;
+                *play = Some(Play {
+                    card,
+                    equals,
+                    score,
+                });
             });
-        }
         Self {
             plays,
             nodes: future.nodes as u32,
@@ -634,7 +640,7 @@ impl From<sys::futureTricks> for FoundPlays {
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_board(board: &Board, target: Target) -> Result<FoundPlays, Error> {
+pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
     let mut result = sys::futureTricks::default();
     let status = unsafe {
         let _guard = THREAD_POOL.lock()?;
@@ -660,18 +666,21 @@ pub fn solve_board(board: &Board, target: Target) -> Result<FoundPlays, Error> {
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub unsafe fn solve_board_segment(args: &[(&Board, Target)]) -> Result<sys::solvedBoards, Error> {
+pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solvedBoards, Error> {
     debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
     let mut pack = sys::boards {
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         noOfBoards: args.len() as c_int,
         ..Default::default()
     };
-    args.iter().enumerate().for_each(|(i, (board, target))| {
-        pack.deals[i] = (*board).into();
-        pack.target[i] = target.target();
-        pack.solutions[i] = target.solutions();
-    });
+    args.iter()
+        .copied()
+        .enumerate()
+        .for_each(|(i, (board, target))| {
+            pack.deals[i] = board.into();
+            pack.target[i] = target.target();
+            pack.solutions[i] = target.solutions();
+        });
     let mut res = sys::solvedBoards::default();
     let _guard = THREAD_POOL.lock()?;
     let status = unsafe { sys::SolveAllBoardsBin(&mut pack, &mut res) };
@@ -684,7 +693,7 @@ pub unsafe fn solve_board_segment(args: &[(&Board, Target)]) -> Result<sys::solv
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_boards(args: &[(&Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
+pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
     let mut solutions = Vec::new();
     for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
         solutions.extend(
