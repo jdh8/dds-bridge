@@ -248,8 +248,13 @@ impl core::ops::Index<Strain> for TricksTable {
 }
 
 const fn make_row(row: [c_int; 4]) -> TricksRow {
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    TricksRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
+    #[allow(clippy::cast_sign_loss)]
+    TricksRow::new(
+        (row[0] & 0xFF) as u8,
+        (row[1] & 0xFF) as u8,
+        (row[2] & 0xFF) as u8,
+        (row[3] & 0xFF) as u8,
+    )
 }
 
 impl Strain {
@@ -337,8 +342,7 @@ pub unsafe fn solve_deal_segment(
 ) -> Result<sys::ddTablesRes, Error> {
     debug_assert!(deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize);
     let mut pack = sys::ddTableDeals {
-        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
-        noOfTables: deals.len() as c_int,
+        noOfTables: c_int::try_from(deals.len()).unwrap_or(c_int::MAX),
         ..Default::default()
     };
     deals
@@ -613,7 +617,7 @@ pub struct FoundPlays {
 }
 
 impl From<sys::futureTricks> for FoundPlays {
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     fn from(future: sys::futureTricks) -> Self {
         let mut plays = [None; 13];
         plays
@@ -623,10 +627,10 @@ impl From<sys::futureTricks> for FoundPlays {
             .for_each(|(i, play)| {
                 let card = Card::new(
                     Suit::DESCENDING[future.suit[i] as usize],
-                    future.rank[i] as u8,
+                    (future.rank[i] & 0xFF) as u8,
                 );
-                let equals = Holding::from_bits(future.equals[i] as u16);
-                let score = future.score[i] as i8;
+                let equals = Holding::from_bits((future.equals[i] & 0xFFFF) as u16);
+                let score = (future.score[i] & 0xFF) as i8;
                 *play = Some(Play {
                     card,
                     equals,
@@ -677,8 +681,7 @@ pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
 pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solvedBoards, Error> {
     debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
     let mut pack = sys::boards {
-        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-        noOfBoards: args.len() as c_int,
+        noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
         ..Default::default()
     };
     args.iter()
