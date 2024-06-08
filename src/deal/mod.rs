@@ -60,6 +60,7 @@ impl Add<Wrapping<u8>> for Seat {
     type Output = Self;
 
     fn add(self, rhs: Wrapping<u8>) -> Self {
+        // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) + rhs).0 & 3) }
     }
 }
@@ -68,6 +69,7 @@ impl Sub<Wrapping<u8>> for Seat {
     type Output = Self;
 
     fn sub(self, rhs: Wrapping<u8>) -> Self {
+        // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
     }
 }
@@ -275,6 +277,7 @@ impl Hand {
     /// As a bitset of cards
     #[must_use]
     pub const fn to_bits(self) -> u64 {
+        // SAFETY: every combination of 64 bits is a valid `u64`
         unsafe { core::mem::transmute(self.0) }
     }
 
@@ -283,6 +286,7 @@ impl Hand {
     /// This function removes invalid cards.
     #[must_use]
     pub const fn from_bits(bits: u64) -> Self {
+        // SAFETY: just filtered out invalid cards
         Self(unsafe { core::mem::transmute(bits & Self::ALL.to_bits()) })
     }
 
@@ -424,8 +428,9 @@ impl Deck {
         let mut deal = Deal::default();
 
         for (index, card) in self.cards.into_iter().enumerate() {
+            // SAFETY: `index & 3` is always in the range of 0..=3
             #[allow(clippy::cast_possible_truncation)]
-            deal[unsafe { core::mem::transmute((index & 0x3) as u8) }].insert(card);
+            deal[unsafe { core::mem::transmute((index & 3) as u8) }].insert(card);
         }
 
         deal

@@ -11,6 +11,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 use thiserror::Error;
 
 static THREAD_POOL: Lazy<Mutex<()>> = Lazy::new(|| {
+    // SAFETY: just initializing the thread pool
     unsafe { sys::SetMaxThreads(0) };
     Mutex::new(())
 });
@@ -314,6 +315,7 @@ impl From<Deal> for sys::ddTableDeal {
 pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
     let _guard = THREAD_POOL.lock()?;
+    // SAFETY: `_guard` just locked the thread pool
     let status = unsafe { sys::CalcDDtable(deal.into(), &mut result) };
     Ok(SystemError::propagate(result.into(), status)?)
 }
@@ -374,6 +376,7 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     let mut tables = Vec::new();
     for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
         tables.extend(
+            // SAFETY: the thread pool is locked inside `solve_deal_segment`
             unsafe { solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
                 .iter()
                 .copied()
@@ -431,6 +434,8 @@ impl From<sys::parResultsMaster> for Par {
         let contracts = par.contracts[..par.number as usize]
             .iter()
             .map(|contract| {
+                assert_eq!(contract.level, contract.level & 7);
+                assert!(contract.level != 0);
                 let strain = Strain::SYS[contract.denom as usize];
 
                 #[allow(clippy::cast_possible_truncation)]
@@ -440,10 +445,10 @@ impl From<sys::parResultsMaster> for Par {
                     (Penalty::Doubled, -contract.underTricks as i8)
                 };
 
-                #[allow(clippy::cast_possible_truncation)]
                 (
-                    Contract::new(contract.level as u8, strain, penalty),
-                    unsafe { core::mem::transmute(contract.seats as u8) },
+                    Contract::new((contract.level & 7) as u8, strain, penalty),
+                    // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
+                    unsafe { core::mem::transmute((contract.seats & 3) as u8) },
                     overtricks,
                 )
             })
@@ -470,7 +475,7 @@ pub fn calculate_par(
     dealer: Seat,
 ) -> Result<Par, SystemError> {
     let mut par = sys::parResultsMaster::default();
-    let status =
+    let status = // SAFETY: calculating par is reentrant
         unsafe { sys::DealerParBin(&mut tricks.into(), &mut par, vul.to_sys(), dealer as c_int) };
     Ok(SystemError::propagate(par, status)?.into())
 }
@@ -484,6 +489,7 @@ pub fn calculate_par(
 /// A [`SystemError`] propagated from DDS
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> Result<[Par; 2], SystemError> {
     let mut pars = [sys::parResultsMaster::default(); 2];
+    // SAFE: calculating par is reentrant
     let status = unsafe { sys::SidesParBin(&mut tricks.into(), &mut pars[0], vul.to_sys()) };
     Ok(SystemError::propagate(pars, status)?.map(Into::into))
 }
@@ -642,6 +648,7 @@ impl From<sys::futureTricks> for FoundPlays {
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
     let mut result = sys::futureTricks::default();
+    // SAFETY: `_guard` locks the thread pool
     let status = unsafe {
         let _guard = THREAD_POOL.lock()?;
         sys::SolveBoard(
@@ -683,6 +690,7 @@ pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solve
         });
     let mut res = sys::solvedBoards::default();
     let _guard = THREAD_POOL.lock()?;
+    // SAFETY: `_guard` just locked the thread pool
     let status = unsafe { sys::SolveAllBoardsBin(&mut pack, &mut res) };
     Ok(SystemError::propagate(res, status)?)
 }
@@ -697,6 +705,7 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
     let mut solutions = Vec::new();
     for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
         solutions.extend(
+            // SAFETY: the thread pool is locked inside `solve_board_segment`
             unsafe { solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
                 .iter()
                 .copied()
