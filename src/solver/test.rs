@@ -39,7 +39,7 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 13, 0, 13),
         TricksRow::new(0, 0, 0, 0),
     ]);
-    let contracts = vec![
+    const CONTRACTS: [(Contract, Seat, i8); 2] = [
         (
             Contract::new(7, Strain::Spades, Penalty::None),
             Seat::East,
@@ -53,11 +53,11 @@ fn solve_four_13_card_straight_flushes() {
     ];
     let ns = Par {
         score: -2210,
-        contracts: contracts.clone(),
+        contracts: CONTRACTS.to_vec(),
     };
     let ew = Par {
         score: 2210,
-        contracts,
+        contracts: CONTRACTS.to_vec(),
     };
     assert_eq!(
         solve_deal(DEAL).expect("Failed to solve the deal"),
