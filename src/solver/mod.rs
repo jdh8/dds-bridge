@@ -5,6 +5,7 @@ use crate::contract::{Contract, Penalty, Strain};
 use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
+use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
 use once_cell::sync::Lazy;
 use std::sync::{Mutex, MutexGuard, PoisonError};
@@ -440,6 +441,23 @@ pub struct Par {
     pub contracts: Vec<(Contract, Seat, i8)>,
 }
 
+impl PartialEq for Par {
+    fn eq(&self, other: &Self) -> bool {
+        // Since every contract scores the same, we can compare only the set of
+        // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
+        // a `u32` as a bitset.
+        fn key(contracts: &[(Contract, Seat, i8)]) -> u32 {
+            contracts
+                .iter()
+                .map(|&(contract, seat, _)| 1 << ((contract.bid.strain as u8) << 2 | seat as u8))
+                .fold(0, u32::bitor)
+        }
+        self.score == other.score && key(&self.contracts) == key(&other.contracts)
+    }
+}
+
+impl Eq for Par {}
+
 impl From<sys::parResultsMaster> for Par {
     fn from(par: sys::parResultsMaster) -> Self {
         // DDS returns a zero contract for par-zero deals, but we want to filter
@@ -470,7 +488,7 @@ impl From<sys::parResultsMaster> for Par {
                 assert_eq!(contract.level, contract.level & 7);
                 // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
                 let seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
-                let is_pair = contract.seats & 4 != 0;
+                let is_pair = contract.seats >= 4;
                 let contract = Contract::new((contract.level & 7) as u8, strain, penalty);
 
                 core::iter::once((contract, seat, overtricks)).chain(if is_pair {

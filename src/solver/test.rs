@@ -39,9 +39,33 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 13, 0, 13),
         TricksRow::new(0, 0, 0, 0),
     ]);
+    let contracts = vec![
+        (
+            Contract::new(7, Strain::Spades, Penalty::None),
+            Seat::East,
+            0,
+        ),
+        (
+            Contract::new(7, Strain::Spades, Penalty::None),
+            Seat::West,
+            0,
+        ),
+    ];
+    let ns = Par {
+        score: -2210,
+        contracts: contracts.clone(),
+    };
+    let ew = Par {
+        score: 2210,
+        contracts,
+    };
     assert_eq!(
         solve_deal(DEAL).expect("Failed to solve the deal"),
         SOLUTION
+    );
+    assert_eq!(
+        calculate_pars(SOLUTION, Vulnerability::all()).expect("Failed to calculate par scores"),
+        [ns, ew]
     );
 }
 
@@ -62,8 +86,16 @@ fn solve_par_5_tricks() {
         Hand([AKQJ, X, XXXX, T987]),
     ]);
     const SOLUTION: TricksTable = TricksTable([TricksRow::new(5, 5, 5, 5); 5]);
+    const PAR: Par = Par {
+        score: 0,
+        contracts: Vec::new(),
+    };
     assert_eq!(
         solve_deal(DEAL).expect("Failed to solve the deal"),
         SOLUTION
+    );
+    assert_eq!(
+        calculate_pars(SOLUTION, Vulnerability::all()).expect("Failed to calculate par scores"),
+        [PAR; 2]
     );
 }
