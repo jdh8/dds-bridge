@@ -257,7 +257,7 @@ impl fmt::Display for Holding {
 
 /// A hand of playing cards
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Hand([Holding; 4]);
+pub struct Hand(pub [Holding; 4]);
 
 impl Index<Suit> for Hand {
     type Output = Holding;
@@ -383,22 +383,19 @@ impl Sub for Hand {
 
 /// A deal of four hands
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Deal {
-    /// The hands in the order of [`Seat`]s
-    pub hands: [Hand; 4],
-}
+pub struct Deal(pub [Hand; 4]);
 
 impl Index<Seat> for Deal {
     type Output = Hand;
 
     fn index(&self, seat: Seat) -> &Hand {
-        &self.hands[seat as usize]
+        &self.0[seat as usize]
     }
 }
 
 impl IndexMut<Seat> for Deal {
     fn index_mut(&mut self, seat: Seat) -> &mut Hand {
-        &mut self.hands[seat as usize]
+        &mut self.0[seat as usize]
     }
 }
 

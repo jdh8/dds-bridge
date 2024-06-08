@@ -237,7 +237,7 @@ impl TricksRow {
 
 /// Tricks that each seat can take as declarer for all strains
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TricksTable([TricksRow; 5]);
+pub struct TricksTable(pub [TricksRow; 5]);
 
 impl core::ops::Index<Strain> for TricksTable {
     type Output = TricksRow;
@@ -245,16 +245,6 @@ impl core::ops::Index<Strain> for TricksTable {
     fn index(&self, strain: Strain) -> &TricksRow {
         &self.0[strain as usize]
     }
-}
-
-const fn make_row(row: [c_int; 4]) -> TricksRow {
-    #[allow(clippy::cast_sign_loss)]
-    TricksRow::new(
-        (row[0] & 0xFF) as u8,
-        (row[1] & 0xFF) as u8,
-        (row[2] & 0xFF) as u8,
-        (row[3] & 0xFF) as u8,
-    )
 }
 
 impl Strain {
@@ -273,6 +263,16 @@ impl Strain {
 
 impl From<sys::ddTableResults> for TricksTable {
     fn from(table: sys::ddTableResults) -> Self {
+        const fn make_row(row: [c_int; 4]) -> TricksRow {
+            #[allow(clippy::cast_sign_loss)]
+            TricksRow::new(
+                (row[0] & 0xFF) as u8,
+                (row[1] & 0xFF) as u8,
+                (row[2] & 0xFF) as u8,
+                (row[3] & 0xFF) as u8,
+            )
+        }
+
         Self([
             make_row(table.resTable[Strain::Clubs.to_sys()]),
             make_row(table.resTable[Strain::Diamonds.to_sys()]),
@@ -285,15 +285,23 @@ impl From<sys::ddTableResults> for TricksTable {
 
 impl From<TricksTable> for sys::ddTableResults {
     fn from(table: TricksTable) -> Self {
+        const fn make_row(row: TricksRow) -> [c_int; 4] {
+            [
+                row.get(Seat::North) as c_int,
+                row.get(Seat::East) as c_int,
+                row.get(Seat::South) as c_int,
+                row.get(Seat::West) as c_int,
+            ]
+        }
+
         Self {
-            resTable: table.0.map(|row| {
-                [
-                    c_int::from(row.get(Seat::North)),
-                    c_int::from(row.get(Seat::East)),
-                    c_int::from(row.get(Seat::South)),
-                    c_int::from(row.get(Seat::West)),
-                ]
-            }),
+            resTable: [
+                make_row(table[Strain::Spades]),
+                make_row(table[Strain::Hearts]),
+                make_row(table[Strain::Diamonds]),
+                make_row(table[Strain::Clubs]),
+                make_row(table[Strain::Notrump]),
+            ],
         }
     }
 }
@@ -301,7 +309,7 @@ impl From<TricksTable> for sys::ddTableResults {
 impl From<Deal> for sys::ddTableDeal {
     fn from(deal: Deal) -> Self {
         Self {
-            cards: deal.hands.map(|hand| {
+            cards: deal.0.map(|hand| {
                 [
                     hand[Suit::Spades].to_bits().into(),
                     hand[Suit::Hearts].to_bits().into(),
@@ -434,11 +442,22 @@ pub struct Par {
 
 impl From<sys::parResultsMaster> for Par {
     fn from(par: sys::parResultsMaster) -> Self {
+        // DDS returns a zero contract for par-zero deals, but we want to filter
+        // it out for consistency.
         #[allow(clippy::cast_sign_loss)]
-        let contracts = par.contracts[..par.number as usize]
+        let len = par.number as usize * usize::from(par.contracts[0].level != 0);
+
+        #[allow(clippy::cast_sign_loss)]
+        let contracts = par.contracts[..len]
             .iter()
-            .map(|contract| {
-                let strain = Strain::SYS[contract.denom as usize];
+            .flat_map(|contract| {
+                let strain = [
+                    Strain::Notrump,
+                    Strain::Spades,
+                    Strain::Hearts,
+                    Strain::Diamonds,
+                    Strain::Clubs,
+                ][contract.denom as usize];
 
                 let (penalty, overtricks) = if contract.underTricks > 0 {
                     assert!(contract.underTricks <= 13);
@@ -449,13 +468,16 @@ impl From<sys::parResultsMaster> for Par {
                 };
 
                 assert_eq!(contract.level, contract.level & 7);
-                assert!(contract.level != 0);
-                (
-                    Contract::new((contract.level & 7) as u8, strain, penalty),
-                    // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
-                    unsafe { core::mem::transmute((contract.seats & 3) as u8) },
-                    overtricks,
-                )
+                // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
+                let seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
+                let is_pair = contract.seats & 4 != 0;
+                let contract = Contract::new((contract.level & 7) as u8, strain, penalty);
+
+                core::iter::once((contract, seat, overtricks)).chain(if is_pair {
+                    Some((contract, seat + core::num::Wrapping(2), overtricks))
+                } else {
+                    None
+                })
             })
             .collect();
 
