@@ -434,17 +434,18 @@ impl From<sys::parResultsMaster> for Par {
         let contracts = par.contracts[..par.number as usize]
             .iter()
             .map(|contract| {
-                assert_eq!(contract.level, contract.level & 7);
-                assert!(contract.level != 0);
                 let strain = Strain::SYS[contract.denom as usize];
 
-                #[allow(clippy::cast_possible_truncation)]
-                let (penalty, overtricks) = if contract.overTricks >= 0 {
-                    (Penalty::None, contract.overTricks as i8)
+                let (penalty, overtricks) = if contract.underTricks > 0 {
+                    assert!(contract.underTricks <= 13);
+                    (Penalty::Doubled, -((contract.underTricks & 0xFF) as i8))
                 } else {
-                    (Penalty::Doubled, -contract.underTricks as i8)
+                    assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
+                    (Penalty::None, (contract.overTricks & 0xFF) as i8)
                 };
 
+                assert_eq!(contract.level, contract.level & 7);
+                assert!(contract.level != 0);
                 (
                     Contract::new((contract.level & 7) as u8, strain, penalty),
                     // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
