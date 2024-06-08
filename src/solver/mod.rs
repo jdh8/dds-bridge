@@ -356,9 +356,8 @@ pub unsafe fn solve_deal_segment(
     };
     deals
         .iter()
-        .copied()
         .enumerate()
-        .for_each(|(i, deal)| pack.deals[i] = deal.into());
+        .for_each(|(i, &deal)| pack.deals[i] = deal.into());
 
     let mut res = sys::ddTablesRes::default();
     let _guard = THREAD_POOL.lock()?;
@@ -392,8 +391,7 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
             // SAFETY: the thread pool is locked inside `solve_deal_segment`
             unsafe { solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
                 .iter()
-                .copied()
-                .map(TricksTable::from),
+                .map(|&x| TricksTable::from(x)),
         );
     }
     Ok(tables)
@@ -725,9 +723,8 @@ pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solve
         ..Default::default()
     };
     args.iter()
-        .copied()
         .enumerate()
-        .for_each(|(i, (board, target))| {
+        .for_each(|(i, &(board, target))| {
             pack.deals[i] = board.into();
             pack.target[i] = target.target();
             pack.solutions[i] = target.solutions();
@@ -752,8 +749,7 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
             // SAFETY: the thread pool is locked inside `solve_board_segment`
             unsafe { solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
                 .iter()
-                .copied()
-                .map(FoundPlays::from),
+                .map(|&x| FoundPlays::from(x)),
         );
     }
     Ok(solutions)
