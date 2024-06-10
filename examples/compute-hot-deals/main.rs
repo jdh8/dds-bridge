@@ -26,12 +26,10 @@ fn get_random_symmetric_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
     Deal([north, east, south, west])
 }
 
-fn compute_deal() -> Result<Deal, solver::Error> {
+fn compute_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Result<(Deal, solver::TricksTable), solver::Error> {
     const N: usize = dds_bridge_sys::MAXNOOFTABLES as usize;
-
     loop {
-        let deals: [_; N] =
-            core::array::from_fn(|_| get_random_symmetric_deal(&mut rand::thread_rng()));
+        let deals: [_; N] = core::array::from_fn(|_| get_random_symmetric_deal(rng));
         // SAFETY: `N` is exactly the maximum length of a deal segment.
         let tables = unsafe { solver::solve_deal_segment(&deals, solver::StrainFlags::all())? };
 
@@ -39,8 +37,8 @@ fn compute_deal() -> Result<Deal, solver::Error> {
             let tricks = solver::TricksTable::from(table);
             let pars = solver::calculate_pars(tricks, solver::Vulnerability::all())?;
 
-            if pars[0].score > 0 && pars[1].score > 0 {
-                return Ok(deals[i]);
+            if pars[0].score + pars[1].score > 0 {
+                return Ok((deals[i], tricks));
             }
         }
     }
@@ -61,8 +59,8 @@ fn main() -> Result<ExitCode, solver::Error> {
     };
 
     for _ in 0..deals {
-        let deal = compute_deal()?;
-        println!("{}", deal.display(Seat::North));
+        let (deal, tricks) = compute_deal(&mut rand::thread_rng())?;
+        println!("{} {tricks:X}", deal.display(Seat::North));
     }
 
     Ok(ExitCode::SUCCESS)
