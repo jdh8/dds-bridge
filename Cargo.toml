@@ -18,6 +18,3 @@ thiserror = "1.0.61"
 
 [profile.dev]
 opt-level = 2
-
-[dev-dependencies]
-anyhow = "1.0.86"

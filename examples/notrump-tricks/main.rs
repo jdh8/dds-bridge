@@ -1,6 +1,7 @@
 use dds_bridge::contract::Strain;
 use dds_bridge::deal::{Deal, Seat};
 use dds_bridge::solver;
+use std::process::ExitCode;
 
 /// Histogram of notrump tricks
 #[derive(Debug, Clone, Copy, Default)]
@@ -54,9 +55,18 @@ fn analyze_deals(n: usize) -> Result<(), solver::Error> {
     Ok(())
 }
 
-fn main() -> anyhow::Result<()> {
-    Ok(match std::env::args().nth(1) {
-        Some(string) => analyze_deals(string.parse::<usize>()?),
+#[doc = include_str!("README.md")]
+fn main() -> Result<ExitCode, solver::Error> {
+    match std::env::args().nth(1) {
+        Some(string) => {
+            if let Ok(n) = string.parse::<usize>() {
+                analyze_deals(n)
+            } else {
+                eprintln!("{}", include_str!("README.md"));
+                return Ok(ExitCode::FAILURE);
+            }
+        }
         None => analyze_deals(100),
-    }?)
+    }?;
+    Ok(ExitCode::SUCCESS)
 }
