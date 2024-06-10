@@ -8,7 +8,7 @@ use core::ffi::c_int;
 use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
 use once_cell::sync::Lazy;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Mutex, PoisonError};
 use thiserror::Error;
 
 static THREAD_POOL: Lazy<Mutex<()>> = Lazy::new(|| {
@@ -176,12 +176,15 @@ impl SystemError {
 }
 
 /// The sum type of all solver errors
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// An error propagated from [`dds_bridge_sys`]
+    #[error(transparent)]
     System(SystemError),
+
     /// A poisoned mutex of the thread pool
-    Lock(PoisonError<MutexGuard<'static, ()>>),
+    #[error("The thread pool is poisoned")]
+    Poison,
 }
 
 impl From<SystemError> for Error {
@@ -190,9 +193,9 @@ impl From<SystemError> for Error {
     }
 }
 
-impl From<PoisonError<MutexGuard<'static, ()>>> for Error {
-    fn from(err: PoisonError<MutexGuard<'static, ()>>) -> Self {
-        Self::Lock(err)
+impl<T> From<PoisonError<T>> for Error {
+    fn from(_: PoisonError<T>) -> Self {
+        Self::Poison
     }
 }
 
@@ -722,13 +725,11 @@ pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solve
         noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
         ..Default::default()
     };
-    args.iter()
-        .enumerate()
-        .for_each(|(i, &(board, target))| {
-            pack.deals[i] = board.into();
-            pack.target[i] = target.target();
-            pack.solutions[i] = target.solutions();
-        });
+    args.iter().enumerate().for_each(|(i, &(board, target))| {
+        pack.deals[i] = board.into();
+        pack.target[i] = target.target();
+        pack.solutions[i] = target.solutions();
+    });
     let mut res = sys::solvedBoards::default();
     let _guard = THREAD_POOL.lock()?;
     // SAFETY: `_guard` just locked the thread pool
