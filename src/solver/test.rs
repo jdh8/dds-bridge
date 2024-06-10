@@ -99,3 +99,43 @@ fn solve_par_5_tricks() {
         [PAR; 2]
     );
 }
+
+/// A symmetric deal where everyone makes 1NT but no suit contract
+///
+/// This example is taken from
+/// <http://www.rpbridge.net/7a23.htm#2>.
+#[test]
+#[allow(clippy::unusual_byte_groupings)]
+fn solve_everyone_makes_1nt() {
+    const A54: Holding = Holding::from_bits(0b10000_0000_1100_00);
+    const QJ32: Holding = Holding::from_bits(0b00110_0000_0011_00);
+    const K976: Holding = Holding::from_bits(0b01000_1011_0000_00);
+    const T8: Holding = Holding::from_bits(0b00001_0100_0000_00);
+    const DEAL: Deal = Deal([
+        Hand([A54, QJ32, K976, T8]),
+        Hand([T8, A54, QJ32, K976]),
+        Hand([K976, T8, A54, QJ32]),
+        Hand([QJ32, K976, T8, A54]),
+    ]);
+    const SUIT: TricksRow = TricksRow::new(6, 6, 6, 6);
+    const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
+    const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
+    const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::None);
+    assert_eq!(
+        solve_deal(DEAL).expect("Failed to solve the deal"),
+        SOLUTION
+    );
+
+    let ns = Par {
+        score: 90,
+        contracts: vec![(CONTRACT, Seat::North, 0), (CONTRACT, Seat::South, 0)],
+    };
+    let ew = Par {
+        score: 90,
+        contracts: vec![(CONTRACT, Seat::East, 0), (CONTRACT, Seat::West, 0)],
+    };
+    assert_eq!(
+        calculate_pars(SOLUTION, Vulnerability::all()).expect("Failed to calculate par scores"),
+        [ns, ew]
+    );
+}
