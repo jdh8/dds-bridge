@@ -24,11 +24,11 @@ pub enum Suit {
 }
 
 impl Suit {
-    /// Suits in ascending order, the order in this crate
-    pub const ASCENDING: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
+    /// Suits in the ascending order, the order in this crate
+    pub const ASC: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
 
-    /// Suits in descending order, the order in [`dds_bridge_sys`]
-    pub const DESCENDING: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
+    /// Suits in the descending order, the order in [`dds_bridge_sys`]
+    pub const DESC: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
 }
 
 impl From<Suit> for Strain {
@@ -411,7 +411,7 @@ impl Deck {
     #[must_use]
     fn standard_52() -> Self {
         Self {
-            cards: Suit::ASCENDING
+            cards: Suit::ASC
                 .into_iter()
                 .flat_map(|x| core::iter::repeat(x).zip(2..=14))
                 .map(|(suit, rank)| Card::new(suit, rank))

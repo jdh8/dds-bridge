@@ -296,7 +296,11 @@ impl TricksTable {
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
     pub fn hex(self, seat: Seat, strains: impl AsRef<[Strain]>) -> impl fmt::UpperHex {
-        TricksTableHex { deal: self, seat, strains }
+        TricksTableHex {
+            deal: self,
+            seat,
+            strains,
+        }
     }
 }
 
@@ -716,7 +720,7 @@ impl From<sys::futureTricks> for FoundPlays {
             .take(future.cards as usize)
             .for_each(|(i, play)| {
                 let card = Card::new(
-                    Suit::DESCENDING[future.suit[i] as usize],
+                    Suit::DESC[future.suit[i] as usize],
                     (future.rank[i] & 0xFF) as u8,
                 );
                 let equals = Holding::from_bits((future.equals[i] & 0xFFFF) as u16);

@@ -63,7 +63,11 @@ fn main() -> Result<ExitCode, solver::Error> {
 
     for _ in 0..deals {
         let (deal, tricks) = compute_deal(&mut rand::thread_rng())?;
-        println!("{} {:X}", deal.display(Seat::North), tricks.hex(Seat::North, Strain::ALL));
+        println!(
+            "{} {:X}",
+            deal.display(Seat::North),
+            tricks.hex(Seat::North, Strain::SYS)
+        );
     }
 
     Ok(ExitCode::SUCCESS)

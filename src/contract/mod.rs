@@ -50,12 +50,30 @@ impl Strain {
         matches!(self, Self::Notrump)
     }
 
-    /// Helper constant for iteration over all strains
-    pub const ALL: [Self; 5] = [
+    /// Strains in the ascending order, the order in this crate
+    pub const ASC: [Self; 5] = [
         Self::Clubs,
         Self::Diamonds,
         Self::Hearts,
         Self::Spades,
+        Self::Notrump,
+    ];
+
+    /// Strains in the descending order
+    pub const DESC: [Self; 5] = [
+        Self::Notrump,
+        Self::Spades,
+        Self::Hearts,
+        Self::Diamonds,
+        Self::Clubs,
+    ];
+
+    /// Strains in the order in [`dds_bridge_sys`]
+    pub const SYS: [Self; 5] = [
+        Self::Spades,
+        Self::Hearts,
+        Self::Diamonds,
+        Self::Clubs,
         Self::Notrump,
     ];
 }
