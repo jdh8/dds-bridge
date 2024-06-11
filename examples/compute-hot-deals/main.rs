@@ -1,3 +1,4 @@
+use dds_bridge::contract::Strain;
 use dds_bridge::deal::{Card, Deal, Hand, Seat, SmallSet as _};
 use dds_bridge::solver;
 use std::process::ExitCode;
@@ -26,7 +27,9 @@ fn get_random_symmetric_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
     Deal([north, east, south, west])
 }
 
-fn compute_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Result<(Deal, solver::TricksTable), solver::Error> {
+fn compute_deal(
+    rng: &mut (impl rand::Rng + ?Sized),
+) -> Result<(Deal, solver::TricksTable), solver::Error> {
     const N: usize = dds_bridge_sys::MAXNOOFTABLES as usize;
     loop {
         let deals: [_; N] = core::array::from_fn(|_| get_random_symmetric_deal(rng));
@@ -60,7 +63,7 @@ fn main() -> Result<ExitCode, solver::Error> {
 
     for _ in 0..deals {
         let (deal, tricks) = compute_deal(&mut rand::thread_rng())?;
-        println!("{} {tricks:X}", deal.display(Seat::North));
+        println!("{} {:X}", deal.display(Seat::North), tricks.hex(Seat::North, Strain::ALL));
     }
 
     Ok(ExitCode::SUCCESS)

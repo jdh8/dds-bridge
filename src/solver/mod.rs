@@ -6,6 +6,7 @@ use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
+use core::num::Wrapping;
 use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
 use once_cell::sync::Lazy;
@@ -238,17 +239,28 @@ impl TricksRow {
     pub const fn get(self, seat: Seat) -> u8 {
         (self.0 >> (4 * seat as u8) & 0xF) as u8
     }
+
+    /// Hexadecimal representation from a seat's perspective
+    #[must_use]
+    pub fn hex(self, seat: Seat) -> impl fmt::UpperHex {
+        TricksRowHex { deal: self, seat }
+    }
 }
 
-impl fmt::UpperHex for TricksRow {
+struct TricksRowHex {
+    deal: TricksRow,
+    seat: Seat,
+}
+
+impl fmt::UpperHex for TricksRowHex {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{:X}{:X}{:X}{:X}",
-            self.get(Seat::North),
-            self.get(Seat::East),
-            self.get(Seat::South),
-            self.get(Seat::West)
+            self.deal.get(self.seat),
+            self.deal.get(self.seat + Wrapping(1)),
+            self.deal.get(self.seat + Wrapping(2)),
+            self.deal.get(self.seat + Wrapping(3)),
         )
     }
 }
@@ -265,17 +277,26 @@ impl core::ops::Index<Strain> for TricksTable {
     }
 }
 
-impl fmt::UpperHex for TricksTable {
+struct TricksTableHex<T: AsRef<[Strain]>> {
+    deal: TricksTable,
+    seat: Seat,
+    strains: T,
+}
+
+impl<T: AsRef<[Strain]>> fmt::UpperHex for TricksTableHex<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{:X}{:X}{:X}{:X}{:X}",
-            self[Strain::Spades],
-            self[Strain::Hearts],
-            self[Strain::Diamonds],
-            self[Strain::Clubs],
-            self[Strain::Notrump]
-        )
+        for &strain in self.strains.as_ref() {
+            write!(f, "{:X}", self.deal[strain].get(self.seat))?;
+        }
+        Ok(())
+    }
+}
+
+impl TricksTable {
+    /// Hexadecimal representation from a seat's perspective
+    #[must_use]
+    pub fn hex(self, seat: Seat, strains: impl AsRef<[Strain]>) -> impl fmt::UpperHex {
+        TricksTableHex { deal: self, seat, strains }
     }
 }
 
