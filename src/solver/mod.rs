@@ -286,7 +286,7 @@ struct TricksTableHex<T: AsRef<[Strain]>> {
 impl<T: AsRef<[Strain]>> fmt::UpperHex for TricksTableHex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for &strain in self.strains.as_ref() {
-            write!(f, "{:X}", self.deal[strain].get(self.seat))?;
+            self.deal[strain].hex(self.seat).fmt(f)?;
         }
         Ok(())
     }
