@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::contract::Strain;
+use crate::Strain;
 use core::fmt;
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};

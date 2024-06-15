@@ -26,7 +26,9 @@ fn get_random_symmetric_deal(rng: &mut (impl rand::Rng + ?Sized)) -> dds::Deal {
     dds::Deal([north, east, south, west])
 }
 
-fn compute_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Result<(dds::Deal, dds::TricksTable), dds::Error> {
+fn compute_deal(
+    rng: &mut (impl rand::Rng + ?Sized),
+) -> Result<(dds::Deal, dds::TricksTable), dds::Error> {
     const N: usize = dds_bridge_sys::MAXNOOFTABLES as usize;
     loop {
         let deals: [_; N] = core::array::from_fn(|_| get_random_symmetric_deal(rng));

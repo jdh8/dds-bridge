@@ -1,5 +1,4 @@
-use super::*;
-use crate::deal::{Deal, Hand, SmallSet};
+use crate::*;
 use dds_bridge_sys as sys;
 
 #[test]

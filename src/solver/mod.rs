@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use crate::contract::{Contract, Penalty, Strain};
-use crate::deal::{Card, Deal, Holding, Seat, Suit};
+use crate::{Deal, Seat, Strain};
 use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
@@ -368,10 +367,10 @@ impl From<Deal> for sys::ddTableDeal {
         Self {
             cards: deal.0.map(|hand| {
                 [
-                    hand[Suit::Spades].to_bits().into(),
-                    hand[Suit::Hearts].to_bits().into(),
-                    hand[Suit::Diamonds].to_bits().into(),
-                    hand[Suit::Clubs].to_bits().into(),
+                    hand[crate::Suit::Spades].to_bits().into(),
+                    hand[crate::Suit::Hearts].to_bits().into(),
+                    hand[crate::Suit::Diamonds].to_bits().into(),
+                    hand[crate::Suit::Clubs].to_bits().into(),
                 ]
             }),
         }
@@ -492,7 +491,7 @@ pub struct Par {
     ///
     /// Each tuple contains a contract, the declarer, and the number of
     /// overtricks (undertricks in negative).
-    pub contracts: Vec<(Contract, Seat, i8)>,
+    pub contracts: Vec<(crate::Contract, Seat, i8)>,
 }
 
 impl PartialEq for Par {
@@ -500,7 +499,7 @@ impl PartialEq for Par {
         // Since every contract scores the same, we can compare only the set of
         // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
         // a `u32` as a bitset.
-        fn key(contracts: &[(Contract, Seat, i8)]) -> u32 {
+        fn key(contracts: &[(crate::Contract, Seat, i8)]) -> u32 {
             contracts
                 .iter()
                 .map(|&(contract, seat, _)| 1 << ((contract.bid.strain as u8) << 2 | seat as u8))
@@ -533,17 +532,20 @@ impl From<sys::parResultsMaster> for Par {
 
                 let (penalty, overtricks) = if contract.underTricks > 0 {
                     assert!(contract.underTricks <= 13);
-                    (Penalty::Doubled, -((contract.underTricks & 0xFF) as i8))
+                    (
+                        crate::Penalty::Doubled,
+                        -((contract.underTricks & 0xFF) as i8),
+                    )
                 } else {
                     assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
-                    (Penalty::None, (contract.overTricks & 0xFF) as i8)
+                    (crate::Penalty::None, (contract.overTricks & 0xFF) as i8)
                 };
 
                 assert_eq!(contract.level, contract.level & 7);
                 // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
                 let seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
-                let contract = Contract::new((contract.level & 7) as u8, strain, penalty);
+                let contract = crate::Contract::new((contract.level & 7) as u8, strain, penalty);
 
                 core::iter::once((contract, seat, overtricks)).chain(if is_pair {
                     Some((contract, seat + core::num::Wrapping(2), overtricks))
@@ -648,7 +650,7 @@ pub struct Board {
     /// The player leading the trick
     pub lead: Seat,
     /// The played cards in the current trick
-    pub current_cards: [Option<Card>; 3],
+    pub current_cards: [Option<crate::Card>; 3],
     /// The remaining cards in the deal
     pub deal: Deal,
 }
@@ -686,14 +688,14 @@ pub struct Play {
     ///
     /// For example, if the solution is to play a card from ♥KQJ, this field
     /// would be ♥K.
-    pub card: Card,
+    pub card: crate::Card,
 
     /// Lower equals in the sequence
     ///
     /// Playing any card in a sequence is equal in bridge and many trick-taking
     /// games.  This field contains lower cards in the sequence as `card`.  For
     /// example, if the solution is to play KQJ, this field would contain QJ.
-    pub equals: Holding,
+    pub equals: crate::Holding,
 
     /// Tricks this play would score
     pub score: i8,
@@ -719,11 +721,11 @@ impl From<sys::futureTricks> for FoundPlays {
             .enumerate()
             .take(future.cards as usize)
             .for_each(|(i, play)| {
-                let card = Card::new(
-                    Suit::DESC[future.suit[i] as usize],
+                let card = crate::Card::new(
+                    crate::Suit::DESC[future.suit[i] as usize],
                     (future.rank[i] & 0xFF) as u8,
                 );
-                let equals = Holding::from_bits((future.equals[i] & 0xFFFF) as u16);
+                let equals = crate::Holding::from_bits((future.equals[i] & 0xFFFF) as u16);
                 let score = (future.score[i] & 0xFF) as i8;
                 *play = Some(Play {
                     card,
