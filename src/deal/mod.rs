@@ -6,6 +6,7 @@ use core::fmt;
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
 use rand::prelude::SliceRandom as _;
+use thiserror::Error;
 
 /// A suit of playing cards
 ///
@@ -38,6 +39,25 @@ impl From<Suit> for Strain {
             Suit::Diamonds => Self::Diamonds,
             Suit::Hearts => Self::Hearts,
             Suit::Spades => Self::Spades,
+        }
+    }
+}
+
+/// Error raised when converting [`Strain::Notrump`] to a suit
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Notrump is not a suit")]
+pub struct SuitFromNotrumpError;
+
+impl TryFrom<Strain> for Suit {
+    type Error = SuitFromNotrumpError;
+
+    fn try_from(strain: Strain) -> Result<Self, Self::Error> {
+        match strain {
+            Strain::Clubs => Ok(Self::Clubs),
+            Strain::Diamonds => Ok(Self::Diamonds),
+            Strain::Hearts => Ok(Self::Hearts),
+            Strain::Spades => Ok(Self::Spades),
+            Strain::Notrump => Err(SuitFromNotrumpError),
         }
     }
 }
