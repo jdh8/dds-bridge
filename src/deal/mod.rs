@@ -130,9 +130,21 @@ bitflags::bitflags! {
 
 const _: () = assert!(matches!(SeatFlags::all(), SeatFlags::ALL));
 const _: () = assert!(matches!(SeatFlags::NS.union(SeatFlags::EW), SeatFlags::ALL));
-const _: () = assert!(matches!(SeatFlags::NS.intersection(SeatFlags::EW), SeatFlags::EMPTY));
-const _: () = assert!(matches!(SeatFlags::NORTH.union(SeatFlags::SOUTH), SeatFlags::NS));
-const _: () = assert!(matches!(SeatFlags::EAST.union(SeatFlags::WEST), SeatFlags::EW));
+
+const _: () = assert!(matches!(
+    SeatFlags::NS.intersection(SeatFlags::EW),
+    SeatFlags::EMPTY
+));
+
+const _: () = assert!(matches!(
+    SeatFlags::NORTH.union(SeatFlags::SOUTH),
+    SeatFlags::NS
+));
+
+const _: () = assert!(matches!(
+    SeatFlags::EAST.union(SeatFlags::WEST),
+    SeatFlags::EW
+));
 
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
