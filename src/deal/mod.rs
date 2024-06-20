@@ -105,11 +105,38 @@ impl From<Seat> for char {
     }
 }
 
+bitflags::bitflags! {
+    /// A set of seats
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct SeatFlags: u8 {
+        /// The empty set
+        const EMPTY = 0;
+        /// The set containing all seats
+        const ALL = 0b1111;
+        /// The set containing [`Seat::North`]
+        const NORTH = 0b0001;
+        /// The set containing [`Seat::East`]
+        const EAST = 0b0010;
+        /// The set containing [`Seat::South`]
+        const SOUTH = 0b0100;
+        /// The set containing [`Seat::West`]
+        const WEST = 0b1000;
+        /// The set containing the north-south pair
+        const NS = Self::NORTH.bits() | Self::SOUTH.bits();
+        /// The set containing the east-west pair
+        const EW = Self::EAST.bits() | Self::WEST.bits();
+    }
+}
+
+const _: () = assert!(matches!(SeatFlags::all(), SeatFlags::ALL));
+const _: () = assert!(matches!(SeatFlags::NS.union(SeatFlags::EW), SeatFlags::ALL));
+const _: () = assert!(matches!(SeatFlags::NS.intersection(SeatFlags::EW), SeatFlags::EMPTY));
+const _: () = assert!(matches!(SeatFlags::NORTH.union(SeatFlags::SOUTH), SeatFlags::NS));
+const _: () = assert!(matches!(SeatFlags::EAST.union(SeatFlags::WEST), SeatFlags::EW));
+
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(NonZeroU8);
-
-const _: () = assert!(core::mem::size_of::<Option<Card>>() == 1);
 
 impl Card {
     /// Create a card from suit and rank

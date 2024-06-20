@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2021"
 description = "Rusty API for DDS, the double dummy solver for bridge"
