@@ -2,7 +2,6 @@
 mod test;
 
 use crate::{Deal, Seat, Strain};
-use bitflags::bitflags;
 use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;
@@ -200,7 +199,7 @@ impl<T> From<PoisonError<T>> for Error {
     }
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// Flags for the solver to solve for a strain
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct StrainFlags : u8 {
@@ -452,7 +451,7 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     Ok(tables)
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// Vulnerability of pairs
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct Vulnerability: u8 {
