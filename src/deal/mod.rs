@@ -334,7 +334,7 @@ impl Hand {
     #[must_use]
     pub const fn from_bits(bits: u64) -> Self {
         // SAFETY: just filtered out invalid cards
-        Self(unsafe { core::mem::transmute(bits & Self::ALL.to_bits()) })
+        unsafe { Self::from_bits_unchecked(bits & Self::ALL.to_bits()) }
     }
 
     /// Create a hand from a bitset of cards without checking
@@ -343,7 +343,7 @@ impl Hand {
     /// The bitset must not contain invalid cards.
     #[must_use]
     pub const unsafe fn from_bits_unchecked(bits: u64) -> Self {
-        Self(core::mem::transmute(bits))
+        core::mem::transmute(bits)
     }
 }
 
@@ -474,7 +474,8 @@ impl Deck {
         for (index, card) in self.cards.into_iter().enumerate() {
             // SAFETY: `index & 3` is always in the range of 0..=3
             #[allow(clippy::cast_possible_truncation)]
-            deal[unsafe { core::mem::transmute((index & 3) as u8) }].insert(card);
+            let seat: Seat = unsafe { core::mem::transmute((index & 3) as u8) };
+            deal[seat].insert(card);
         }
 
         deal

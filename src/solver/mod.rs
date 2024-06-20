@@ -542,7 +542,7 @@ impl From<sys::parResultsMaster> for Par {
 
                 assert_eq!(contract.level, contract.level & 7);
                 // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
-                let seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
+                let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
                 let contract = crate::Contract::new((contract.level & 7) as u8, strain, penalty);
 
