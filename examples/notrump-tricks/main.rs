@@ -1,4 +1,4 @@
-extern crate dds_bridge as dds;
+use dds_bridge as dds;
 use std::process::ExitCode;
 
 /// Histogram of notrump tricks

@@ -1,5 +1,4 @@
-extern crate dds_bridge as dds;
-use dds::SmallSet as _;
+use dds_bridge::{self as dds, SmallSet as _};
 use std::process::ExitCode;
 
 /// Generate a hand with one card of each rank
@@ -8,7 +7,7 @@ fn get_random_average_hand(rng: &mut (impl rand::Rng + ?Sized)) -> dds::Hand {
 
     (0..13).fold(dds::Hand::EMPTY, |mut hand, i| {
         // SAFETY: we are slicing valid consecutive 2 bits from `bits`
-        let suit = unsafe { core::mem::transmute((bits >> (2 * i) & 3) as u8) };
+        let suit: dds::Suit = unsafe { core::mem::transmute((bits >> (2 * i) & 3) as u8) };
         hand.insert(dds::Card::new(suit, i + 2));
         hand
     })
