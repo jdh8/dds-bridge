@@ -109,10 +109,6 @@ bitflags::bitflags! {
     /// A set of seats
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct SeatFlags: u8 {
-        /// The empty set
-        const EMPTY = 0;
-        /// The set containing all seats
-        const ALL = 0b1111;
         /// The set containing [`Seat::North`]
         const NORTH = 0b0001;
         /// The set containing [`Seat::East`]
@@ -121,30 +117,22 @@ bitflags::bitflags! {
         const SOUTH = 0b0100;
         /// The set containing [`Seat::West`]
         const WEST = 0b1000;
-        /// The set containing the north-south pair
-        const NS = Self::NORTH.bits() | Self::SOUTH.bits();
-        /// The set containing the east-west pair
-        const EW = Self::EAST.bits() | Self::WEST.bits();
     }
 }
 
-const _: () = assert!(matches!(SeatFlags::all(), SeatFlags::ALL));
-const _: () = assert!(matches!(SeatFlags::NS.union(SeatFlags::EW), SeatFlags::ALL));
+impl SeatFlags {
+    /// The empty set
+    pub const EMPTY: Self = Self::empty();
 
-const _: () = assert!(matches!(
-    SeatFlags::NS.intersection(SeatFlags::EW),
-    SeatFlags::EMPTY
-));
+    /// The set containing all seats
+    pub const ALL: Self = Self::all();
 
-const _: () = assert!(matches!(
-    SeatFlags::NORTH.union(SeatFlags::SOUTH),
-    SeatFlags::NS
-));
+    /// The set containing [`Seat::North`] and [`Seat::South`]
+    pub const NS: Self = Self::NORTH.union(Self::SOUTH);
 
-const _: () = assert!(matches!(
-    SeatFlags::EAST.union(SeatFlags::WEST),
-    SeatFlags::EW
-));
+    /// The set containing [`Seat::East`] and [`Seat::West`]
+    pub const EW: Self = Self::EAST.union(Self::WEST);
+}
 
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
