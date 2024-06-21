@@ -18,7 +18,7 @@ static THREAD_POOL: Lazy<Mutex<()>> = Lazy::new(|| {
 });
 
 /// Errors that occurred in [`dds_bridge_sys`]
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum SystemError {
     /// Success, no error
@@ -217,7 +217,7 @@ bitflags::bitflags! {
 }
 
 /// Tricks that each seat can take as declarer for a strain
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TricksRow(u16);
 
 impl TricksRow {
@@ -264,7 +264,7 @@ impl fmt::UpperHex for TricksRowHex {
 }
 
 /// Tricks that each seat can take as declarer for all strains
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TricksTable(pub [TricksRow; 5]);
 
 impl core::ops::Index<Strain> for TricksTable {
@@ -600,7 +600,7 @@ pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> Result<[Par; 2
 /// [`sys::SolveBoard`].  The `target` tricks given as an associated value must
 /// be in the range of `-1..=13`, where `-1` instructs the solver to find cards
 /// that give the most tricks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
     /// Find any card that fulfills the target
     ///
@@ -642,7 +642,7 @@ impl Target {
 }
 
 /// A snapshot of a board
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Board {
     /// The strain of the contract
     pub trump: Strain,
@@ -681,7 +681,7 @@ impl From<Board> for sys::deal {
 }
 
 /// A play and its consequences
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Play {
     /// The card to play, the highest in a sequence
     ///

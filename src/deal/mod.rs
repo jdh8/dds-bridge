@@ -11,7 +11,7 @@ use thiserror::Error;
 /// A suit of playing cards
 ///
 /// Suits are convertible to [`Strain`]s since suits form a subset of strains.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Suit {
     /// ♣, convertible to [`Strain::Clubs`]
@@ -63,7 +63,7 @@ impl TryFrom<Strain> for Suit {
 }
 
 /// Position at the table
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Seat {
     /// Dealer of Board 1, partner of [`Seat::South`]
@@ -147,7 +147,7 @@ const _: () = assert!(matches!(
 ));
 
 /// A playing card
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Card(NonZeroU8);
 
 impl Card {

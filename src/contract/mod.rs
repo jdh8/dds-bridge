@@ -10,7 +10,7 @@ mod test;
 /// natural ordering by deriving [`PartialOrd`] and [`Ord`].
 ///
 /// [dds]: https://github.com/dds-bridge/dds
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Strain {
     /// ♣
@@ -82,7 +82,7 @@ impl Strain {
 ///
 /// The order of the fields ensures natural ordering by deriving [`PartialOrd`]
 /// and [`Ord`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bid {
     /// The number of tricks (adding the book of 6 tricks) to take to fulfill
     /// the contract
@@ -101,7 +101,7 @@ impl Bid {
 }
 
 /// Any legal announcement in the bidding stage
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Call {
     /// A call indicating no wish to change the contract
     Pass,
@@ -120,7 +120,7 @@ impl From<Bid> for Call {
 }
 
 /// Penalty inflicted on a contract
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Penalty {
     /// No penalty
@@ -134,7 +134,7 @@ pub enum Penalty {
 /// The statement of the pair winning the bidding that they will take at least
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Contract {
     /// The basic part of a contract
     pub bid: Bid,
