@@ -4,7 +4,7 @@ mod test;
 use crate::Strain;
 use core::fmt;
 use core::num::{NonZeroU8, Wrapping};
-use core::ops::{Add, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub};
+use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use rand::prelude::SliceRandom as _;
 use thiserror::Error;
 
@@ -85,12 +85,40 @@ impl Add<Wrapping<u8>> for Seat {
     }
 }
 
+impl Add<Seat> for Wrapping<u8> {
+    type Output = Seat;
+
+    fn add(self, rhs: Seat) -> Seat {
+        rhs + self
+    }
+}
+
+impl AddAssign<Wrapping<u8>> for Seat {
+    fn add_assign(&mut self, rhs: Wrapping<u8>) {
+        *self = *self + rhs;
+    }
+}
+
 impl Sub<Wrapping<u8>> for Seat {
     type Output = Self;
 
     fn sub(self, rhs: Wrapping<u8>) -> Self {
         // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
+    }
+}
+
+impl SubAssign<Wrapping<u8>> for Seat {
+    fn sub_assign(&mut self, rhs: Wrapping<u8>) {
+        *self = *self - rhs;
+    }
+}
+
+impl Sub<Self> for Seat {
+    type Output = Wrapping<u8>;
+
+    fn sub(self, rhs: Self) -> Wrapping<u8> {
+        (Wrapping(self as u8) - Wrapping(rhs as u8)) & Wrapping(3)
     }
 }
 
@@ -572,5 +600,38 @@ impl Deal {
     #[must_use]
     pub fn display(self, seat: Seat) -> impl fmt::Display {
         DealDisplay { deal: self, seat }
+    }
+
+    /// Shuffle existing hands while preserving the numbers of cards
+    pub fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized), seats: SeatFlags) {
+        let mut deck = Vec::with_capacity(52);
+        let mut lengths = [0; 4];
+
+        for flag in seats.iter() {
+            let seat = match flag {
+                SeatFlags::NORTH => Seat::North,
+                SeatFlags::EAST => Seat::East,
+                SeatFlags::SOUTH => Seat::South,
+                SeatFlags::WEST => Seat::West,
+                _ => unreachable!(),
+            };
+            deck.extend(self[seat].iter());
+            lengths[seat as usize] = self[seat].len();
+            self[seat] = Hand::EMPTY;
+        }
+
+        deck.shuffle(rng);
+        let mut seat = Seat::North;
+
+        loop {
+            let Some(card) = deck.pop() else { break };
+
+            while lengths[seat as usize] == 0 {
+                seat += Wrapping(1);
+            }
+
+            lengths[seat as usize] -= 1;
+            self[seat].insert(card);
+        }
     }
 }
