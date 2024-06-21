@@ -211,11 +211,46 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
 
     /// Toggle a value in the set
     fn toggle(&mut self, value: T) -> bool;
+
+    /// Iterate over the values in the set
+    fn iter(self) -> impl Iterator<Item = T>;
 }
 
 /// A set of cards of the same suit
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct HoldingIter {
+    rest: u16,
+    cursor: u8,
+}
+
+impl Iterator for HoldingIter {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.rest == 0 {
+            return None;
+        }
+        // 1. Trailing zeros are in the range of 0..=15, which fits in `u8``
+        // 2. Trailing zeros cannot be 15 since the bitset is from a `Holding`
+        #[allow(clippy::cast_possible_truncation)]
+        let step = self.rest.trailing_zeros() as u8 + 1;
+        self.rest >>= step;
+        self.cursor += step;
+        Some(self.cursor - 1)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let count = self.rest.count_ones() as usize;
+        (count, Some(count))
+    }
+
+    fn count(self) -> usize {
+        self.rest.count_ones() as usize
+    }
+}
 
 impl SmallSet<u8> for Holding {
     const EMPTY: Self = Self(0);
@@ -246,6 +281,23 @@ impl SmallSet<u8> for Holding {
         self.0 ^= 1 << rank & Self::ALL.0;
         self.contains(rank)
     }
+
+    fn iter(self) -> impl Iterator<Item = u8> {
+        HoldingIter {
+            rest: self.0,
+            cursor: 0,
+        }
+    }
+}
+
+#[test]
+fn test_iter_aqt() {
+    const AQT: Holding = Holding::from_bits(0b10101 << 10);
+    let mut iter = AQT.iter();
+    assert_eq!(iter.next(), Some(10));
+    assert_eq!(iter.next(), Some(12));
+    assert_eq!(iter.next(), Some(14));
+    assert_eq!(iter.next(), None);
 }
 
 impl Holding {
@@ -382,6 +434,26 @@ impl SmallSet<Card> for Hand {
     fn toggle(&mut self, card: Card) -> bool {
         self[card.suit()].toggle(card.rank())
     }
+
+    fn iter(self) -> impl Iterator<Item = Card> {
+        Suit::ASC
+            .into_iter()
+            .flat_map(move |suit| self[suit].iter().map(move |rank| Card::new(suit, rank)))
+    }
+}
+
+#[test]
+fn test_iter_spot_cards() {
+    const XXX: Holding = Holding::from_bits(0b10101 << 2);
+    const XX: Holding = Holding::from_bits(0b1001 << 5);
+    const HAND: Hand = Hand([XXX, Holding::EMPTY, XX, Holding::EMPTY]);
+    let mut iter = HAND.iter();
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 2)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 4)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 6)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, 5)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, 8)));
+    assert_eq!(iter.next(), None);
 }
 
 impl fmt::Display for Hand {
