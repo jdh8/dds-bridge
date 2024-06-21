@@ -354,6 +354,11 @@ impl Sub for Holding {
     }
 }
 
+/// Show cards in descending order
+///
+/// 1. The ten is shown as `T` for PBN compatibility.
+/// 2. This implementation ignores formatting flags for simplicity and speed.
+///    If you want to pad or align the output, use [`fmt::Formatter::pad`].
 impl fmt::Display for Holding {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for rank in (2..15).rev() {
@@ -456,6 +461,9 @@ fn test_iter_spot_cards() {
     assert_eq!(iter.next(), None);
 }
 
+/// PBN-compatible display of a hand
+///
+/// This implementation ignores formatting flags for simplicity and speed.
 impl fmt::Display for Hand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -572,7 +580,7 @@ impl Deal {
             })
     }
 
-    /// Display the deal from a seat's perspective
+    /// PBN-compatible display from a seat's perspective
     #[must_use]
     pub fn display(self, seat: Seat) -> impl fmt::Display {
         DealDisplay { deal: self, seat }
