@@ -530,47 +530,6 @@ impl IndexMut<Seat> for Deal {
     }
 }
 
-/// A deck of playing cards
-#[derive(Debug, Clone, Default)]
-struct Deck {
-    /// The cards in the deck
-    cards: Vec<Card>,
-}
-
-impl Deck {
-    /// Create a standard 52-card deck
-    #[must_use]
-    fn standard_52() -> Self {
-        Self {
-            cards: Suit::ASC
-                .into_iter()
-                .flat_map(|x| core::iter::repeat(x).zip(2..=14))
-                .map(|(suit, rank)| Card::new(suit, rank))
-                .collect(),
-        }
-    }
-
-    /// Deal the deck into four hands
-    #[must_use]
-    fn deal(self) -> Deal {
-        let mut deal = Deal::default();
-
-        for (index, card) in self.cards.into_iter().enumerate() {
-            // SAFETY: `index & 3` is always in the range of 0..=3
-            #[allow(clippy::cast_possible_truncation)]
-            let seat: Seat = unsafe { core::mem::transmute((index & 3) as u8) };
-            deal[seat].insert(card);
-        }
-
-        deal
-    }
-
-    /// Shuffle the deck
-    fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized)) {
-        self.cards.shuffle(rng);
-    }
-}
-
 struct DealDisplay {
     deal: Deal,
     seat: Seat,
@@ -593,9 +552,24 @@ impl fmt::Display for DealDisplay {
 impl Deal {
     /// Create a deal from a shuffled standard 52-card deck
     pub fn new(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
-        let mut deck = Deck::standard_52();
+        let mut deck: [_; 52] = core::array::from_fn(|i| {
+            // Safe because `i` is always in the range of 0..52
+            #[allow(clippy::cast_possible_truncation)]
+            let i = i as u8;
+            let suit: Suit = unsafe { core::mem::transmute(i & 3) };
+            Card::new(suit, (i >> 2) + 2)
+        });
         deck.shuffle(rng);
-        deck.deal()
+
+        deck.into_iter()
+            .enumerate()
+            .fold(Self::default(), |mut deal, (i, card)| {
+                // SAFETY: `i & 3` is always in the range of 0..=3
+                #[allow(clippy::cast_possible_truncation)]
+                let seat: Seat = unsafe { core::mem::transmute((i & 3) as u8) };
+                deal[seat].insert(card);
+                deal
+            })
     }
 
     /// Display the deal from a seat's perspective
