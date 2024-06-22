@@ -76,6 +76,11 @@ pub enum Seat {
     West,
 }
 
+impl Seat {
+    /// Seats in the order of dealing
+    pub const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
+}
+
 impl Add<Wrapping<u8>> for Seat {
     type Output = Self;
 
@@ -160,6 +165,17 @@ impl SeatFlags {
 
     /// The set containing [`Seat::East`] and [`Seat::West`]
     pub const EW: Self = Self::EAST.union(Self::WEST);
+}
+
+impl From<Seat> for SeatFlags {
+    fn from(seat: Seat) -> Self {
+        match seat {
+            Seat::North => Self::NORTH,
+            Seat::East => Self::EAST,
+            Seat::South => Self::SOUTH,
+            Seat::West => Self::WEST,
+        }
+    }
 }
 
 /// A playing card
@@ -603,21 +619,19 @@ impl Deal {
     }
 
     /// Shuffle existing hands while preserving the numbers of cards
-    pub fn shuffle(&mut self, rng: &mut (impl rand::Rng + ?Sized), seats: SeatFlags) {
+    #[must_use]
+    pub fn shuffled(self, rng: &mut (impl rand::Rng + ?Sized), seats: SeatFlags) -> Self {
+        let mut deal = Self::default();
         let mut deck = Vec::with_capacity(52);
         let mut lengths = [0; 4];
 
-        for flag in seats.iter() {
-            let seat = match flag {
-                SeatFlags::NORTH => Seat::North,
-                SeatFlags::EAST => Seat::East,
-                SeatFlags::SOUTH => Seat::South,
-                SeatFlags::WEST => Seat::West,
-                _ => unreachable!(),
-            };
-            deck.extend(self[seat].iter());
-            lengths[seat as usize] = self[seat].len();
-            self[seat] = Hand::EMPTY;
+        for seat in Seat::ALL {
+            if seats.contains(seat.into()) {
+                deck.extend(self[seat].iter());
+                lengths[seat as usize] = self[seat].len();
+            } else {
+                deal[seat] = self[seat];
+            }
         }
 
         deck.shuffle(rng);
@@ -631,7 +645,8 @@ impl Deal {
             }
 
             lengths[seat as usize] -= 1;
-            self[seat].insert(card);
+            deal[seat].insert(card);
         }
+        deal
     }
 }
