@@ -1,6 +1,8 @@
 use crate::*;
 use dds_bridge_sys as sys;
 
+const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of::<Play>());
+
 #[test]
 fn test_solving_deals() {
     const N: usize = sys::MAXNOOFBOARDS as usize * 2;

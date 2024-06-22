@@ -700,8 +700,6 @@ pub struct Play {
     pub score: i8,
 }
 
-const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of::<Play>());
-
 /// Solved plays for a board
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FoundPlays {

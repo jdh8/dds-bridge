@@ -96,3 +96,27 @@ fn test_seat_arithmetics() {
         });
     });
 }
+
+#[test]
+fn test_iter_aqt() {
+    const AQT: Holding = Holding::from_bits(0b10101 << 10);
+    let mut iter = AQT.iter();
+    assert_eq!(iter.next(), Some(10));
+    assert_eq!(iter.next(), Some(12));
+    assert_eq!(iter.next(), Some(14));
+    assert_eq!(iter.next(), None);
+}
+
+#[test]
+fn test_iter_spot_cards() {
+    const XXX: Holding = Holding::from_bits(0b10101 << 2);
+    const XX: Holding = Holding::from_bits(0b1001 << 5);
+    const HAND: Hand = Hand([XXX, Holding::EMPTY, XX, Holding::EMPTY]);
+    let mut iter = HAND.iter();
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 2)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 4)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 6)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, 5)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, 8)));
+    assert_eq!(iter.next(), None);
+}
