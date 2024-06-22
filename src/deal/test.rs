@@ -76,13 +76,48 @@ fn test_random_deals() {
 
 #[test]
 fn test_ew_shuffling_full_deal() {
+    let mut rng = rand::thread_rng();
     let non_trivial_shuffles = core::iter::repeat_with(|| {
-        let before = Deal::new(&mut rand::thread_rng());
-        let after = before.shuffled(&mut rand::thread_rng(), SeatFlags::EW);
+        let before = Deal::new(&mut rng);
+        let after = before.shuffled(&mut rng, SeatFlags::EW);
         assert_eq!(before[Seat::North], after[Seat::North]);
         assert_eq!(before[Seat::South], after[Seat::South]);
         assert_eq!(after[Seat::East].len(), 13);
         assert_eq!(after[Seat::West].len(), 13);
+        assert_eq!(after[Seat::East] & after[Seat::West], Hand::EMPTY);
+        assert_eq!(
+            before[Seat::East] | before[Seat::West],
+            after[Seat::East] | after[Seat::West]
+        );
+        before[Seat::East] != after[Seat::East]
+    });
+    assert!(non_trivial_shuffles.take(1_000_000).filter(|&x| x).count() > 0);
+}
+
+/// Generate a random deal and remove each card with a 50% chance
+///
+/// The result is highly unlikely to be a valid deal because of the variance of
+/// the number of cards in each hand, but it is useful for testing the
+/// [`Deal::shuffled`] method.
+fn generate_thanos_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
+    let mut deal = Deal::new(rng);
+    deal.0.iter_mut().for_each(|hand| {
+        let mask: u64 = rng.gen();
+        *hand = Hand::from_bits(hand.to_bits() & mask);
+    });
+    deal
+}
+
+#[test]
+fn test_ew_shuffling_thanos_deal() {
+    let mut rng = rand::thread_rng();
+    let non_trivial_shuffles = core::iter::repeat_with(|| {
+        let before = generate_thanos_deal(&mut rng);
+        let after = before.shuffled(&mut rng, SeatFlags::EW);
+        assert_eq!(before[Seat::North], after[Seat::North]);
+        assert_eq!(before[Seat::South], after[Seat::South]);
+        assert_eq!(before[Seat::East].len(), after[Seat::East].len());
+        assert_eq!(before[Seat::West].len(), after[Seat::West].len());
         assert_eq!(after[Seat::East] & after[Seat::West], Hand::EMPTY);
         assert_eq!(
             before[Seat::East] | before[Seat::West],
