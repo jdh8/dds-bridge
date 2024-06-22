@@ -75,6 +75,25 @@ fn test_random_deals() {
 }
 
 #[test]
+fn test_ew_shuffling_full_deal() {
+    let non_trivial_shuffles = core::iter::repeat_with(|| {
+        let before = Deal::new(&mut rand::thread_rng());
+        let after = before.shuffled(&mut rand::thread_rng(), SeatFlags::EW);
+        assert_eq!(before[Seat::North], after[Seat::North]);
+        assert_eq!(before[Seat::South], after[Seat::South]);
+        assert_eq!(after[Seat::East].len(), 13);
+        assert_eq!(after[Seat::West].len(), 13);
+        assert_eq!(after[Seat::East] & after[Seat::West], Hand::EMPTY);
+        assert_eq!(
+            before[Seat::East] | before[Seat::West],
+            after[Seat::East] | after[Seat::West]
+        );
+        before[Seat::East] != after[Seat::East]
+    });
+    assert!(non_trivial_shuffles.take(1_000_000).filter(|&x| x).count() > 0);
+}
+
+#[test]
 fn test_seat_arithmetics() {
     // Any rotation should work
     const SEATS: [Seat; 4] = [Seat::East, Seat::South, Seat::West, Seat::North];
