@@ -2,7 +2,7 @@
 mod test;
 
 use crate::Strain;
-use core::fmt;
+use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use rand::prelude::SliceRandom as _;
@@ -385,7 +385,6 @@ impl fmt::Display for Holding {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for rank in (2..15).rev() {
             if self.contains(rank) {
-                use fmt::Write as _;
                 f.write_char(b"23456789TJQKA"[rank as usize - 2] as char)?;
             }
         }
@@ -474,14 +473,16 @@ impl SmallSet<Card> for Hand {
 /// This implementation ignores formatting flags for simplicity and speed.
 impl fmt::Display for Hand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}.{}.{}.{}",
-            self[Suit::Spades],
-            self[Suit::Hearts],
-            self[Suit::Diamonds],
-            self[Suit::Clubs]
-        )
+        self[Suit::Spades].fmt(f)?;
+        f.write_char('.')?;
+
+        self[Suit::Hearts].fmt(f)?;
+        f.write_char('.')?;
+
+        self[Suit::Diamonds].fmt(f)?;
+        f.write_char('.')?;
+
+        self[Suit::Clubs].fmt(f)
     }
 }
 
@@ -553,15 +554,19 @@ struct DealDisplay {
 
 impl fmt::Display for DealDisplay {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}:{} {} {} {}",
-            char::from(self.seat),
-            self.deal[self.seat],
-            self.deal[self.seat + Wrapping(1)],
-            self.deal[self.seat + Wrapping(2)],
-            self.deal[self.seat + Wrapping(3)],
-        )
+        f.write_char(char::from(self.seat))?;
+        f.write_char(':')?;
+
+        self.deal[self.seat].fmt(f)?;
+        f.write_char(' ')?;
+
+        self.deal[self.seat + Wrapping(1)].fmt(f)?;
+        f.write_char(' ')?;
+
+        self.deal[self.seat + Wrapping(2)].fmt(f)?;
+        f.write_char(' ')?;
+
+        self.deal[self.seat + Wrapping(3)].fmt(f)
     }
 }
 
