@@ -174,3 +174,32 @@ fn test_iter_spot_cards() {
     assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, 8)));
     assert_eq!(iter.next(), None);
 }
+
+#[test]
+fn test_holding_parser() {
+    type Err = ParseHoldingError;
+    const AQT: Holding = Holding::from_bits(0b10101 << 10);
+    const KJ32: Holding = Holding::from_bits(0b0101 << 11 | 0b11 << 2);
+    const KJ2: Holding = Holding::from_bits(0b0101 << 11 | 0b1 << 2);
+
+    assert!(matches!(
+        Holding::from_str("AKQJT98765432"),
+        Ok(Holding::ALL)
+    ));
+
+    assert!(matches!(
+        Holding::from_str("AKQJT987xxxxx"),
+        Ok(Holding::ALL)
+    ));
+
+    assert!(matches!(Holding::from_str("AQT"), Ok(AQT)));
+    assert!(matches!(Holding::from_str("AQ10"), Ok(AQT)));
+    assert!(matches!(Holding::from_str("ATQ"), Err(Err::InvalidHolding)));
+    assert!(matches!(Holding::from_str("KxJ"), Err(Err::InvalidHolding)));
+    assert!(matches!(Holding::from_str("KJ2"), Ok(KJ2)));
+    assert!(matches!(Holding::from_str("KJx"), Ok(KJ2)));
+    assert!(matches!(Holding::from_str("KJ2x"), Err(Err::RepeatedRank)));
+    assert!(matches!(Holding::from_str("KJ32"), Ok(KJ32)));
+    assert!(matches!(Holding::from_str("KJ3x"), Ok(KJ32)));
+    assert!(matches!(Holding::from_str("KJ3xx"), Err(Err::RepeatedRank)));
+}

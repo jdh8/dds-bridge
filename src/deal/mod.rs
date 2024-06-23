@@ -5,6 +5,7 @@ use crate::Strain;
 use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
+use core::str::FromStr;
 use rand::prelude::SliceRandom as _;
 use thiserror::Error;
 
@@ -389,6 +390,65 @@ impl fmt::Display for Holding {
             }
         }
         Ok(())
+    }
+}
+
+/// An error which can be returned when parsing a [`Holding`]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParseHoldingError {
+    /// Ranks are not all valid or in descending order
+    #[error("Ranks are not all valid or in descending order")]
+    InvalidHolding,
+
+    /// The same rank appears more than once
+    #[error("The same rank appears more than once")]
+    RepeatedRank,
+}
+
+impl FromStr for Holding {
+    type Err = ParseHoldingError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let re = regex::Regex::new("^(A?K?Q?J?T?9?8?7?6?5?4?3?2?)(X*)$").expect("Invalid regex");
+        let s = s.replacen("10", "T", 1).to_ascii_uppercase();
+        let Some(captures) = re.captures(&s) else {
+            return Err(ParseHoldingError::InvalidHolding);
+        };
+
+        let explicit = captures[1]
+            .bytes()
+            .try_fold(Self::EMPTY, |mut holding, c| {
+                let rank = match c {
+                    b'2' => 2,
+                    b'3' => 3,
+                    b'4' => 4,
+                    b'5' => 5,
+                    b'6' => 6,
+                    b'7' => 7,
+                    b'8' => 8,
+                    b'9' => 9,
+                    b'T' => 10,
+                    b'J' => 11,
+                    b'Q' => 12,
+                    b'K' => 13,
+                    b'A' => 14,
+                    _ => unreachable!("Invalid ranks should have been caught by the regex"),
+                };
+
+                if !holding.insert(rank) {
+                    return Err(ParseHoldingError::RepeatedRank);
+                }
+
+                Ok(holding)
+            })?;
+
+        let spots = Self::from_bits((4 << captures[2].len()) - 4);
+
+        if explicit & spots != Self::EMPTY {
+            return Err(ParseHoldingError::RepeatedRank);
+        }
+
+        Ok(explicit | spots)
     }
 }
 
