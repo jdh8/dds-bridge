@@ -409,6 +409,10 @@ impl FromStr for Holding {
     type Err = ParseHoldingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() > 14 {
+            return Err(ParseHoldingError::InvalidHolding);
+        }
+
         let re = regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
             .case_insensitive(true)
             .build()
