@@ -7,7 +7,6 @@ use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use core::str::FromStr;
 use rand::prelude::SliceRandom as _;
-use regex::Regex;
 use thiserror::Error;
 
 /// A suit of playing cards
@@ -410,9 +409,12 @@ impl FromStr for Holding {
     type Err = ParseHoldingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("^(A?K?Q?J?T?9?8?7?6?5?4?3?2?)(X*)$").expect("Invalid regex");
-        let s = s.replace("10", "T").to_ascii_uppercase();
-        let Some(captures) = re.captures(&s) else {
+        let re = regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
+            .case_insensitive(true)
+            .build()
+            .expect("Invalid regex");
+
+        let Some(captures) = re.captures(s) else {
             return Err(ParseHoldingError::InvalidHolding);
         };
 
@@ -420,6 +422,7 @@ impl FromStr for Holding {
             .bytes()
             .try_fold(Self::EMPTY, |mut holding, c| {
                 let rank = match c {
+                    b'1' => return Ok(holding),
                     b'2' => 2,
                     b'3' => 3,
                     b'4' => 4,
@@ -428,7 +431,7 @@ impl FromStr for Holding {
                     b'7' => 7,
                     b'8' => 8,
                     b'9' => 9,
-                    b'T' => 10,
+                    b'T' | b'0' => 10,
                     b'J' => 11,
                     b'Q' => 12,
                     b'K' => 13,
