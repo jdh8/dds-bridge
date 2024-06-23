@@ -7,6 +7,7 @@ use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use core::str::FromStr;
 use rand::prelude::SliceRandom as _;
+use regex::Regex;
 use thiserror::Error;
 
 /// A suit of playing cards
@@ -409,8 +410,8 @@ impl FromStr for Holding {
     type Err = ParseHoldingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = regex::Regex::new("^(A?K?Q?J?T?9?8?7?6?5?4?3?2?)(X*)$").expect("Invalid regex");
-        let s = s.replacen("10", "T", 1).to_ascii_uppercase();
+        let re = Regex::new("^(A?K?Q?J?T?9?8?7?6?5?4?3?2?)(X*)$").expect("Invalid regex");
+        let s = s.replace("10", "T").to_ascii_uppercase();
         let Some(captures) = re.captures(&s) else {
             return Err(ParseHoldingError::InvalidHolding);
         };
