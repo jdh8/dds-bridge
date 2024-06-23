@@ -443,20 +443,20 @@ impl FromStr for Holding {
                     _ => unreachable!("Invalid ranks should have been caught by the regex"),
                 };
 
-                if !holding.insert(rank) {
-                    return Err(ParseHoldingError::RepeatedRank);
+                if holding.insert(rank) {
+                    Ok(holding)
+                } else {
+                    Err(ParseHoldingError::RepeatedRank)
                 }
-
-                Ok(holding)
             })?;
 
         let spots = Self::from_bits((4 << captures[2].len()) - 4);
 
-        if explicit & spots != Self::EMPTY {
-            return Err(ParseHoldingError::RepeatedRank);
+        if explicit & spots == Self::EMPTY {
+            Ok(explicit | spots)
+        } else {
+            Err(ParseHoldingError::RepeatedRank)
         }
-
-        Ok(explicit | spots)
     }
 }
 
