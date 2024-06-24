@@ -336,6 +336,12 @@ impl Holding {
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits & Self::ALL.0)
     }
+
+    /// Create a holding from a rank
+    #[must_use]
+    pub const fn from_rank(rank: u8) -> Self {
+        Self(1 << rank)
+    }
 }
 
 impl BitAnd for Holding {
