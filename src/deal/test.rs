@@ -176,77 +176,72 @@ fn test_iter_spot_cards() {
 }
 
 #[test]
-fn test_holding_parser() {
+fn test_holding_parser() -> Result<(), ParseHandError> {
     type Err = ParseHandError;
     const AQT: Holding = Holding::from_bits(0b10101 << 10);
     const KJ32: Holding = Holding::from_bits(0b0101 << 11 | 0b11 << 2);
     const KJ2: Holding = Holding::from_bits(0b0101 << 11 | 0b1 << 2);
 
-    assert!(matches!(
-        Holding::from_str("AKQJT98765432"),
-        Ok(Holding::ALL)
-    ));
+    assert!(matches!("AKQJT98765432".parse()?, Holding::ALL));
+    assert!(matches!("AKQJT987xxxxx".parse()?, Holding::ALL));
 
-    assert!(matches!(
-        Holding::from_str("AKQJT987xxxxx"),
-        Ok(Holding::ALL)
-    ));
+    assert!(matches!("AQT".parse()?, AQT));
+    assert!(matches!("AQ10".parse()?, AQT));
+    assert!(matches!("ATQ".parse::<Holding>(), Err(Err::InvalidHolding)));
+    assert!(matches!("KxJ".parse::<Holding>(), Err(Err::InvalidHolding)));
 
-    assert!(matches!(Holding::from_str("AQT"), Ok(AQT)));
-    assert!(matches!(Holding::from_str("AQ10"), Ok(AQT)));
-    assert!(matches!(Holding::from_str("ATQ"), Err(Err::InvalidHolding)));
-    assert!(matches!(Holding::from_str("KxJ"), Err(Err::InvalidHolding)));
-    assert!(matches!(Holding::from_str("KJ2"), Ok(KJ2)));
-    assert!(matches!(Holding::from_str("KJx"), Ok(KJ2)));
-    assert!(matches!(Holding::from_str("KJ2x"), Err(Err::RepeatedRank)));
-    assert!(matches!(Holding::from_str("KJ32"), Ok(KJ32)));
-    assert!(matches!(Holding::from_str("KJ3x"), Ok(KJ32)));
-    assert!(matches!(Holding::from_str("KJ3xx"), Err(Err::RepeatedRank)));
+    assert!(matches!("KJ2".parse()?, KJ2));
+    assert!(matches!("KJx".parse()?, KJ2));
+    assert!(matches!("KJ2x".parse::<Holding>(), Err(Err::RepeatedRank)));
+
+    assert!(matches!("KJ32".parse()?, KJ32));
+    assert!(matches!("KJ3x".parse()?, KJ32));
+    assert!(matches!("KJ3xx".parse::<Holding>(), Err(Err::RepeatedRank)));
+
+    Ok(())
 }
 
 #[test]
 fn test_holding_io() -> Result<(), ParseHandError> {
     (0..1 << 13).try_for_each(|bits| {
-        let binary = Holding::from_bits(bits << 2);
-        let text = binary.to_string();
-        let parsed = Holding::from_str(&text)?;
-        assert_eq!(binary, parsed);
+        let holding = Holding::from_bits(bits << 2);
+        assert_eq!(holding, holding.to_string().parse()?);
         Ok(())
     })
 }
 
 #[test]
 fn test_hand_parser() -> Result<(), ParseHandError> {
-    assert!(matches!(Hand::from_str("-"), Ok(Hand::EMPTY)));
-    assert!(matches!(Hand::from_str("..."), Ok(Hand::EMPTY)));
+    assert!(matches!("-".parse()?, Hand::EMPTY));
+    assert!(matches!("...".parse()?, Hand::EMPTY));
 
     assert!(matches!(
-        Hand::from_str(""),
+        "".parse::<Hand>(),
         Err(ParseHandError::NotFourSuits)
     ));
 
     assert!(matches!(
-        Hand::from_str("."),
+        ".".parse::<Hand>(),
         Err(ParseHandError::NotFourSuits)
     ));
 
     assert!(matches!(
-        Hand::from_str(".."),
+        "..".parse::<Hand>(),
         Err(ParseHandError::NotFourSuits)
     ));
 
     assert!(matches!(
-        Hand::from_str("...."),
+        "....".parse::<Hand>(),
         Err(ParseHandError::NotFourSuits)
     ));
 
     assert_eq!(
-        Hand::from_str("AT74.QJ9.32.AK64"),
+        "AT74.QJ9.32.AK64".parse(),
         Ok(Hand([
-            Holding::from_str("AK64")?,
-            Holding::from_str("32")?,
-            Holding::from_str("QJ9")?,
-            Holding::from_str("AT74")?,
+            "AK64".parse()?,
+            "32".parse()?,
+            "QJ9".parse()?,
+            "AT74".parse()?,
         ]))
     );
 
@@ -255,17 +250,17 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
 
 #[test]
 fn test_deal_parser() -> Result<(), ParseHandError> {
-    let west = Hand::from_str("KQT2.AT.J6542.85")?;
-    let east = Hand::from_str("A8654.KQ5.T.QJT6")?;
+    let west: Hand = "KQT2.AT.J6542.85".parse()?;
+    let east: Hand = "A8654.KQ5.T.QJT6".parse()?;
 
     assert_eq!(
-        Deal::from_str("W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -")?,
-        Deal([Hand::EMPTY, east, Hand::EMPTY, west]),
+        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse(),
+        Ok(Deal([Hand::EMPTY, east, Hand::EMPTY, west])),
     );
 
     assert_eq!(
-        Deal::from_str("N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85")?,
-        Deal::from_str("E:A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85 .63.AKQ987.A9732")?,
+        "N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85".parse::<Deal>()?,
+        "E:A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85 .63.AKQ987.A9732".parse()?,
     );
 
     Ok(())
