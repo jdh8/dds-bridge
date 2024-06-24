@@ -434,39 +434,37 @@ impl FromStr for Holding {
             return Err(ParseHandError::TooManyCards);
         }
 
-        let Some(captures) = RE.captures(s) else {
+        let Some((_, [explicit, spots])) = RE.captures(s).map(|x| x.extract()) else {
             return Err(ParseHandError::InvalidHolding);
         };
 
-        let explicit = captures[1]
-            .bytes()
-            .try_fold(Self::EMPTY, |mut holding, c| {
-                let rank = match c.to_ascii_uppercase() {
-                    b'1' => return Ok(holding),
-                    b'2' => 2,
-                    b'3' => 3,
-                    b'4' => 4,
-                    b'5' => 5,
-                    b'6' => 6,
-                    b'7' => 7,
-                    b'8' => 8,
-                    b'9' => 9,
-                    b'T' | b'0' => 10,
-                    b'J' => 11,
-                    b'Q' => 12,
-                    b'K' => 13,
-                    b'A' => 14,
-                    _ => unreachable!("Invalid ranks should have been caught by the regex"),
-                };
+        let explicit = explicit.bytes().try_fold(Self::EMPTY, |mut holding, c| {
+            let rank = match c.to_ascii_uppercase() {
+                b'1' => return Ok(holding),
+                b'2' => 2,
+                b'3' => 3,
+                b'4' => 4,
+                b'5' => 5,
+                b'6' => 6,
+                b'7' => 7,
+                b'8' => 8,
+                b'9' => 9,
+                b'T' | b'0' => 10,
+                b'J' => 11,
+                b'Q' => 12,
+                b'K' => 13,
+                b'A' => 14,
+                _ => unreachable!("Invalid ranks should have been caught by the regex"),
+            };
 
-                if holding.insert(rank) {
-                    Ok(holding)
-                } else {
-                    Err(ParseHandError::RepeatedRank)
-                }
-            })?;
+            if holding.insert(rank) {
+                Ok(holding)
+            } else {
+                Err(ParseHandError::RepeatedRank)
+            }
+        })?;
 
-        let spots = Self::from_bits((4 << captures[2].len()) - 4);
+        let spots = Self::from_bits((4 << spots.len()) - 4);
 
         if explicit & spots == Self::EMPTY {
             Ok(explicit | spots)
