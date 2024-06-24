@@ -217,6 +217,9 @@ fn test_holding_io() -> Result<(), ParseHandError> {
 
 #[test]
 fn test_hand_parser() -> Result<(), ParseHandError> {
+    assert!(matches!(Hand::from_str("-"), Ok(Hand::EMPTY)));
+    assert!(matches!(Hand::from_str("..."), Ok(Hand::EMPTY)));
+
     assert!(matches!(
         Hand::from_str(""),
         Err(ParseHandError::NotFourSuits)
@@ -232,8 +235,6 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
         Err(ParseHandError::NotFourSuits)
     ));
 
-    assert!(matches!(Hand::from_str("..."), Ok(Hand::EMPTY)));
-
     assert!(matches!(
         Hand::from_str("...."),
         Err(ParseHandError::NotFourSuits)
@@ -247,6 +248,24 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
             Holding::from_str("QJ9")?,
             Holding::from_str("AT74")?,
         ]))
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_deal_parser() -> Result<(), ParseHandError> {
+    let west = Hand::from_str("KQT2.AT.J6542.85")?;
+    let east = Hand::from_str("A8654.KQ5.T.QJT6")?;
+
+    assert_eq!(
+        Deal::from_str("W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -")?,
+        Deal([Hand::EMPTY, east, Hand::EMPTY, west]),
+    );
+
+    assert_eq!(
+        Deal::from_str("N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85")?,
+        Deal::from_str("E:A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85 .63.AKQ987.A9732")?,
     );
 
     Ok(())

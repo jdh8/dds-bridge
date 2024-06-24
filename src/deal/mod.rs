@@ -413,6 +413,10 @@ pub enum ParseHandError {
     #[error("The hand does not contain 4 suits")]
     NotFourSuits,
 
+    /// Invalid dealer tag for a deal
+    #[error("Invalid dealer tag for a deal")]
+    InvalidDealer,
+
     /// The deal does not contain 4 hands
     #[error("The deal does not contain 4 hands")]
     NotFourHands,
@@ -555,6 +559,10 @@ impl SmallSet<Card> for Hand {
 /// This implementation ignores formatting flags for simplicity and speed.
 impl fmt::Display for Hand {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_empty() {
+            return f.write_char('-');
+        }
+
         self[Suit::Spades].fmt(f)?;
         f.write_char('.')?;
 
@@ -575,6 +583,10 @@ impl FromStr for Hand {
         // 52 cards + 4 tens + 3 dots
         if s.len() > 52 + 4 + 3 {
             return Err(ParseHandError::TooManyCards);
+        }
+
+        if s == "-" {
+            return Ok(Self::EMPTY);
         }
 
         let holdings: Result<Vec<_>, _> = s.split('.').map(Holding::from_str).rev().collect();
@@ -730,5 +742,43 @@ impl Deal {
             deal[seat].insert(card);
         }
         deal
+    }
+}
+
+impl FromStr for Deal {
+    type Err = ParseHandError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        static DEALER: Lazy<regex::Regex> = Lazy::new(|| {
+            regex::RegexBuilder::new(r"^[NESW]:\s*")
+                .case_insensitive(true)
+                .build()
+                .expect("Invalid regex")
+        });
+
+        let Some(tag) = DEALER.find(s) else {
+            return Err(ParseHandError::InvalidDealer);
+        };
+
+        let dealer = match s.as_bytes()[0].to_ascii_uppercase() {
+            b'N' => Seat::North,
+            b'E' => Seat::East,
+            b'S' => Seat::South,
+            b'W' => Seat::West,
+            _ => unreachable!("Invalid dealer should have been caught by the regex"),
+        };
+
+        let hands: Result<Vec<_>, _> = s[tag.end()..]
+            .split_whitespace()
+            .map(Hand::from_str)
+            .collect();
+
+        let mut deal = Self(
+            hands?
+                .try_into()
+                .map_err(|_| ParseHandError::NotFourHands)?,
+        );
+        deal.0.rotate_right(dealer as usize);
+        Ok(deal)
     }
 }
