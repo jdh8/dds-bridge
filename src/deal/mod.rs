@@ -393,9 +393,9 @@ impl fmt::Display for Holding {
     }
 }
 
-/// An error which can be returned when parsing a [`Holding`]
+/// An error which can be returned when parsing a [`Holding`], a [`Hand`], or a [`Deal`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ParseHoldingError {
+pub enum ParseHandError {
     /// Ranks are not all valid or in descending order
     #[error("Ranks are not all valid or in descending order")]
     InvalidHolding,
@@ -403,14 +403,27 @@ pub enum ParseHoldingError {
     /// The same rank appears more than once
     #[error("The same rank appears more than once")]
     RepeatedRank,
+
+    /// A suit contains more than 13 cards
+    #[error("A suit contains more than 13 cards")]
+    TooManyCards,
+
+    /// The hand does not contain 4 suits
+    #[error("The hand does not contain 4 suits")]
+    NotFourSuits,
+
+    /// The deal does not contain 4 hands
+    #[error("The deal does not contain 4 hands")]
+    NotFourHands,
 }
 
 impl FromStr for Holding {
-    type Err = ParseHoldingError;
+    type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() > 14 {
-            return Err(ParseHoldingError::InvalidHolding);
+        // 13 cards + 1 ten
+        if s.len() > 13 + 1 {
+            return Err(ParseHandError::TooManyCards);
         }
 
         let re = regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
@@ -419,7 +432,7 @@ impl FromStr for Holding {
             .expect("Invalid regex");
 
         let Some(captures) = re.captures(s) else {
-            return Err(ParseHoldingError::InvalidHolding);
+            return Err(ParseHandError::InvalidHolding);
         };
 
         let explicit = captures[1]
@@ -446,7 +459,7 @@ impl FromStr for Holding {
                 if holding.insert(rank) {
                     Ok(holding)
                 } else {
-                    Err(ParseHoldingError::RepeatedRank)
+                    Err(ParseHandError::RepeatedRank)
                 }
             })?;
 
@@ -455,7 +468,7 @@ impl FromStr for Holding {
         if explicit & spots == Self::EMPTY {
             Ok(explicit | spots)
         } else {
-            Err(ParseHoldingError::RepeatedRank)
+            Err(ParseHandError::RepeatedRank)
         }
     }
 }
@@ -551,6 +564,25 @@ impl fmt::Display for Hand {
         f.write_char('.')?;
 
         self[Suit::Clubs].fmt(f)
+    }
+}
+
+impl FromStr for Hand {
+    type Err = ParseHandError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // 52 cards + 4 tens + 3 dots
+        if s.len() > 52 + 4 + 3 {
+            return Err(ParseHandError::TooManyCards);
+        }
+
+        let holdings: Result<Vec<_>, _> = s.split('.').map(Holding::from_str).rev().collect();
+
+        Ok(Self(
+            holdings?
+                .try_into()
+                .map_err(|_| ParseHandError::NotFourSuits)?,
+        ))
     }
 }
 

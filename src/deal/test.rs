@@ -177,7 +177,7 @@ fn test_iter_spot_cards() {
 
 #[test]
 fn test_holding_parser() {
-    type Err = ParseHoldingError;
+    type Err = ParseHandError;
     const AQT: Holding = Holding::from_bits(0b10101 << 10);
     const KJ32: Holding = Holding::from_bits(0b0101 << 11 | 0b11 << 2);
     const KJ2: Holding = Holding::from_bits(0b0101 << 11 | 0b1 << 2);
@@ -202,4 +202,25 @@ fn test_holding_parser() {
     assert!(matches!(Holding::from_str("KJ32"), Ok(KJ32)));
     assert!(matches!(Holding::from_str("KJ3x"), Ok(KJ32)));
     assert!(matches!(Holding::from_str("KJ3xx"), Err(Err::RepeatedRank)));
+}
+
+#[test]
+fn test_hand_parser() -> Result<(), ParseHandError> {
+    assert!(matches!(Hand::from_str(""), Err(ParseHandError::NotFourSuits)));
+    assert!(matches!(Hand::from_str("."), Err(ParseHandError::NotFourSuits)));
+    assert!(matches!(Hand::from_str(".."), Err(ParseHandError::NotFourSuits)));
+    assert!(matches!(Hand::from_str("..."), Ok(Hand::EMPTY)));
+    assert!(matches!(Hand::from_str("...."), Err(ParseHandError::NotFourSuits)));
+
+    assert_eq!(
+        Hand::from_str("AT74.QJ9.32.AK64"),
+        Ok(Hand([
+            Holding::from_str("AK64")?,
+            Holding::from_str("32")?,
+            Holding::from_str("QJ9")?,
+            Holding::from_str("AT74")?,
+        ]))
+    );
+
+    Ok(())
 }
