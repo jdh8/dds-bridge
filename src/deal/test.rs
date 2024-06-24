@@ -206,7 +206,7 @@ fn test_holding_parser() {
 
 #[test]
 fn test_holding_io() -> Result<(), ParseHandError> {
-    (0 .. 1 << 13).try_for_each(|bits| {
+    (0..1 << 13).try_for_each(|bits| {
         let binary = Holding::from_bits(bits << 2);
         let text = binary.to_string();
         let parsed = Holding::from_str(&text)?;
@@ -217,11 +217,27 @@ fn test_holding_io() -> Result<(), ParseHandError> {
 
 #[test]
 fn test_hand_parser() -> Result<(), ParseHandError> {
-    assert!(matches!(Hand::from_str(""), Err(ParseHandError::NotFourSuits)));
-    assert!(matches!(Hand::from_str("."), Err(ParseHandError::NotFourSuits)));
-    assert!(matches!(Hand::from_str(".."), Err(ParseHandError::NotFourSuits)));
+    assert!(matches!(
+        Hand::from_str(""),
+        Err(ParseHandError::NotFourSuits)
+    ));
+
+    assert!(matches!(
+        Hand::from_str("."),
+        Err(ParseHandError::NotFourSuits)
+    ));
+
+    assert!(matches!(
+        Hand::from_str(".."),
+        Err(ParseHandError::NotFourSuits)
+    ));
+
     assert!(matches!(Hand::from_str("..."), Ok(Hand::EMPTY)));
-    assert!(matches!(Hand::from_str("...."), Err(ParseHandError::NotFourSuits)));
+
+    assert!(matches!(
+        Hand::from_str("...."),
+        Err(ParseHandError::NotFourSuits)
+    ));
 
     assert_eq!(
         Hand::from_str("AT74.QJ9.32.AK64"),

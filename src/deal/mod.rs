@@ -6,6 +6,7 @@ use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use core::str::FromStr;
+use once_cell::sync::Lazy;
 use rand::prelude::SliceRandom as _;
 use thiserror::Error;
 
@@ -421,17 +422,19 @@ impl FromStr for Holding {
     type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        static RE: Lazy<regex::Regex> = Lazy::new(|| {
+            regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
+                .case_insensitive(true)
+                .build()
+                .expect("Invalid regex")
+        });
+
         // 13 cards + 1 ten
         if s.len() > 13 + 1 {
             return Err(ParseHandError::TooManyCards);
         }
 
-        let re = regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
-            .case_insensitive(true)
-            .build()
-            .expect("Invalid regex");
-
-        let Some(captures) = re.captures(s) else {
+        let Some(captures) = RE.captures(s) else {
             return Err(ParseHandError::InvalidHolding);
         };
 
