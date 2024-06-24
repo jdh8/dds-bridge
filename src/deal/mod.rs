@@ -425,7 +425,7 @@ impl FromStr for Holding {
         let explicit = captures[1]
             .bytes()
             .try_fold(Self::EMPTY, |mut holding, c| {
-                let rank = match c {
+                let rank = match c.to_ascii_uppercase() {
                     b'1' => return Ok(holding),
                     b'2' => 2,
                     b'3' => 3,
