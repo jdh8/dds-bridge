@@ -4,12 +4,14 @@
 //!
 //! [dds]: https://github.com/dds-bridge/dds
 //! [sys]: https://lib.rs/crates/dds-bridge-sys
+
 #![warn(missing_docs)]
 
-mod contract;
-mod deal;
-mod solver;
+/// Data structures about bidding and scoring
+pub mod contract;
 
-pub use contract::*;
-pub use deal::*;
-pub use solver::*;
+/// Data structures about dealing and playing
+pub mod deal;
+
+/// Solver functions for double dummy problems
+pub mod solver;
