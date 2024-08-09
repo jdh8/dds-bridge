@@ -1,6 +1,6 @@
 dds-bridge
 ==========
-![Build Status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)
+[![Build Status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)](https://github.com/jdh8/dds-bridge)
 [![Crates.io](https://img.shields.io/crates/v/dds-bridge.svg)](https://crates.io/crates/dds-bridge)
 [![Docs.rs](https://docs.rs/dds-bridge/badge.svg)](https://docs.rs/dds-bridge)
 
