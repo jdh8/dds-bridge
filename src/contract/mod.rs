@@ -28,24 +28,28 @@ pub enum Strain {
 impl Strain {
     /// Whether this strain is a minor suit (clubs or diamonds)
     #[must_use]
+    #[inline]
     pub const fn is_minor(self) -> bool {
         matches!(self, Self::Clubs | Self::Diamonds)
     }
 
     /// Whether this strain is a major suit (hearts or spades)
     #[must_use]
+    #[inline]
     pub const fn is_major(self) -> bool {
         matches!(self, Self::Hearts | Self::Spades)
     }
 
     /// Whether this strain is a suit
     #[must_use]
+    #[inline]
     pub const fn is_suit(self) -> bool {
         !matches!(self, Self::Notrump)
     }
 
     /// Whether this strain is notrump
     #[must_use]
+    #[inline]
     pub const fn is_notrump(self) -> bool {
         matches!(self, Self::Notrump)
     }
@@ -95,6 +99,7 @@ pub struct Bid {
 impl Bid {
     /// Create a bid from level and strain
     #[must_use]
+    #[inline]
     pub const fn new(level: u8, strain: Strain) -> Self {
         Self { level, strain }
     }
@@ -114,6 +119,7 @@ pub enum Call {
 }
 
 impl From<Bid> for Call {
+    #[inline]
     fn from(bid: Bid) -> Self {
         Self::Bid(bid)
     }
@@ -143,6 +149,7 @@ pub struct Contract {
 }
 
 impl From<Bid> for Contract {
+    #[inline]
     fn from(bid: Bid) -> Self {
         Self {
             bid,
@@ -151,6 +158,7 @@ impl From<Bid> for Contract {
     }
 }
 
+#[inline]
 const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
     match undertricks + vulnerable as i32 {
         1 => 100,
@@ -168,6 +176,7 @@ const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
 impl Contract {
     /// Create a contract from level, strain, and penalty
     #[must_use]
+    #[inline]
     pub const fn new(level: u8, strain: Strain, penalty: Penalty) -> Self {
         Self {
             bid: Bid::new(level, strain),
@@ -179,6 +188,7 @@ impl Contract {
     ///
     /// <https://en.wikipedia.org/wiki/Bridge_scoring#Contract_points>
     #[must_use]
+    #[inline]
     pub const fn contract_points(self) -> i32 {
         let level = self.bid.level as i32;
         let per_trick = self.bid.strain.is_minor() as i32 * -10 + 30;
@@ -192,6 +202,7 @@ impl Contract {
     /// The score is positive if the declarer makes the contract, and negative
     /// if the declarer fails.
     #[must_use]
+    #[inline]
     pub const fn score(self, tricks: u8, vulnerable: bool) -> i32 {
         let overtricks = tricks as i32 - self.bid.level as i32 - 6;
 

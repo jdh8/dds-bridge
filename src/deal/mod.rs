@@ -35,6 +35,7 @@ impl Suit {
 }
 
 impl From<Suit> for Strain {
+    #[inline]
     fn from(suit: Suit) -> Self {
         match suit {
             Suit::Clubs => Self::Clubs,
@@ -53,6 +54,7 @@ pub struct SuitFromNotrumpError;
 impl TryFrom<Strain> for Suit {
     type Error = SuitFromNotrumpError;
 
+    #[inline]
     fn try_from(strain: Strain) -> Result<Self, Self::Error> {
         match strain {
             Strain::Clubs => Ok(Self::Clubs),
@@ -86,6 +88,7 @@ impl Seat {
 impl Add<Wrapping<u8>> for Seat {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Wrapping<u8>) -> Self {
         // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) + rhs).0 & 3) }
@@ -95,12 +98,14 @@ impl Add<Wrapping<u8>> for Seat {
 impl Add<Seat> for Wrapping<u8> {
     type Output = Seat;
 
+    #[inline]
     fn add(self, rhs: Seat) -> Seat {
         rhs + self
     }
 }
 
 impl AddAssign<Wrapping<u8>> for Seat {
+    #[inline]
     fn add_assign(&mut self, rhs: Wrapping<u8>) {
         *self = *self + rhs;
     }
@@ -109,6 +114,7 @@ impl AddAssign<Wrapping<u8>> for Seat {
 impl Sub<Wrapping<u8>> for Seat {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Wrapping<u8>) -> Self {
         // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
@@ -116,6 +122,7 @@ impl Sub<Wrapping<u8>> for Seat {
 }
 
 impl SubAssign<Wrapping<u8>> for Seat {
+    #[inline]
     fn sub_assign(&mut self, rhs: Wrapping<u8>) {
         *self = *self - rhs;
     }
@@ -124,12 +131,14 @@ impl SubAssign<Wrapping<u8>> for Seat {
 impl Sub<Self> for Seat {
     type Output = Wrapping<u8>;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Wrapping<u8> {
         (Wrapping(self as u8) - Wrapping(rhs as u8)) & Wrapping(3)
     }
 }
 
 impl From<Seat> for char {
+    #[inline]
     fn from(seat: Seat) -> Self {
         match seat {
             Seat::North => 'N',
@@ -170,6 +179,7 @@ impl SeatFlags {
 }
 
 impl From<Seat> for SeatFlags {
+    #[inline]
     fn from(seat: Seat) -> Self {
         match seat {
             Seat::North => Self::NORTH,
@@ -193,6 +203,7 @@ impl Card {
     /// # Panics
     /// Panics if the rank is not in the range 2..=14.
     #[must_use]
+    #[inline]
     pub const fn new(suit: Suit, rank: u8) -> Self {
         assert!(rank >= 2 && rank <= 14);
         // SAFETY: rank is guaranteed to be non-zero
@@ -201,6 +212,7 @@ impl Card {
 
     /// The suit of the card
     #[must_use]
+    #[inline]
     pub const fn suit(self) -> Suit {
         // SAFETY: suit is guaranteed to be valid, in (0..=3)
         unsafe { core::mem::transmute(self.0.get() & 3) }
@@ -211,6 +223,7 @@ impl Card {
     /// The rank is a number from 2 to 14.  J, Q, K, A are denoted as 11, 12,
     /// 13, 14 respectively.
     #[must_use]
+    #[inline]
     pub const fn rank(self) -> u8 {
         self.0.get() >> 2
     }
@@ -230,6 +243,7 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
 
     /// Whether the set is empty
     #[must_use]
+    #[inline]
     fn is_empty(self) -> bool {
         self == Self::EMPTY
     }
@@ -263,6 +277,7 @@ struct HoldingIter {
 impl Iterator for HoldingIter {
     type Item = u8;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.rest == 0 {
             return None;
@@ -276,11 +291,13 @@ impl Iterator for HoldingIter {
         Some(self.cursor - 1)
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let count = self.rest.count_ones() as usize;
         (count, Some(count))
     }
 
+    #[inline]
     fn count(self) -> usize {
         self.rest.count_ones() as usize
     }
@@ -290,14 +307,17 @@ impl SmallSet<u8> for Holding {
     const EMPTY: Self = Self(0);
     const ALL: Self = Self(0x7FFC);
 
+    #[inline]
     fn len(self) -> usize {
         self.0.count_ones() as usize
     }
 
+    #[inline]
     fn contains(self, rank: u8) -> bool {
         self.0 & 1 << rank != 0
     }
 
+    #[inline]
     fn insert(&mut self, rank: u8) -> bool {
         let insertion = 1 << rank & Self::ALL.0;
         let inserted = insertion & !self.0 != 0;
@@ -305,17 +325,20 @@ impl SmallSet<u8> for Holding {
         inserted
     }
 
+    #[inline]
     fn remove(&mut self, rank: u8) -> bool {
         let removed = self.contains(rank);
         self.0 &= !(1 << rank);
         removed
     }
 
+    #[inline]
     fn toggle(&mut self, rank: u8) -> bool {
         self.0 ^= 1 << rank & Self::ALL.0;
         self.contains(rank)
     }
 
+    #[inline]
     fn iter(self) -> impl Iterator<Item = u8> {
         HoldingIter {
             rest: self.0,
@@ -327,18 +350,21 @@ impl SmallSet<u8> for Holding {
 impl Holding {
     /// As a bitset of ranks
     #[must_use]
+    #[inline]
     pub const fn to_bits(self) -> u16 {
         self.0
     }
 
     /// Create a holding from a bitset of ranks
     #[must_use]
+    #[inline]
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits & Self::ALL.0)
     }
 
     /// Create a holding from a rank
     #[must_use]
+    #[inline]
     pub const fn from_rank(rank: u8) -> Self {
         Self(1 << rank)
     }
@@ -347,6 +373,7 @@ impl Holding {
 impl BitAnd for Holding {
     type Output = Self;
 
+    #[inline]
     fn bitand(self, rhs: Self) -> Self {
         Self(self.0 & rhs.0)
     }
@@ -355,6 +382,7 @@ impl BitAnd for Holding {
 impl BitOr for Holding {
     type Output = Self;
 
+    #[inline]
     fn bitor(self, rhs: Self) -> Self {
         Self(self.0 | rhs.0)
     }
@@ -363,6 +391,7 @@ impl BitOr for Holding {
 impl BitXor for Holding {
     type Output = Self;
 
+    #[inline]
     fn bitxor(self, rhs: Self) -> Self {
         Self(self.0 ^ rhs.0)
     }
@@ -371,6 +400,7 @@ impl BitXor for Holding {
 impl Not for Holding {
     type Output = Self;
 
+    #[inline]
     fn not(self) -> Self {
         Self::ALL ^ self
     }
@@ -379,6 +409,7 @@ impl Not for Holding {
 impl Sub for Holding {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self {
         self & !rhs
     }
@@ -491,12 +522,14 @@ pub struct Hand(pub [Holding; 4]);
 impl Index<Suit> for Hand {
     type Output = Holding;
 
+    #[inline]
     fn index(&self, suit: Suit) -> &Holding {
         &self.0[suit as usize]
     }
 }
 
 impl IndexMut<Suit> for Hand {
+    #[inline]
     fn index_mut(&mut self, suit: Suit) -> &mut Holding {
         &mut self.0[suit as usize]
     }
@@ -505,6 +538,7 @@ impl IndexMut<Suit> for Hand {
 impl Hand {
     /// As a bitset of cards
     #[must_use]
+    #[inline]
     pub const fn to_bits(self) -> u64 {
         // SAFETY: every combination of 64 bits is a valid `u64`
         unsafe { core::mem::transmute(self.0) }
@@ -514,6 +548,7 @@ impl Hand {
     ///
     /// This function removes invalid cards.
     #[must_use]
+    #[inline]
     pub const fn from_bits(bits: u64) -> Self {
         // SAFETY: just filtered out invalid cards
         unsafe { Self::from_bits_unchecked(bits & Self::ALL.to_bits()) }
@@ -524,6 +559,7 @@ impl Hand {
     /// # Safety
     /// The bitset must not contain invalid cards.
     #[must_use]
+    #[inline]
     pub const unsafe fn from_bits_unchecked(bits: u64) -> Self {
         core::mem::transmute(bits)
     }
@@ -533,26 +569,32 @@ impl SmallSet<Card> for Hand {
     const EMPTY: Self = Self([Holding::EMPTY; 4]);
     const ALL: Self = Self([Holding::ALL; 4]);
 
+    #[inline]
     fn len(self) -> usize {
         self.to_bits().count_ones() as usize
     }
 
+    #[inline]
     fn contains(self, card: Card) -> bool {
         self[card.suit()].contains(card.rank())
     }
 
+    #[inline]
     fn insert(&mut self, card: Card) -> bool {
         self[card.suit()].insert(card.rank())
     }
 
+    #[inline]
     fn remove(&mut self, card: Card) -> bool {
         self[card.suit()].remove(card.rank())
     }
 
+    #[inline]
     fn toggle(&mut self, card: Card) -> bool {
         self[card.suit()].toggle(card.rank())
     }
 
+    #[inline]
     fn iter(self) -> impl Iterator<Item = Card> {
         Suit::ASC
             .into_iter()
@@ -608,6 +650,7 @@ impl FromStr for Hand {
 impl BitAnd for Hand {
     type Output = Self;
 
+    #[inline]
     fn bitand(self, rhs: Self) -> Self {
         // SAFETY: safe when both operands are valid
         unsafe { Self::from_bits_unchecked(self.to_bits() & rhs.to_bits()) }
@@ -617,6 +660,7 @@ impl BitAnd for Hand {
 impl BitOr for Hand {
     type Output = Self;
 
+    #[inline]
     fn bitor(self, rhs: Self) -> Self {
         // SAFETY: safe when both operands are valid
         unsafe { Self::from_bits_unchecked(self.to_bits() | rhs.to_bits()) }
@@ -626,6 +670,7 @@ impl BitOr for Hand {
 impl BitXor for Hand {
     type Output = Self;
 
+    #[inline]
     fn bitxor(self, rhs: Self) -> Self {
         // SAFETY: safe when both operands are valid
         unsafe { Self::from_bits_unchecked(self.to_bits() ^ rhs.to_bits()) }
@@ -635,6 +680,7 @@ impl BitXor for Hand {
 impl Not for Hand {
     type Output = Self;
 
+    #[inline]
     fn not(self) -> Self {
         Self::ALL ^ self
     }
@@ -643,6 +689,7 @@ impl Not for Hand {
 impl Sub for Hand {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self {
         self & !rhs
     }
@@ -655,12 +702,14 @@ pub struct Deal(pub [Hand; 4]);
 impl Index<Seat> for Deal {
     type Output = Hand;
 
+    #[inline]
     fn index(&self, seat: Seat) -> &Hand {
         &self.0[seat as usize]
     }
 }
 
 impl IndexMut<Seat> for Deal {
+    #[inline]
     fn index_mut(&mut self, seat: Seat) -> &mut Hand {
         &mut self.0[seat as usize]
     }
@@ -714,6 +763,7 @@ impl Deal {
 
     /// PBN-compatible display from a seat's perspective
     #[must_use]
+    #[inline]
     pub fn display(self, seat: Seat) -> impl fmt::Display {
         DealDisplay { deal: self, seat }
     }

@@ -621,6 +621,7 @@ pub enum Target {
 impl Target {
     /// Get the `target` argument for [`sys::SolveBoard`]
     #[must_use]
+    #[inline]
     pub const fn target(self) -> c_int {
         match self {
             Self::Any(target) | Self::All(target) => target as c_int,
@@ -630,6 +631,7 @@ impl Target {
 
     /// Get the `solutions` argument for [`sys::SolveBoard`]
     #[must_use]
+    #[inline]
     pub const fn solutions(self) -> c_int {
         match self {
             Self::Any(_) => 1,
