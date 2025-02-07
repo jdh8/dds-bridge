@@ -25,7 +25,7 @@ fn to_cumulative_probability(histogram: [u32; 14]) -> [f64; 14] {
 }
 
 fn analyze_deals(n: usize) -> Result<(), solver::Error> {
-    let deals: Vec<_> = core::iter::repeat_with(|| Deal::new(&mut rand::thread_rng()))
+    let deals: Vec<_> = core::iter::repeat_with(|| Deal::new(&mut rand::rng()))
         .take(n)
         .collect();
 

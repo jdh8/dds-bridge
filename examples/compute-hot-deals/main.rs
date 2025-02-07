@@ -5,7 +5,7 @@ use std::process::ExitCode;
 
 /// Generate a hand with one card of each rank
 fn get_random_average_hand(rng: &mut (impl rand::Rng + ?Sized)) -> Hand {
-    let bits: u64 = rng.gen();
+    let bits: u64 = rng.random();
 
     (0..13).fold(Hand::EMPTY, |mut hand, i| {
         // SAFETY: we are slicing valid consecutive 2 bits from `bits`
@@ -62,7 +62,7 @@ fn main() -> Result<ExitCode, solver::Error> {
     };
 
     for _ in 0..deals {
-        let (deal, tricks) = compute_deal(&mut rand::thread_rng())?;
+        let (deal, tricks) = compute_deal(&mut rand::rng())?;
         println!(
             "{} {:X}",
             deal.display(Seat::North),

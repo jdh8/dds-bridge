@@ -59,7 +59,7 @@ fn test_not() {
 #[test]
 fn test_random_deals() {
     (0..1_000_000).for_each(|_| {
-        let hands = Deal::new(&mut rand::thread_rng()).0;
+        let hands = Deal::new(&mut rand::rng()).0;
         assert_eq!(hands[0] | hands[1] | hands[2] | hands[3], Hand::ALL);
         assert_eq!(hands[0] & hands[1], Hand::EMPTY);
         assert_eq!(hands[0] & hands[2], Hand::EMPTY);
@@ -76,7 +76,7 @@ fn test_random_deals() {
 
 #[test]
 fn test_ew_shuffling_full_deal() {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let non_trivial_shuffles = core::iter::repeat_with(|| {
         let before = Deal::new(&mut rng);
         let after = before.shuffled(&mut rng, SeatFlags::EW);
@@ -102,7 +102,7 @@ fn test_ew_shuffling_full_deal() {
 fn generate_thanos_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
     let mut deal = Deal::new(rng);
     deal.0.iter_mut().for_each(|hand| {
-        let mask: u64 = rng.gen();
+        let mask: u64 = rng.random();
         *hand = Hand::from_bits(hand.to_bits() & mask);
     });
     deal
@@ -110,7 +110,7 @@ fn generate_thanos_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
 
 #[test]
 fn test_ew_shuffling_thanos_deal() {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let non_trivial_shuffles = core::iter::repeat_with(|| {
         let before = generate_thanos_deal(&mut rng);
         let after = before.shuffled(&mut rng, SeatFlags::EW);
