@@ -479,7 +479,34 @@ impl Vulnerability {
             _ => unreachable!(),
         }
     }
+
+    /// Conditionally swap bits
+    ///
+    /// This method makes rotating the vulnerability pair easy.  This method is
+    /// `const` and `#[inline]` to maximize chances of constant folding
+    /// `.swap(true)`.
+    #[must_use]
+    #[inline]
+    pub const fn swap(self, condition: bool) -> Self {
+        Self::from_bits_truncate(self.bits() * (condition as u8 * 3 + 2) / 2)
+    }
 }
+
+/// Exhaustively check correctness of [`Vulnerability::swap`] at compile time
+const _: () = {
+    const ALL: Vulnerability = Vulnerability::all();
+    const NONE: Vulnerability = Vulnerability::empty();
+
+    assert!(matches!(ALL.swap(true), ALL));
+    assert!(matches!(NONE.swap(true), NONE));
+    assert!(matches!(Vulnerability::NS.swap(true), Vulnerability::EW));
+    assert!(matches!(Vulnerability::EW.swap(true), Vulnerability::NS));
+
+    assert!(matches!(ALL.swap(false), ALL));
+    assert!(matches!(NONE.swap(false), NONE));
+    assert!(matches!(Vulnerability::NS.swap(false), Vulnerability::NS));
+    assert!(matches!(Vulnerability::EW.swap(false), Vulnerability::EW));
+};
 
 /// Par score and contracts
 #[derive(Debug, Clone)]
