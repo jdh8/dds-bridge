@@ -77,10 +77,10 @@ fn solve_four_13_card_straight_flushes() {
 /// <http://bridge.thomasoandrews.com/deals/parzero/>.
 #[test]
 fn solve_par_5_tricks() {
-    const AKQJ: Holding = Holding::from_bits(0xF << 11);
-    const T987: Holding = Holding::from_bits(0xF << 7);
-    const XXXX: Holding = Holding::from_bits(0xF << 3);
-    const X: Holding = Holding::from_bits(1 << 2);
+    const AKQJ: Holding = Holding::from_bits_truncate(0xF << 11);
+    const T987: Holding = Holding::from_bits_truncate(0xF << 7);
+    const XXXX: Holding = Holding::from_bits_truncate(0xF << 3);
+    const X: Holding = Holding::from_bits_truncate(1 << 2);
     const DEAL: Deal = Deal([
         Hand([T987, XXXX, X, AKQJ]),
         Hand([X, AKQJ, T987, XXXX]),
@@ -109,10 +109,10 @@ fn solve_par_5_tricks() {
 #[test]
 #[allow(clippy::unusual_byte_groupings)]
 fn solve_everyone_makes_1nt() {
-    const A54: Holding = Holding::from_bits(0b10000_0000_1100_00);
-    const QJ32: Holding = Holding::from_bits(0b00110_0000_0011_00);
-    const K976: Holding = Holding::from_bits(0b01000_1011_0000_00);
-    const T8: Holding = Holding::from_bits(0b00001_0100_0000_00);
+    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
+    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
+    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
+    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
     const DEAL: Deal = Deal([
         Hand([A54, QJ32, K976, T8]),
         Hand([T8, A54, QJ32, K976]),

@@ -3,14 +3,14 @@ use super::*;
 const _: () = {
     let mut bits = 0;
     while bits < 0xFFFF {
-        assert!(Holding::from_bits(bits).to_bits() == bits & Holding::ALL.to_bits());
+        assert!(Holding::from_bits_truncate(bits).to_bits() == bits & Holding::ALL.to_bits());
         bits += 1;
     }
-    assert!(Holding::from_bits(bits).to_bits() == bits & Holding::ALL.to_bits());
+    assert!(Holding::from_bits_truncate(bits).to_bits() == bits & Holding::ALL.to_bits());
 };
 
 fn all_holdings() -> impl Iterator<Item = Holding> {
-    (0..1 << 13).map(|i| Holding::from_bits(i << 2))
+    (0..1 << 13).map(|i| Holding::from_bits_truncate(i << 2))
 }
 
 #[test]
@@ -103,7 +103,7 @@ fn generate_thanos_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
     let mut deal = Deal::new(rng);
     deal.0.iter_mut().for_each(|hand| {
         let mask: u64 = rng.random();
-        *hand = Hand::from_bits(hand.to_bits() & mask);
+        *hand = Hand::from_bits_truncate(hand.to_bits() & mask);
     });
     deal
 }
@@ -153,7 +153,7 @@ fn test_seat_arithmetics() {
 
 #[test]
 fn test_iter_aqt() {
-    const AQT: Holding = Holding::from_bits(0b10101 << 10);
+    const AQT: Holding = Holding::from_bits_truncate(0b10101 << 10);
     let mut iter = AQT.iter();
     assert_eq!(iter.next(), Some(10));
     assert_eq!(iter.next(), Some(12));
@@ -163,8 +163,8 @@ fn test_iter_aqt() {
 
 #[test]
 fn test_iter_spot_cards() {
-    const XXX: Holding = Holding::from_bits(0b10101 << 2);
-    const XX: Holding = Holding::from_bits(0b1001 << 5);
+    const XXX: Holding = Holding::from_bits_truncate(0b10101 << 2);
+    const XX: Holding = Holding::from_bits_truncate(0b1001 << 5);
     const HAND: Hand = Hand([XXX, Holding::EMPTY, XX, Holding::EMPTY]);
     let mut iter = HAND.iter();
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 2)));
@@ -178,9 +178,9 @@ fn test_iter_spot_cards() {
 #[test]
 fn test_holding_parser() -> Result<(), ParseHandError> {
     type Err = ParseHandError;
-    const AQT: Holding = Holding::from_bits(0b10101 << 10);
-    const KJ32: Holding = Holding::from_bits(0b0101 << 11 | 0b11 << 2);
-    const KJ2: Holding = Holding::from_bits(0b0101 << 11 | 0b1 << 2);
+    const AQT: Holding = Holding::from_bits_truncate(0b10101 << 10);
+    const KJ32: Holding = Holding::from_bits_truncate(0b0101 << 11 | 0b11 << 2);
+    const KJ2: Holding = Holding::from_bits_truncate(0b0101 << 11 | 0b1 << 2);
 
     assert!(matches!("AKQJT98765432".parse()?, Holding::ALL));
     assert!(matches!("AKQJT987xxxxx".parse()?, Holding::ALL));
@@ -204,7 +204,7 @@ fn test_holding_parser() -> Result<(), ParseHandError> {
 #[test]
 fn test_holding_io() -> Result<(), ParseHandError> {
     (0..1 << 13).try_for_each(|bits| {
-        let holding = Holding::from_bits(bits << 2);
+        let holding = Holding::from_bits_truncate(bits << 2);
         assert_eq!(holding, holding.to_string().parse()?);
         Ok(())
     })

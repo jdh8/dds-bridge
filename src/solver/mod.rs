@@ -750,7 +750,7 @@ impl From<sys::futureTricks> for FoundPlays {
                     Suit::DESC[future.suit[i] as usize],
                     (future.rank[i] & 0xFF) as u8,
                 );
-                let equals = Holding::from_bits((future.equals[i] & 0xFFFF) as u16);
+                let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
                 let score = (future.score[i] & 0xFF) as i8;
                 *play = Some(Play {
                     card,

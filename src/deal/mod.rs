@@ -355,10 +355,35 @@ impl Holding {
         self.0
     }
 
-    /// Create a holding from a bitset of ranks
+    /// Create a holding from a bitset of ranks, retaining invalid ranks
     #[must_use]
     #[inline]
-    pub const fn from_bits(bits: u16) -> Self {
+    pub const fn from_bits_retain(bits: u16) -> Self {
+        Self(bits)
+    }
+
+    /// Whether the holding contains an invalid rank
+    #[must_use]
+    #[inline]
+    pub const fn contains_unknown_bits(self) -> bool {
+        self.0 & Self::ALL.0 != self.0
+    }
+
+    /// Create a holding from a bitset of ranks, checking for invalid ranks
+    #[must_use]
+    #[inline]
+    pub const fn from_bits(bits: u16) -> Option<Self> {
+        if bits & Self::ALL.0 == bits {
+            Some(Self(bits))
+        } else {
+            None
+        }
+    }
+
+    /// Create a holding from a bitset of ranks, removing invalid ranks
+    #[must_use]
+    #[inline]
+    pub const fn from_bits_truncate(bits: u16) -> Self {
         Self(bits & Self::ALL.0)
     }
 
@@ -402,7 +427,7 @@ impl Not for Holding {
 
     #[inline]
     fn not(self) -> Self {
-        Self::ALL ^ self
+        Self::from_bits_truncate(!self.0)
     }
 }
 
@@ -411,7 +436,7 @@ impl Sub for Holding {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self {
-        self & !rhs
+        Self(self.0 & !rhs.0)
     }
 }
 
@@ -505,7 +530,7 @@ impl FromStr for Holding {
             }
         })?;
 
-        let spots = Self::from_bits((4 << spots.len()) - 4);
+        let spots = Self::from_bits_truncate((4 << spots.len()) - 4);
 
         if explicit & spots == Self::EMPTY {
             Ok(explicit | spots)
@@ -544,24 +569,37 @@ impl Hand {
         unsafe { core::mem::transmute(self.0) }
     }
 
-    /// Create a hand from a bitset of cards
-    ///
-    /// This function removes invalid cards.
+    /// Create a hand from a bitset of cards, retaining invalid cards
     #[must_use]
     #[inline]
-    pub const fn from_bits(bits: u64) -> Self {
-        // SAFETY: just filtered out invalid cards
-        unsafe { Self::from_bits_unchecked(bits & Self::ALL.to_bits()) }
+    pub const fn from_bits_retain(bits: u64) -> Self {
+        // SAFETY: safe as long as the transmutation holds
+        unsafe { core::mem::transmute(bits) }
     }
 
-    /// Create a hand from a bitset of cards without checking
-    ///
-    /// # Safety
-    /// The bitset must not contain invalid cards.
+    /// Whether the hand contains an invalid card
     #[must_use]
     #[inline]
-    pub const unsafe fn from_bits_unchecked(bits: u64) -> Self {
-        core::mem::transmute(bits)
+    pub const fn contains_unknown_bits(self) -> bool {
+        self.to_bits() & Self::ALL.to_bits() != self.to_bits()
+    }
+
+    /// Create a hand from a bitset of cards, checking for invalid cards
+    #[must_use]
+    #[inline]
+    pub const fn from_bits(bits: u64) -> Option<Self> {
+        if bits & Self::ALL.to_bits() == bits {
+            Some(Self::from_bits_retain(bits))
+        } else {
+            None
+        }
+    }
+
+    /// Create a hand from a bitset of cards, removing invalid cards
+    #[must_use]
+    #[inline]
+    pub const fn from_bits_truncate(bits: u64) -> Self {
+        Self::from_bits_retain(bits & Self::ALL.to_bits())
     }
 }
 
@@ -652,8 +690,7 @@ impl BitAnd for Hand {
 
     #[inline]
     fn bitand(self, rhs: Self) -> Self {
-        // SAFETY: safe when both operands are valid
-        unsafe { Self::from_bits_unchecked(self.to_bits() & rhs.to_bits()) }
+        Self::from_bits_retain(self.to_bits() & rhs.to_bits())
     }
 }
 
@@ -662,8 +699,7 @@ impl BitOr for Hand {
 
     #[inline]
     fn bitor(self, rhs: Self) -> Self {
-        // SAFETY: safe when both operands are valid
-        unsafe { Self::from_bits_unchecked(self.to_bits() | rhs.to_bits()) }
+        Self::from_bits_retain(self.to_bits() | rhs.to_bits())
     }
 }
 
@@ -672,8 +708,7 @@ impl BitXor for Hand {
 
     #[inline]
     fn bitxor(self, rhs: Self) -> Self {
-        // SAFETY: safe when both operands are valid
-        unsafe { Self::from_bits_unchecked(self.to_bits() ^ rhs.to_bits()) }
+        Self::from_bits_retain(self.to_bits() ^ rhs.to_bits())
     }
 }
 
@@ -682,7 +717,7 @@ impl Not for Hand {
 
     #[inline]
     fn not(self) -> Self {
-        Self::ALL ^ self
+        Self::from_bits_truncate(!self.to_bits())
     }
 }
 
@@ -691,7 +726,7 @@ impl Sub for Hand {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self {
-        self & !rhs
+        Self::from_bits_retain(self.to_bits() & !rhs.to_bits())
     }
 }
 
