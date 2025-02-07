@@ -466,6 +466,7 @@ bitflags::bitflags! {
 impl Vulnerability {
     /// Convert to encoding in [`dds_bridge_sys`]
     #[must_use]
+    #[inline]
     pub const fn to_sys(self) -> i32 {
         const ALL: u8 = Vulnerability::all().bits();
         const NS: u8 = Vulnerability::NS.bits();
