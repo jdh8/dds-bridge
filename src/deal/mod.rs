@@ -271,6 +271,41 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
 
     /// Iterate over the values in the set
     fn iter(self) -> impl Iterator<Item = T>;
+
+    /// Intersection of two sets
+    #[must_use]
+    #[inline]
+    fn intersection(self, rhs: Self) -> <Self as BitAnd>::Output {
+        self & rhs
+    }
+
+    /// Union of two sets
+    #[must_use]
+    #[inline]
+    fn union(self, rhs: Self) -> <Self as BitOr>::Output {
+        self | rhs
+    }
+
+    /// Difference of two sets
+    #[must_use]
+    #[inline]
+    fn difference(self, rhs: Self) -> <Self as Sub>::Output {
+        self - rhs
+    }
+
+    /// Symmetric difference of two sets
+    #[must_use]
+    #[inline]
+    fn symmetric_difference(self, rhs: Self) -> <Self as BitXor>::Output {
+        self ^ rhs
+    }
+
+    /// Complement of the set
+    #[must_use]
+    #[inline]
+    fn complement(self) -> <Self as Not>::Output {
+        !self
+    }
 }
 
 /// A set of cards of the same suit
