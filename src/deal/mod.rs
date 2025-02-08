@@ -260,6 +260,15 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
     /// Toggle a value in the set
     fn toggle(&mut self, value: T) -> bool;
 
+    /// Conditionally insert/remove a value from the set
+    fn set(&mut self, value: T, condition: bool) {
+        if condition {
+            self.insert(value);
+        } else {
+            self.remove(value);
+        }
+    }
+
     /// Iterate over the values in the set
     fn iter(self) -> impl Iterator<Item = T>;
 }
@@ -336,6 +345,13 @@ impl SmallSet<u8> for Holding {
     fn toggle(&mut self, rank: u8) -> bool {
         self.0 ^= 1 << rank & Self::ALL.0;
         self.contains(rank)
+    }
+
+    #[inline]
+    fn set(&mut self, rank: u8, condition: bool) {
+        let flag = 1 << rank;
+        let mask = u16::from(condition).wrapping_neg();
+        self.0 = (self.0 & !flag) | (mask & flag);
     }
 
     #[inline]
@@ -630,6 +646,11 @@ impl SmallSet<Card> for Hand {
     #[inline]
     fn toggle(&mut self, card: Card) -> bool {
         self[card.suit()].toggle(card.rank())
+    }
+
+    #[inline]
+    fn set(&mut self, card: Card, condition: bool) {
+        self[card.suit()].set(card.rank(), condition);
     }
 
     #[inline]
