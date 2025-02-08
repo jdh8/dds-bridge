@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2021"
 description = "Rusty API for DDS, the double dummy solver for bridge"
@@ -11,7 +11,7 @@ keywords = ["bridge", "double-dummy"]
 
 [dependencies]
 bitflags = "2.8.0"
-dds-bridge-sys = "2.0.2"
+dds-bridge-sys = "2.0.3"
 once_cell = "1.20.3"
 rand = "0.9.0"
 regex = "1.11.1"
