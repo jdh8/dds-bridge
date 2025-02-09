@@ -482,14 +482,14 @@ impl Vulnerability {
     }
 
     /// Conditionally swap [`NS`](Self::NS) and [`EW`](Self::EW)
-    ///
-    /// This method makes rotating the vulnerability pair easy.  This method is
-    /// `const` and `#[inline]` to maximize chances of constant folding
-    /// `.rotate(true)`.
     #[must_use]
     #[inline]
     pub const fn rotate(self, condition: bool) -> Self {
-        Self::from_bits_truncate(self.bits() * (condition as u8 * 3 + 2) / 2)
+        Self::from_bits_truncate(
+            self.bits()
+                .wrapping_mul(0x55_u8)
+                .rotate_left(condition as u32),
+        )
     }
 }
 
