@@ -485,11 +485,7 @@ impl Vulnerability {
     #[must_use]
     #[inline]
     pub const fn rotate(self, condition: bool) -> Self {
-        Self::from_bits_truncate(
-            self.bits()
-                .wrapping_mul(0x55_u8)
-                .rotate_left(condition as u32),
-        )
+        Self::from_bits_truncate((self.bits() * 0x55_u8) >> (condition as u8))
     }
 }
 
