@@ -1,6 +1,7 @@
 use dds_bridge::contract::Strain;
 use dds_bridge::deal::{Card, Deal, Hand, Seat, SmallSet as _, Suit};
 use dds_bridge::solver;
+use rand::RngExt as _;
 use std::process::ExitCode;
 
 /// Generate a hand with one card of each rank

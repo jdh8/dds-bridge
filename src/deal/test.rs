@@ -1,4 +1,5 @@
 use super::*;
+use rand::RngExt as _;
 
 const _: () = {
     let mut bits = 0;
