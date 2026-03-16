@@ -6,8 +6,8 @@ use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use core::str::FromStr;
-use once_cell::sync::Lazy;
 use rand::prelude::SliceRandom as _;
+use std::sync::LazyLock;
 use thiserror::Error;
 
 /// A suit of playing cards
@@ -539,7 +539,7 @@ impl FromStr for Holding {
     type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static RE: Lazy<regex::Regex> = Lazy::new(|| {
+        static RE: LazyLock<regex::Regex> = LazyLock::new(|| {
             regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
                 .case_insensitive(true)
                 .build()
@@ -878,13 +878,10 @@ impl Deal {
         deck.shuffle(rng);
         let mut seat = Seat::North;
 
-        loop {
-            let Some(card) = deck.pop() else { break };
-
+        while let Some(card) = deck.pop() {
             while lengths[seat as usize] == 0 {
                 seat += Wrapping(1);
             }
-
             lengths[seat as usize] -= 1;
             deal[seat].insert(card);
         }
@@ -896,7 +893,7 @@ impl FromStr for Deal {
     type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static DEALER: Lazy<regex::Regex> = Lazy::new(|| {
+        static DEALER: LazyLock<regex::Regex> = LazyLock::new(|| {
             regex::RegexBuilder::new(r"^[NESW]:\s*")
                 .case_insensitive(true)
                 .build()

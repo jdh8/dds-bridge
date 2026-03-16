@@ -8,11 +8,10 @@ use core::fmt;
 use core::num::Wrapping;
 use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
-use once_cell::sync::Lazy;
-use std::sync::{Mutex, PoisonError};
+use std::sync::{LazyLock, Mutex, PoisonError};
 use thiserror::Error;
 
-static THREAD_POOL: Lazy<Mutex<()>> = Lazy::new(|| {
+static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
     // SAFETY: just initializing the thread pool
     unsafe { sys::SetMaxThreads(0) };
     Mutex::new(())
