@@ -384,7 +384,7 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
     let _guard = THREAD_POOL.lock()?;
     // SAFETY: `_guard` just locked the thread pool
-    let status = unsafe { sys::CalcDDtable(deal.into(), &mut result) };
+    let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
     Ok(SystemError::propagate(result.into(), status)?)
 }
 
@@ -416,7 +416,7 @@ pub unsafe fn solve_deal_segment(
     let mut res = sys::ddTablesRes::default();
     let _guard = THREAD_POOL.lock()?;
     let status = sys::CalcAllTables(
-        &mut pack,
+        &raw mut pack,
         -1,
         &mut [
             c_int::from(!flags.contains(StrainFlags::SPADES)),
@@ -425,7 +425,7 @@ pub unsafe fn solve_deal_segment(
             c_int::from(!flags.contains(StrainFlags::CLUBS)),
             c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
         ][0],
-        &mut res,
+        &raw mut res,
         &mut sys::allParResults::default(),
     );
     Ok(SystemError::propagate(res, status)?)
@@ -597,7 +597,7 @@ pub fn calculate_par(
 ) -> Result<Par, SystemError> {
     let mut par = sys::parResultsMaster::default();
     let status = // SAFETY: calculating par is reentrant
-        unsafe { sys::DealerParBin(&mut tricks.into(), &mut par, vul.to_sys(), dealer as c_int) };
+        unsafe { sys::DealerParBin(&mut tricks.into(), &raw mut par, vul.to_sys(), dealer as c_int) };
     Ok(SystemError::propagate(par, status)?.into())
 }
 
@@ -611,7 +611,7 @@ pub fn calculate_par(
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> Result<[Par; 2], SystemError> {
     let mut pars = [sys::parResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
-    let status = unsafe { sys::SidesParBin(&mut tricks.into(), &mut pars[0], vul.to_sys()) };
+    let status = unsafe { sys::SidesParBin(&mut tricks.into(), &raw mut pars[0], vul.to_sys()) };
     Ok(SystemError::propagate(pars, status)?.map(Into::into))
 }
 
@@ -777,7 +777,7 @@ pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
             target.target(),
             target.solutions(),
             0,
-            &mut result,
+            &raw mut result,
             //TODO: Enable multithreading
             0,
         )
@@ -808,7 +808,7 @@ pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solve
     let mut res = sys::solvedBoards::default();
     let _guard = THREAD_POOL.lock()?;
     // SAFETY: `_guard` just locked the thread pool
-    let status = unsafe { sys::SolveAllBoardsBin(&mut pack, &mut res) };
+    let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
     Ok(SystemError::propagate(res, status)?)
 }
 
