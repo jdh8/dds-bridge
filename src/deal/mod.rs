@@ -90,7 +90,6 @@ impl Add<Wrapping<u8>> for Seat {
 
     #[inline]
     fn add(self, rhs: Wrapping<u8>) -> Self {
-        // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) + rhs).0 & 3) }
     }
 }
@@ -116,7 +115,6 @@ impl Sub<Wrapping<u8>> for Seat {
 
     #[inline]
     fn sub(self, rhs: Wrapping<u8>) -> Self {
-        // SAFETY: this is just modular arithmetics on a 4-element enum
         unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
     }
 }
@@ -206,7 +204,6 @@ impl Card {
     #[inline]
     pub const fn new(suit: Suit, rank: u8) -> Self {
         assert!(rank >= 2 && rank <= 14);
-        // SAFETY: rank is guaranteed to be non-zero
         Self(unsafe { NonZeroU8::new_unchecked(rank << 2 | suit as u8) })
     }
 
@@ -214,7 +211,6 @@ impl Card {
     #[must_use]
     #[inline]
     pub const fn suit(self) -> Suit {
-        // SAFETY: suit is guaranteed to be valid, in (0..=3)
         unsafe { core::mem::transmute(self.0.get() & 3) }
     }
 
@@ -616,7 +612,6 @@ impl Hand {
     #[must_use]
     #[inline]
     pub const fn to_bits(self) -> u64 {
-        // SAFETY: every combination of 64 bits is a valid `u64`
         unsafe { core::mem::transmute(self.0) }
     }
 
@@ -624,7 +619,6 @@ impl Hand {
     #[must_use]
     #[inline]
     pub const fn from_bits_retain(bits: u64) -> Self {
-        // SAFETY: safe as long as the transmutation holds
         unsafe { core::mem::transmute(bits) }
     }
 
@@ -844,7 +838,6 @@ impl Deal {
         deck.into_iter()
             .enumerate()
             .fold(Self::default(), |mut deal, (i, card)| {
-                // SAFETY: `i & 3` is always in the range of 0..=3
                 #[allow(clippy::cast_possible_truncation)]
                 let seat: Seat = unsafe { core::mem::transmute((i & 3) as u8) };
                 deal[seat].insert(card);

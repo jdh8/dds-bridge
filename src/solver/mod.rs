@@ -12,7 +12,6 @@ use std::sync::{LazyLock, Mutex, PoisonError};
 use thiserror::Error;
 
 static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
-    // SAFETY: just initializing the thread pool
     unsafe { sys::SetMaxThreads(0) };
     Mutex::new(())
 });
@@ -383,7 +382,6 @@ impl From<Deal> for sys::ddTableDeal {
 pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
     let mut result = sys::ddTableResults::default();
     let _guard = THREAD_POOL.lock()?;
-    // SAFETY: `_guard` just locked the thread pool
     let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
     Ok(SystemError::propagate(result.into(), status)?)
 }
@@ -414,7 +412,6 @@ pub unsafe fn solve_deal_segment(
         .for_each(|(i, &deal)| pack.deals[i] = deal.into());
 
     let mut res = sys::ddTablesRes::default();
-    // SAFETY: `_guard` locks the thread pool
     let status = unsafe {
         let _guard = THREAD_POOL.lock()?;
         sys::CalcAllTables(
@@ -445,7 +442,6 @@ pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable
     let mut tables = Vec::new();
     for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
         tables.extend(
-            // SAFETY: the thread pool is locked inside `solve_deal_segment`
             unsafe { solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
                 .iter()
                 .map(|&x| TricksTable::from(x)),
@@ -565,7 +561,6 @@ impl From<sys::parResultsMaster> for Par {
                 };
 
                 assert_eq!(contract.level, contract.level & 7);
-                // SAFETY: `contract.seats & 3` is in the range of 0..=3 and hence a valid `Seat`
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
                 let contract = Contract::new((contract.level & 7) as u8, strain, penalty);
@@ -599,8 +594,14 @@ pub fn calculate_par(
     dealer: Seat,
 ) -> Result<Par, SystemError> {
     let mut par = sys::parResultsMaster::default();
-    let status = // SAFETY: calculating par is reentrant
-        unsafe { sys::DealerParBin(&mut tricks.into(), &raw mut par, vul.to_sys(), dealer as c_int) };
+    let status = unsafe {
+        sys::DealerParBin(
+            &mut tricks.into(),
+            &raw mut par,
+            vul.to_sys(),
+            dealer as c_int,
+        )
+    };
     Ok(SystemError::propagate(par, status)?.into())
 }
 
@@ -772,7 +773,6 @@ impl From<sys::futureTricks> for FoundPlays {
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
 pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
     let mut result = sys::futureTricks::default();
-    // SAFETY: `_guard` locks the thread pool
     let status = unsafe {
         let _guard = THREAD_POOL.lock()?;
         sys::SolveBoard(
@@ -810,7 +810,6 @@ pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solve
     });
     let mut res = sys::solvedBoards::default();
     let _guard = THREAD_POOL.lock()?;
-    // SAFETY: `_guard` just locked the thread pool
     let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
     Ok(SystemError::propagate(res, status)?)
 }
@@ -825,7 +824,6 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
     let mut solutions = Vec::new();
     for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
         solutions.extend(
-            // SAFETY: the thread pool is locked inside `solve_board_segment`
             unsafe { solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
                 .iter()
                 .map(|&x| FoundPlays::from(x)),

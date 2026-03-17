@@ -9,7 +9,6 @@ fn get_random_average_hand(rng: &mut (impl rand::Rng + ?Sized)) -> Hand {
     let bits: u64 = rng.random();
 
     (0..13).fold(Hand::EMPTY, |mut hand, i| {
-        // SAFETY: we are slicing valid consecutive 2 bits from `bits`
         let suit: Suit = unsafe { core::mem::transmute((bits >> (2 * i) & 3) as u8) };
         hand.insert(Card::new(suit, i + 2));
         hand
@@ -34,7 +33,6 @@ fn compute_deal(
     const N: usize = dds_bridge_sys::MAXNOOFTABLES as usize;
     loop {
         let deals: [_; N] = core::array::from_fn(|_| get_random_symmetric_deal(rng));
-        // SAFETY: `N` is exactly the maximum length of a deal segment.
         let tables = unsafe { solver::solve_deal_segment(&deals, solver::StrainFlags::all())? };
 
         for (i, &table) in tables.results[..N].iter().enumerate() {
