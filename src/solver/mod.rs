@@ -414,20 +414,23 @@ pub unsafe fn solve_deal_segment(
         .for_each(|(i, &deal)| pack.deals[i] = deal.into());
 
     let mut res = sys::ddTablesRes::default();
-    let _guard = THREAD_POOL.lock()?;
-    let status = sys::CalcAllTables(
-        &raw mut pack,
-        -1,
-        &mut [
-            c_int::from(!flags.contains(StrainFlags::SPADES)),
-            c_int::from(!flags.contains(StrainFlags::HEARTS)),
-            c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
-            c_int::from(!flags.contains(StrainFlags::CLUBS)),
-            c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
-        ][0],
-        &raw mut res,
-        &mut sys::allParResults::default(),
-    );
+    // SAFETY: `_guard` locks the thread pool
+    let status = unsafe {
+        let _guard = THREAD_POOL.lock()?;
+        sys::CalcAllTables(
+            &raw mut pack,
+            -1,
+            &mut [
+                c_int::from(!flags.contains(StrainFlags::SPADES)),
+                c_int::from(!flags.contains(StrainFlags::HEARTS)),
+                c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
+                c_int::from(!flags.contains(StrainFlags::CLUBS)),
+                c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
+            ][0],
+            &raw mut res,
+            &mut sys::allParResults::default(),
+        )
+    };
     Ok(SystemError::propagate(res, status)?)
 }
 
