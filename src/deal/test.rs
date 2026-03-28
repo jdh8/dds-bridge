@@ -1,5 +1,4 @@
 use super::*;
-use rand::RngExt as _;
 
 const _: () = {
     let mut bits = 0;
@@ -55,78 +54,6 @@ fn test_not() {
         assert_eq!(!v, Holding::ALL - v);
         assert_eq!(!v, Holding::ALL ^ v);
     });
-}
-
-#[test]
-fn test_random_deals() {
-    (0..1_000_000).for_each(|_| {
-        let hands = Deal::new(&mut rand::rng()).0;
-        assert_eq!(hands[0] | hands[1] | hands[2] | hands[3], Hand::ALL);
-        assert_eq!(hands[0] & hands[1], Hand::EMPTY);
-        assert_eq!(hands[0] & hands[2], Hand::EMPTY);
-        assert_eq!(hands[0] & hands[3], Hand::EMPTY);
-        assert_eq!(hands[1] & hands[2], Hand::EMPTY);
-        assert_eq!(hands[1] & hands[3], Hand::EMPTY);
-        assert_eq!(hands[2] & hands[3], Hand::EMPTY);
-        assert_eq!(hands[0].len(), 13);
-        assert_eq!(hands[1].len(), 13);
-        assert_eq!(hands[2].len(), 13);
-        assert_eq!(hands[3].len(), 13);
-    });
-}
-
-#[test]
-fn test_ew_shuffling_full_deal() {
-    let mut rng = rand::rng();
-    let non_trivial_shuffles = core::iter::repeat_with(|| {
-        let before = Deal::new(&mut rng);
-        let after = before.shuffled(&mut rng, SeatFlags::EW);
-        assert_eq!(before[Seat::North], after[Seat::North]);
-        assert_eq!(before[Seat::South], after[Seat::South]);
-        assert_eq!(after[Seat::East].len(), 13);
-        assert_eq!(after[Seat::West].len(), 13);
-        assert_eq!(after[Seat::East] & after[Seat::West], Hand::EMPTY);
-        assert_eq!(
-            before[Seat::East] | before[Seat::West],
-            after[Seat::East] | after[Seat::West]
-        );
-        before[Seat::East] != after[Seat::East]
-    });
-    assert!(non_trivial_shuffles.take(1_000_000).filter(|&x| x).count() > 0);
-}
-
-/// Generate a random deal and remove each card with a 50% chance
-///
-/// The result is highly unlikely to be a valid deal because of the variance of
-/// the number of cards in each hand, but it is useful for testing the
-/// [`Deal::shuffled`] method.
-fn generate_thanos_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
-    let mut deal = Deal::new(rng);
-    deal.0.iter_mut().for_each(|hand| {
-        let mask: u64 = rng.random();
-        *hand = Hand::from_bits_truncate(hand.to_bits() & mask);
-    });
-    deal
-}
-
-#[test]
-fn test_ew_shuffling_thanos_deal() {
-    let mut rng = rand::rng();
-    let non_trivial_shuffles = core::iter::repeat_with(|| {
-        let before = generate_thanos_deal(&mut rng);
-        let after = before.shuffled(&mut rng, SeatFlags::EW);
-        assert_eq!(before[Seat::North], after[Seat::North]);
-        assert_eq!(before[Seat::South], after[Seat::South]);
-        assert_eq!(before[Seat::East].len(), after[Seat::East].len());
-        assert_eq!(before[Seat::West].len(), after[Seat::West].len());
-        assert_eq!(after[Seat::East] & after[Seat::West], Hand::EMPTY);
-        assert_eq!(
-            before[Seat::East] | before[Seat::West],
-            after[Seat::East] | after[Seat::West]
-        );
-        before[Seat::East] != after[Seat::East]
-    });
-    assert!(non_trivial_shuffles.take(1_000_000).filter(|&x| x).count() > 0);
 }
 
 #[test]

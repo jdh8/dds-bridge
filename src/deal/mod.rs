@@ -6,7 +6,6 @@ use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
 use core::str::FromStr;
-use rand::prelude::SliceRandom as _;
 use std::sync::LazyLock;
 use thiserror::Error;
 
@@ -824,61 +823,11 @@ impl fmt::Display for DealDisplay {
 }
 
 impl Deal {
-    /// Create a deal from a shuffled standard 52-card deck
-    pub fn new(rng: &mut (impl rand::Rng + ?Sized)) -> Self {
-        let mut deck: [_; 52] = core::array::from_fn(|i| {
-            // Safe because `i` is always in the range of 0..52
-            #[allow(clippy::cast_possible_truncation)]
-            let i = i as u8;
-            let suit: Suit = unsafe { core::mem::transmute(i & 3) };
-            Card::new(suit, (i >> 2) + 2)
-        });
-        deck.partial_shuffle(rng, 3 * 13);
-
-        deck.into_iter()
-            .enumerate()
-            .fold(Self::default(), |mut deal, (i, card)| {
-                #[allow(clippy::cast_possible_truncation)]
-                let seat: Seat = unsafe { core::mem::transmute((i & 3) as u8) };
-                deal[seat].insert(card);
-                deal
-            })
-    }
-
     /// PBN-compatible display from a seat's perspective
     #[must_use]
     #[inline]
     pub fn display(self, seat: Seat) -> impl fmt::Display {
         DealDisplay { deal: self, seat }
-    }
-
-    /// Shuffle existing hands while preserving the numbers of cards
-    #[must_use]
-    pub fn shuffled(self, rng: &mut (impl rand::Rng + ?Sized), seats: SeatFlags) -> Self {
-        let mut deal = Self::default();
-        let mut deck = Vec::with_capacity(52);
-        let mut lengths = [0; 4];
-
-        for seat in Seat::ALL {
-            if seats.contains(seat.into()) {
-                deck.extend(self[seat].iter());
-                lengths[seat as usize] = self[seat].len();
-            } else {
-                deal[seat] = self[seat];
-            }
-        }
-
-        deck.shuffle(rng);
-        let mut seat = Seat::North;
-
-        while let Some(card) = deck.pop() {
-            while lengths[seat as usize] == 0 {
-                seat += Wrapping(1);
-            }
-            lengths[seat as usize] -= 1;
-            deal[seat].insert(card);
-        }
-        deal
     }
 }
 
