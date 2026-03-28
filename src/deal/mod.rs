@@ -833,7 +833,7 @@ impl Deal {
             let suit: Suit = unsafe { core::mem::transmute(i & 3) };
             Card::new(suit, (i >> 2) + 2)
         });
-        deck.shuffle(rng);
+        deck.partial_shuffle(rng, 3 * 13);
 
         deck.into_iter()
             .enumerate()
