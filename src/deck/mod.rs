@@ -13,6 +13,7 @@ pub struct CapacityError;
 ///
 /// It requires shuffling to partially retrieve cards from the deck.  However,
 /// it is deterministic to collect all cards.
+#[derive(Debug, Clone)]
 pub struct Deck {
     cards: [MaybeUninit<Card>; 52],
     len: usize,
