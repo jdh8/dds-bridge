@@ -823,6 +823,9 @@ impl fmt::Display for DealDisplay {
 }
 
 impl Deal {
+    /// Empty deal
+    pub const EMPTY: Self = Self([Hand::EMPTY; 4]);
+
     /// PBN-compatible display from a seat's perspective
     #[must_use]
     #[inline]
