@@ -1,8 +1,9 @@
-use dds_bridge::deal::{Deal, Seat};
+use dds_bridge::deal::Seat;
+use dds_bridge::deck::full_deal;
 use std::process::ExitCode;
 
 fn generate_deals(n: usize) {
-    (0..n).for_each(|_| println!("{}", Deal::new(&mut rand::rng()).display(Seat::North)));
+    (0..n).for_each(|_| println!("{}", full_deal(&mut rand::rng()).display(Seat::North)));
 }
 
 #[doc = include_str!("README.md")]

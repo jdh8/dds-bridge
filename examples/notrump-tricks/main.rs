@@ -1,5 +1,6 @@
 use dds_bridge::contract::Strain;
-use dds_bridge::deal::{Deal, Seat};
+use dds_bridge::deal::Seat;
+use dds_bridge::deck::full_deal;
 use dds_bridge::solver;
 use std::process::ExitCode;
 
@@ -25,7 +26,7 @@ fn to_cumulative_probability(histogram: [u32; 14]) -> [f64; 14] {
 }
 
 fn analyze_deals(n: usize) -> Result<(), solver::Error> {
-    let deals: Vec<_> = core::iter::repeat_with(|| Deal::new(&mut rand::rng()))
+    let deals: Vec<_> = core::iter::repeat_with(|| full_deal(&mut rand::rng()))
         .take(n)
         .collect();
 
