@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod test;
-
 use crate::contract::Strain;
 use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};

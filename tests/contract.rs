@@ -1,5 +1,5 @@
-use super::Strain::*;
-use super::{Contract, Penalty};
+use dds_bridge::contract::Strain::*;
+use dds_bridge::contract::{Bid, Contract, Penalty};
 
 macro_rules! static_assert {
     ($cond:expr) => {
@@ -29,7 +29,7 @@ static_assert!(Contract::new(1, Notrump, Penalty::Redoubled).score(8, true) == 1
 static_assert!(Contract::new(7, Spades, Penalty::Redoubled).score(13, false) == 2240);
 
 const _: () = {
-    const fn test_set_contract(bid: super::Bid) {
+    const fn test_set_contract(bid: Bid) {
         let undoubled = Contract::new(bid.level, bid.strain, Penalty::None);
         let mut tricks = 0;
 
@@ -65,11 +65,11 @@ const _: () = {
     let mut level = 1;
 
     while level <= 7 {
-        test_set_contract(super::Bid::new(level, Clubs));
-        test_set_contract(super::Bid::new(level, Diamonds));
-        test_set_contract(super::Bid::new(level, Hearts));
-        test_set_contract(super::Bid::new(level, Spades));
-        test_set_contract(super::Bid::new(level, Notrump));
+        test_set_contract(Bid::new(level, Clubs));
+        test_set_contract(Bid::new(level, Diamonds));
+        test_set_contract(Bid::new(level, Hearts));
+        test_set_contract(Bid::new(level, Spades));
+        test_set_contract(Bid::new(level, Notrump));
         level += 1;
     }
 };

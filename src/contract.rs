@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod test;
-
 /// Denomination, a suit or notrump
 ///
 /// We choose this representation over `Option<Suit>` because we are not sure if

@@ -1,4 +1,5 @@
-use super::*;
+use core::num::Wrapping;
+use dds_bridge::deal::*;
 
 const _: () = {
     let mut bits = 0;
