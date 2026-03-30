@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod test;
-
 use crate::contract::{Contract, Penalty, Strain};
 use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use core::ffi::c_int;

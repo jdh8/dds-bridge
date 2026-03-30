@@ -1,6 +1,7 @@
-use super::*;
-use crate::deal::*;
-use crate::deck::full_deal;
+use dds_bridge::contract::{Contract, Penalty, Strain};
+use dds_bridge::deal::{Deal, Hand, Holding, Seat, SmallSet as _};
+use dds_bridge::deck::full_deal;
+use dds_bridge::solver::*;
 use dds_bridge_sys as sys;
 
 const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of::<Play>());
