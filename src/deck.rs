@@ -158,3 +158,11 @@ impl Default for Deck {
         Self::new()
     }
 }
+
+impl From<Hand> for Deck {
+    fn from(hand: Hand) -> Self {
+        let mut deck = Self::new();
+        deck.try_extend(hand).expect("Hand exceeds deck capacity");
+        deck
+    }
+}

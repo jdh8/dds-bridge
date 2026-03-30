@@ -1,5 +1,6 @@
 use crate::contract::{Contract, Penalty, Strain};
-use crate::deal::{Card, Deal, Holding, Seat, Suit};
+use crate::deal::{Card, Deal, Hand, Holding, Seat, SmallSet as _, Suit};
+use crate::deck::Deck;
 use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;
@@ -827,4 +828,28 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
         );
     }
     Ok(solutions)
+}
+
+/// Emulate `n` deals and calculate par for the NS pair
+///
+/// This idea is inspired by [Cuebids](https://cuebids.com/).
+fn emulate_par(
+    north: Hand,
+    south: Hand,
+    vul: Vulnerability,
+    dealer: Seat,
+    n: usize,
+) -> Result<Par, Error> {
+    let deck = Deck::from(Hand::ALL ^ north ^ south);
+    let deals: Vec<_> = (0..n)
+        .map(|_| {
+            let mut deck = deck.clone();
+            let east = deck.partial_shuffle(&mut rand::rng(), 13);
+            let west = deck.collect();
+            Deal([north, east, south, west])
+        })
+        .collect();
+    let tables = solve_deals(&deals, StrainFlags::all())?;
+
+    todo!()
 }
