@@ -1,8 +1,10 @@
 use super::deal::{Card, Deal, Hand, SmallSet as _, Suit};
-use core::mem::MaybeUninit;
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
+
+/// Check optimal memory layout
+const _: () = assert!(core::mem::size_of::<Option<Card>>() == core::mem::size_of::<Card>());
 
 /// Error indicating that the deck is already full and cannot accept more cards.
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
@@ -15,15 +17,17 @@ pub struct CapacityError;
 /// it is deterministic to collect all cards.
 #[derive(Debug, Clone)]
 pub struct Deck {
-    cards: [MaybeUninit<Card>; Self::CAPACITY],
+    /// The first `len` cards must be `Some`
+    cards: [Option<Card>; Self::CAPACITY],
+    /// The number of cards currently in the deck
     len: usize,
 }
 
-fn collect_cards(cards: &[Card]) -> Hand {
+fn force_collect(cards: &[Option<Card>]) -> Hand {
     let mut hand = Hand::EMPTY;
 
     for &card in cards {
-        hand.insert(card);
+        hand.insert(card.expect("Invalid card in the deck"));
     }
     hand
 }
@@ -31,14 +35,13 @@ fn collect_cards(cards: &[Card]) -> Hand {
 /// Shuffle and evenly deal 52 cards into 4 hands
 pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
     let mut deck = Deck::ALL.cards;
-    let deck = unsafe { deck.assume_init_mut() };
     let (shuffled, rest) = deck.partial_shuffle(rng, 39);
 
     Deal([
-        collect_cards(rest),
-        collect_cards(&shuffled[00..13]),
-        collect_cards(&shuffled[13..26]),
-        collect_cards(&shuffled[26..39]),
+        force_collect(rest),
+        force_collect(&shuffled[00..13]),
+        force_collect(&shuffled[13..26]),
+        force_collect(&shuffled[26..39]),
     ])
 }
 
@@ -48,18 +51,18 @@ impl Deck {
 
     /// The empty deck
     pub const EMPTY: Self = Self {
-        cards: [MaybeUninit::uninit(); Self::CAPACITY],
+        cards: [None; Self::CAPACITY],
         len: 0,
     };
 
     /// The standard 52-card deck
     pub const ALL: Self = {
-        let mut cards = [MaybeUninit::uninit(); Self::CAPACITY];
+        let mut cards = [None; Self::CAPACITY];
         let mut i = 0;
 
         while (i as usize) < Self::CAPACITY {
             let index = i as usize;
-            cards[index] = MaybeUninit::new(Card::new(Suit::ASC[index & 3], (i >> 2) + 2));
+            cards[index].replace(Card::new(Suit::ASC[index & 3], (i >> 2) + 2));
             i += 1;
         }
         Self {
@@ -100,7 +103,7 @@ impl Deck {
         if self.len >= Self::CAPACITY {
             return Err(CapacityError);
         }
-        self.cards[self.len] = MaybeUninit::new(card);
+        self.cards[self.len].replace(card);
         self.len += 1;
         Ok(())
     }
@@ -115,7 +118,7 @@ impl Deck {
             return Err(CapacityError);
         }
         for card in hand.iter() {
-            self.cards[self.len] = MaybeUninit::new(card);
+            self.cards[self.len].replace(card);
             self.len += 1;
         }
         Ok(())
@@ -124,7 +127,7 @@ impl Deck {
     /// Collect all cards in the deck into a hand.
     #[must_use]
     pub fn collect(&mut self) -> Hand {
-        let hand = collect_cards(unsafe { self.cards[..self.len].assume_init_ref() });
+        let hand = force_collect(&self.cards[..self.len]);
         self.len = 0;
         hand
     }
@@ -132,20 +135,20 @@ impl Deck {
     /// Randomly pick `n` cards from the deck and collect them into a hand.
     #[must_use]
     pub fn partial_shuffle(&mut self, rng: &mut (impl Rng + ?Sized), n: usize) -> Hand {
-        let cards = unsafe { self.cards[..self.len].assume_init_mut() };
-        let hand = collect_cards(cards.partial_shuffle(rng, n).0);
+        let hand = force_collect(self.cards[..self.len].partial_shuffle(rng, n).0);
         self.len -= n;
         hand
     }
 
     /// Randomly pop a card from the deck
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn pop(&mut self, rng: &mut (impl Rng + ?Sized)) -> Option<Card> {
         (self.len > 0).then(|| {
             let index = rng.random_range(0..self.len);
             self.len -= 1;
             self.cards.swap(index, self.len);
-            unsafe { self.cards[self.len].assume_init() }
+            self.cards[self.len].expect("Invalid card in the deck")
         })
     }
 }
