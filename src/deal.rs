@@ -28,6 +28,30 @@ impl Suit {
 
     /// Suits in the descending order, the order in [`dds_bridge_sys`]
     pub const DESC: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
+
+    /// Unicode character
+    #[must_use]
+    #[inline]
+    pub const fn unicode(self) -> char {
+        match self {
+            Self::Clubs => '♣',
+            Self::Diamonds => '♦',
+            Self::Hearts => '♥',
+            Self::Spades => '♠',
+        }
+    }
+
+    /// Uppercase letter
+    #[must_use]
+    #[inline]
+    pub const fn letter(self) -> char {
+        match self {
+            Self::Clubs => 'C',
+            Self::Diamonds => 'D',
+            Self::Hearts => 'H',
+            Self::Spades => 'S',
+        }
+    }
 }
 
 impl From<Suit> for Strain {

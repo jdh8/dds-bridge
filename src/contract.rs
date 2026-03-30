@@ -1,3 +1,5 @@
+use core::fmt::{self, Write as _};
+
 /// Denomination, a suit or notrump
 ///
 /// We choose this representation over `Option<Suit>` because we are not sure if
@@ -20,6 +22,20 @@ pub enum Strain {
     Spades,
     /// NT, the strain not proposing a trump suit
     Notrump,
+}
+
+struct StrainUnicode(Strain);
+
+impl fmt::Display for StrainUnicode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Strain::Clubs => f.write_char('♣'),
+            Strain::Diamonds => f.write_char('♦'),
+            Strain::Hearts => f.write_char('♥'),
+            Strain::Spades => f.write_char('♠'),
+            Strain::Notrump => f.write_str("NT"),
+        }
+    }
 }
 
 impl Strain {
@@ -49,6 +65,26 @@ impl Strain {
     #[inline]
     pub const fn is_notrump(self) -> bool {
         matches!(self, Self::Notrump)
+    }
+
+    /// Unicode display
+    #[must_use]
+    #[inline]
+    pub const fn unicode(self) -> impl fmt::Display {
+        StrainUnicode(self)
+    }
+
+    /// Uppercase letter
+    #[must_use]
+    #[inline]
+    pub const fn letter(self) -> char {
+        match self {
+            Self::Clubs => 'C',
+            Self::Diamonds => 'D',
+            Self::Hearts => 'H',
+            Self::Spades => 'S',
+            Self::Notrump => 'N',
+        }
     }
 
     /// Strains in the ascending order, the order in this crate
