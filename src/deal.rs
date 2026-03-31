@@ -820,38 +820,35 @@ impl IndexMut<Seat> for Deal {
     }
 }
 
-struct DealDisplay {
-    deal: Deal,
-    seat: Seat,
-}
-
-impl fmt::Display for DealDisplay {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_char(char::from(self.seat))?;
-        f.write_char(':')?;
-
-        self.deal[self.seat].fmt(f)?;
-        f.write_char(' ')?;
-
-        self.deal[self.seat + Wrapping(1)].fmt(f)?;
-        f.write_char(' ')?;
-
-        self.deal[self.seat + Wrapping(2)].fmt(f)?;
-        f.write_char(' ')?;
-
-        self.deal[self.seat + Wrapping(3)].fmt(f)
-    }
-}
-
 impl Deal {
     /// Empty deal
     pub const EMPTY: Self = Self([Hand::EMPTY; 4]);
 
     /// PBN-compatible display from a seat's perspective
     #[must_use]
-    #[inline]
     pub fn display(self, seat: Seat) -> impl fmt::Display {
-        DealDisplay { deal: self, seat }
+        struct DisplayAt {
+            deal: Deal,
+            seat: Seat,
+        }
+        impl fmt::Display for DisplayAt {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_char(char::from(self.seat))?;
+                f.write_char(':')?;
+
+                self.deal[self.seat].fmt(f)?;
+                f.write_char(' ')?;
+
+                self.deal[self.seat + Wrapping(1)].fmt(f)?;
+                f.write_char(' ')?;
+
+                self.deal[self.seat + Wrapping(2)].fmt(f)?;
+                f.write_char(' ')?;
+
+                self.deal[self.seat + Wrapping(3)].fmt(f)
+            }
+        }
+        DisplayAt { deal: self, seat }
     }
 }
 

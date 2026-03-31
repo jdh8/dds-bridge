@@ -238,25 +238,23 @@ impl TricksRow {
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
     pub fn hex(self, seat: Seat) -> impl fmt::UpperHex {
-        TricksRowHex { deal: self, seat }
-    }
-}
-
-struct TricksRowHex {
-    deal: TricksRow,
-    seat: Seat,
-}
-
-impl fmt::UpperHex for TricksRowHex {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:X}{:X}{:X}{:X}",
-            self.deal.get(self.seat),
-            self.deal.get(self.seat + Wrapping(1)),
-            self.deal.get(self.seat + Wrapping(2)),
-            self.deal.get(self.seat + Wrapping(3)),
-        )
+        struct Hex {
+            deal: TricksRow,
+            seat: Seat,
+        }
+        impl fmt::UpperHex for Hex {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(
+                    f,
+                    "{:X}{:X}{:X}{:X}",
+                    self.deal.get(self.seat),
+                    self.deal.get(self.seat + Wrapping(1)),
+                    self.deal.get(self.seat + Wrapping(2)),
+                    self.deal.get(self.seat + Wrapping(3)),
+                )
+            }
+        }
+        Hex { deal: self, seat }
     }
 }
 
@@ -272,26 +270,24 @@ impl core::ops::Index<Strain> for TricksTable {
     }
 }
 
-struct TricksTableHex<T: AsRef<[Strain]>> {
-    deal: TricksTable,
-    seat: Seat,
-    strains: T,
-}
-
-impl<T: AsRef<[Strain]>> fmt::UpperHex for TricksTableHex<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for &strain in self.strains.as_ref() {
-            self.deal[strain].hex(self.seat).fmt(f)?;
-        }
-        Ok(())
-    }
-}
-
 impl TricksTable {
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
     pub fn hex(self, seat: Seat, strains: impl AsRef<[Strain]>) -> impl fmt::UpperHex {
-        TricksTableHex {
+        struct Hex<T: AsRef<[Strain]>> {
+            deal: TricksTable,
+            seat: Seat,
+            strains: T,
+        }
+        impl<T: AsRef<[Strain]>> fmt::UpperHex for Hex<T> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                for &strain in self.strains.as_ref() {
+                    self.deal[strain].hex(self.seat).fmt(f)?;
+                }
+                Ok(())
+            }
+        }
+        Hex {
             deal: self,
             seat,
             strains,

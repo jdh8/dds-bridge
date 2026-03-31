@@ -24,20 +24,6 @@ pub enum Strain {
     Notrump,
 }
 
-struct StrainUnicode(Strain);
-
-impl fmt::Display for StrainUnicode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            Strain::Clubs => f.write_char('♣'),
-            Strain::Diamonds => f.write_char('♦'),
-            Strain::Hearts => f.write_char('♥'),
-            Strain::Spades => f.write_char('♠'),
-            Strain::Notrump => f.write_str("NT"),
-        }
-    }
-}
-
 impl Strain {
     /// Whether this strain is a minor suit (clubs or diamonds)
     #[must_use]
@@ -69,9 +55,21 @@ impl Strain {
 
     /// Unicode display
     #[must_use]
-    #[inline]
     pub const fn unicode(self) -> impl fmt::Display {
-        StrainUnicode(self)
+        struct Unicode(Strain);
+
+        impl fmt::Display for Unicode {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self.0 {
+                    Strain::Clubs => f.write_char('♣'),
+                    Strain::Diamonds => f.write_char('♦'),
+                    Strain::Hearts => f.write_char('♥'),
+                    Strain::Spades => f.write_char('♠'),
+                    Strain::Notrump => f.write_str("NT"),
+                }
+            }
+        }
+        Unicode(self)
     }
 
     /// Uppercase letter
