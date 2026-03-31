@@ -845,7 +845,19 @@ fn emulate_par(
             Deal([north, east, south, west])
         })
         .collect();
-    let tables = solve_deals(&deals, StrainFlags::all())?;
+
+    // Histogram of seat -> strain -> tricks
+    let histogram = solve_deals(&deals, StrainFlags::all())?.into_iter().fold(
+        [[[0usize; 14]; 5]; 4],
+        |mut hist, tricks| {
+            for seat in Seat::ALL {
+                for strain in Strain::ASC {
+                    hist[seat as usize][strain as usize][usize::from(tricks[strain].get(seat))] += 1;
+                }
+            }
+            hist
+        },
+    );
 
     todo!()
 }
