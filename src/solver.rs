@@ -846,18 +846,53 @@ fn emulate_par(
         })
         .collect();
 
-    // Histogram of seat -> strain -> tricks
+    // seat -> strain -> tricks -> frequency
     let histogram = solve_deals(&deals, StrainFlags::all())?.into_iter().fold(
         [[[0usize; 14]; 5]; 4],
         |mut hist, tricks| {
             for seat in Seat::ALL {
                 for strain in Strain::ASC {
-                    hist[seat as usize][strain as usize][usize::from(tricks[strain].get(seat))] += 1;
+                    hist[seat as usize][strain as usize][usize::from(tricks[strain].get(seat))] +=
+                        1;
                 }
             }
             hist
         },
     );
+
+    // seat -> bid -> (score, contract)
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    let dp = Seat::ALL.map(|seat| {
+        const BID_VARIANTS: usize = 7 * 5;
+
+        fn score(contract: Contract, hist: [usize; 14], vul: bool) -> i64 {
+            hist.into_iter()
+                .enumerate()
+                .map(|(tricks, freq)| (freq as i64) * i64::from(contract.score(tricks as u8, vul)))
+                .sum()
+        }
+
+        let mut dp: [_; BID_VARIANTS] = core::array::from_fn(|bid| {
+            let level = (bid / 5) as u8 + 1;
+            let strain = Strain::ASC[bid % 5];
+            let normal = Contract::new(level, strain, Penalty::None);
+            let doubled = Contract::new(level, strain, Penalty::Doubled);
+            let side = match seat {
+                Seat::North | Seat::South => Vulnerability::NS,
+                Seat::East | Seat::West => Vulnerability::EW,
+            };
+
+            let hist = histogram[seat as usize][strain as usize];
+            let normal = score(normal, hist, vul.contains(side));
+            let doubled = score(doubled, hist, vul.contains(side));
+            normal.min(doubled)
+        });
+
+        for bid in (0..BID_VARIANTS - 1).rev() {
+            dp[bid] = dp[bid].max(dp[bid + 1]);
+        }
+        dp
+    });
 
     todo!()
 }
