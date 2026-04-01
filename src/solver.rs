@@ -835,7 +835,7 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
 /// Emulate `n` deals and calculate par for the NS pair
 ///
 /// This idea is inspired by [Cuebids](https://cuebids.com/).
-/// 
+///
 /// # Errors
 ///
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]

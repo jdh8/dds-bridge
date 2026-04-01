@@ -2,6 +2,10 @@ use clap::Parser;
 use dds_bridge::deal::{Hand, Seat};
 use dds_bridge::solver::{Vulnerability, emulate_par};
 
+/// [`Vulnerability`] is a foreign type, so we cannot implement the foreign
+/// trait [`clap::ValueEnum`] for it directly (orphan rule).  This local wrapper
+/// bridges the gap and is converted via [`From`] before calling
+/// [`emulate_par`].
 #[derive(clap::ValueEnum, Clone, Copy)]
 enum Vul {
     None,
@@ -21,6 +25,7 @@ impl From<Vul> for Vulnerability {
     }
 }
 
+/// Same orphan-rule rationale as [`Vul`].
 #[derive(clap::ValueEnum, Clone, Copy)]
 enum Dealer {
     N,
