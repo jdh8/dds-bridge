@@ -168,6 +168,16 @@ pub enum Penalty {
     Redoubled,
 }
 
+impl fmt::Display for Penalty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => Ok(()),
+            Self::Doubled => f.write_char('x'),
+            Self::Redoubled => f.write_str("xx"),
+        }
+    }
+}
+
 /// The statement of the pair winning the bidding that they will take at least
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.

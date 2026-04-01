@@ -456,6 +456,12 @@ bitflags::bitflags! {
 }
 
 impl Vulnerability {
+    /// Both sides vulnerable
+    pub const ALL: Self = Self::all();
+
+    /// Neither side vulnerable
+    pub const NONE: Self = Self::empty();
+
     /// Convert to encoding in [`dds_bridge_sys`]
     #[must_use]
     #[inline]
@@ -857,7 +863,7 @@ pub fn emulate_par(
 
         while code < BID_VARIANTS {
             let bid = decode_bid(code);
-            assert_eq!(code, encode_bid(bid));
+            assert!(code == encode_bid(bid));
             code += 1;
         }
     };
@@ -951,5 +957,6 @@ pub fn emulate_par(
     improve_for(dealer - Wrapping(3));
     improve_for(dealer);
 
+    #[allow(clippy::cast_precision_loss)]
     Ok((par_score as f64 / n as f64, par_contract))
 }
