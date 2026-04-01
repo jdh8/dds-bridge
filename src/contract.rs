@@ -157,7 +157,7 @@ impl From<Bid> for Call {
 }
 
 /// Penalty inflicted on a contract
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Penalty {
     /// No penalty
@@ -171,7 +171,7 @@ pub enum Penalty {
 /// The statement of the pair winning the bidding that they will take at least
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Contract {
     /// The basic part of a contract
     pub bid: Bid,

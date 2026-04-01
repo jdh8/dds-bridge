@@ -1,10 +1,10 @@
-use crate::contract::{Contract, Penalty, Strain};
+use crate::contract::{Bid, Contract, Penalty, Strain};
 use crate::deal::{Card, Deal, Hand, Holding, Seat, SmallSet as _, Suit};
 use crate::deck::Deck;
 use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;
-use core::ops::{BitOr as _, Neg as _};
+use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
 use std::sync::{LazyLock, Mutex, PoisonError};
 use thiserror::Error;
@@ -829,13 +829,39 @@ pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> 
 /// Emulate `n` deals and calculate par for the NS pair
 ///
 /// This idea is inspired by [Cuebids](https://cuebids.com/).
-fn emulate_par(
+pub fn emulate_par(
     north: Hand,
     south: Hand,
     vul: Vulnerability,
     dealer: Seat,
     n: usize,
 ) -> Result<(f64, Option<(Contract, Seat)>), Error> {
+    const BID_VARIANTS: usize = 7 * 5;
+
+    /// Encode a bid to an array index
+    const fn encode_bid(bid: Bid) -> usize {
+        (bid.level as usize - 1) * 5 + bid.strain as usize
+    }
+
+    /// Decode an array index back to the bid
+    #[allow(clippy::cast_possible_truncation)]
+    const fn decode_bid(code: usize) -> Bid {
+        let level = (code / 5) as u8 + 1;
+        let strain = Strain::ASC[code % 5];
+        Bid { level, strain }
+    }
+
+    // Check at compile time that `encode_bid` and `decode_bid` cancel each other
+    const _: () = {
+        let mut code = 0;
+
+        while code < BID_VARIANTS {
+            let bid = decode_bid(code);
+            assert_eq!(code, encode_bid(bid));
+            code += 1;
+        }
+    };
+
     let deck = Deck::from(Hand::ALL ^ north ^ south);
     let deals: Vec<_> = (0..n)
         .map(|_| {
@@ -862,8 +888,6 @@ fn emulate_par(
 
     // seat -> bid -> (score, contract)
     let scores = Seat::ALL.map(|seat| {
-        const BID_VARIANTS: usize = 7 * 5;
-
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         const fn score(contract: Contract, hist: [usize; 14], vul: bool) -> i64 {
             let mut sum = 0;
@@ -882,15 +906,18 @@ fn emulate_par(
         };
 
         let mut table: [_; BID_VARIANTS] = core::array::from_fn(|bid| {
-            #[allow(clippy::cast_possible_truncation)]
-            let level = (bid / 5) as u8 + 1;
-            let strain = Strain::ASC[bid % 5];
-            let normal = Contract::new(level, strain, Penalty::None);
-            let doubled = Contract::new(level, strain, Penalty::Doubled);
-
-            let hist = histogram[seat as usize][strain as usize];
-            let normal = score(normal, hist, vul.contains(side));
-            let doubled = score(doubled, hist, vul.contains(side));
+            let bid = decode_bid(bid);
+            let normal = Contract {
+                bid,
+                penalty: Penalty::None,
+            };
+            let doubled = Contract {
+                bid,
+                penalty: Penalty::Doubled,
+            };
+            let hist = histogram[seat as usize][bid.strain as usize];
+            let normal = (score(normal, hist, vul.contains(side)), normal);
+            let doubled = (score(doubled, hist, vul.contains(side)), doubled);
             normal.min(doubled)
         });
 
@@ -900,10 +927,29 @@ fn emulate_par(
 
         match seat {
             Seat::North | Seat::South => table,
-            Seat::East | Seat::West => table.map(i64::neg),
+            Seat::East | Seat::West => table.map(|(score, contract)| (-score, contract)),
         }
     });
 
-    let par = (0.0, None);
-    Ok(par)
+    let mut par_score = 0;
+    let mut par_contract: Option<(Contract, Seat)> = None;
+    let mut improve_for = |seat: Seat| {
+        let bid = par_contract.map_or(0, |(contract, _)| encode_bid(contract.bid));
+        let (score, contract) = scores[seat as usize][bid];
+        let is_improved = match seat {
+            Seat::North | Seat::South => score > par_score,
+            Seat::East | Seat::West => score < par_score,
+        };
+        if is_improved {
+            par_score = score;
+            par_contract.replace((contract, seat));
+        }
+    };
+    improve_for(dealer);
+    improve_for(dealer - Wrapping(1));
+    improve_for(dealer - Wrapping(2));
+    improve_for(dealer - Wrapping(3));
+    improve_for(dealer);
+
+    Ok((par_score as f64 / n as f64, par_contract))
 }
