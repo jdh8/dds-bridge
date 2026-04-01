@@ -2,49 +2,6 @@ use clap::Parser;
 use dds_bridge::deal::{Hand, Seat};
 use dds_bridge::solver::{Vulnerability, emulate_par};
 
-/// [`Vulnerability`] is a foreign type, so we cannot implement the foreign
-/// trait [`clap::ValueEnum`] for it directly (orphan rule).  This local wrapper
-/// bridges the gap and is converted via [`From`] before calling
-/// [`emulate_par`].
-#[derive(clap::ValueEnum, Clone, Copy)]
-enum Vul {
-    None,
-    Ns,
-    Ew,
-    Both,
-}
-
-impl From<Vul> for Vulnerability {
-    fn from(v: Vul) -> Self {
-        match v {
-            Vul::None => Self::NONE,
-            Vul::Ns => Self::NS,
-            Vul::Ew => Self::EW,
-            Vul::Both => Self::ALL,
-        }
-    }
-}
-
-/// Same orphan-rule rationale as [`Vul`].
-#[derive(clap::ValueEnum, Clone, Copy)]
-enum Dealer {
-    N,
-    E,
-    S,
-    W,
-}
-
-impl From<Dealer> for Seat {
-    fn from(d: Dealer) -> Self {
-        match d {
-            Dealer::N => Self::North,
-            Dealer::E => Self::East,
-            Dealer::S => Self::South,
-            Dealer::W => Self::West,
-        }
-    }
-}
-
 /// Emulate par score for North-South by simulating random deals
 #[derive(Parser)]
 struct Args {
@@ -56,13 +13,13 @@ struct Args {
     #[arg(short = 'S', long)]
     south: Hand,
 
-    /// Vulnerability
+    /// Vulnerability: none, ns, ew, both
     #[arg(short, long, default_value = "none")]
-    vulnerability: Vul,
+    vulnerability: Vulnerability,
 
-    /// Dealer seat
+    /// Dealer seat: N, E, S, W (or full name)
     #[arg(short, long, default_value = "n")]
-    dealer: Dealer,
+    dealer: Seat,
 
     /// Number of simulated deals
     #[arg(short = 'n', long, default_value = "1000")]
@@ -74,8 +31,8 @@ fn main() -> anyhow::Result<()> {
     let (score, contract) = emulate_par(
         args.north,
         args.south,
-        args.vulnerability.into(),
-        args.dealer.into(),
+        args.vulnerability,
+        args.dealer,
         args.count,
     )?;
 

@@ -5,6 +5,7 @@ use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;
 use core::ops::BitOr as _;
+use core::str::FromStr;
 use dds_bridge_sys as sys;
 use std::sync::{LazyLock, Mutex, PoisonError};
 use thiserror::Error;
@@ -484,6 +485,25 @@ impl Vulnerability {
     #[inline]
     pub const fn rotate(self, condition: bool) -> Self {
         Self::from_bits_truncate((self.bits() * 0x55_u8) >> (condition as u8))
+    }
+}
+
+/// Error returned when parsing a [`Vulnerability`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid vulnerability: expected one of none, ns, ew, both")]
+pub struct ParseVulnerabilityError;
+
+impl FromStr for Vulnerability {
+    type Err = ParseVulnerabilityError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "none" => Ok(Self::NONE),
+            "ns" => Ok(Self::NS),
+            "ew" => Ok(Self::EW),
+            "both" | "all" => Ok(Self::ALL),
+            _ => Err(ParseVulnerabilityError),
+        }
     }
 }
 

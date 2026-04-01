@@ -167,6 +167,25 @@ impl From<Seat> for char {
     }
 }
 
+/// Error returned when parsing a [`Seat`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid seat: expected one of N, E, S, W (or full names)")]
+pub struct ParseSeatError;
+
+impl FromStr for Seat {
+    type Err = ParseSeatError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "N" | "NORTH" => Ok(Self::North),
+            "E" | "EAST" => Ok(Self::East),
+            "S" | "SOUTH" => Ok(Self::South),
+            "W" | "WEST" => Ok(Self::West),
+            _ => Err(ParseSeatError),
+        }
+    }
+}
+
 bitflags::bitflags! {
     /// A set of seats
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
