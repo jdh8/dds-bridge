@@ -6,11 +6,11 @@ use dds_bridge::solver::{Vulnerability, emulate_par};
 #[derive(Parser)]
 struct Args {
     /// North's hand in dot-separated suit notation (e.g. T9762.AT54.JT75.)
-    #[arg(short = 'N', long)]
+    #[arg(short, long)]
     north: Hand,
 
     /// South's hand in dot-separated suit notation (e.g. A.KQ962.A86.Q642)
-    #[arg(short = 'S', long)]
+    #[arg(short, long)]
     south: Hand,
 
     /// Vulnerability: none, ns, ew, both
@@ -22,7 +22,7 @@ struct Args {
     dealer: Seat,
 
     /// Number of simulated deals
-    #[arg(short = 'n', long, default_value = "1000")]
+    #[arg(short, long, default_value = "1000")]
     count: usize,
 }
 
@@ -36,20 +36,17 @@ fn main() -> anyhow::Result<()> {
         args.count,
     )?;
 
-    print!("NS par: {score:.2}, ");
-
     match contract {
         Some((contract, seat)) => {
             println!(
-                "{}{}{}{}",
+                "NS par: {}{}{}{}, {score:.0}",
                 contract.bid.level,
                 contract.bid.strain.unicode(),
                 contract.penalty,
                 char::from(seat)
             );
         }
-        None => println!("P"),
+        None => println!("NS par: P, {score:.0}"),
     }
-
     Ok(())
 }
