@@ -4,7 +4,7 @@ use crate::deck::Deck;
 use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;
-use core::ops::BitOr as _;
+use core::ops::{BitOr as _, Neg as _};
 use dds_bridge_sys as sys;
 use std::sync::{LazyLock, Mutex, PoisonError};
 use thiserror::Error;
@@ -835,7 +835,7 @@ fn emulate_par(
     vul: Vulnerability,
     dealer: Seat,
     n: usize,
-) -> Result<Par, Error> {
+) -> Result<(f64, Option<(Contract, Seat)>), Error> {
     let deck = Deck::from(Hand::ALL ^ north ^ south);
     let deals: Vec<_> = (0..n)
         .map(|_| {
@@ -861,7 +861,7 @@ fn emulate_par(
     );
 
     // seat -> bid -> (score, contract)
-    let dp = Seat::ALL.map(|seat| {
+    let scores = Seat::ALL.map(|seat| {
         const BID_VARIANTS: usize = 7 * 5;
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
@@ -876,16 +876,17 @@ fn emulate_par(
             sum
         }
 
-        let mut dp: [_; BID_VARIANTS] = core::array::from_fn(|bid| {
+        let side = match seat {
+            Seat::North | Seat::South => Vulnerability::NS,
+            Seat::East | Seat::West => Vulnerability::EW,
+        };
+
+        let mut table: [_; BID_VARIANTS] = core::array::from_fn(|bid| {
             #[allow(clippy::cast_possible_truncation)]
             let level = (bid / 5) as u8 + 1;
             let strain = Strain::ASC[bid % 5];
             let normal = Contract::new(level, strain, Penalty::None);
             let doubled = Contract::new(level, strain, Penalty::Doubled);
-            let side = match seat {
-                Seat::North | Seat::South => Vulnerability::NS,
-                Seat::East | Seat::West => Vulnerability::EW,
-            };
 
             let hist = histogram[seat as usize][strain as usize];
             let normal = score(normal, hist, vul.contains(side));
@@ -894,10 +895,15 @@ fn emulate_par(
         });
 
         for bid in (0..BID_VARIANTS - 1).rev() {
-            dp[bid] = dp[bid].max(dp[bid + 1]);
+            table[bid] = table[bid].max(table[bid + 1]);
         }
-        dp
+
+        match seat {
+            Seat::North | Seat::South => table,
+            Seat::East | Seat::West => table.map(i64::neg),
+        }
     });
 
-    todo!()
+    let par = (0.0, None);
+    Ok(par)
 }
