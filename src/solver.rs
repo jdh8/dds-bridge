@@ -861,18 +861,23 @@ fn emulate_par(
     );
 
     // seat -> bid -> (score, contract)
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     let dp = Seat::ALL.map(|seat| {
         const BID_VARIANTS: usize = 7 * 5;
 
-        fn score(contract: Contract, hist: [usize; 14], vul: bool) -> i64 {
-            hist.into_iter()
-                .enumerate()
-                .map(|(tricks, freq)| (freq as i64) * i64::from(contract.score(tricks as u8, vul)))
-                .sum()
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+        const fn score(contract: Contract, hist: [usize; 14], vul: bool) -> i64 {
+            let mut sum = 0;
+            let mut tricks = 0;
+
+            while tricks <= 13 {
+                sum += (hist[tricks] as i64) * contract.score(tricks as u8, vul) as i64;
+                tricks += 1;
+            }
+            sum
         }
 
         let mut dp: [_; BID_VARIANTS] = core::array::from_fn(|bid| {
+            #[allow(clippy::cast_possible_truncation)]
             let level = (bid / 5) as u8 + 1;
             let strain = Strain::ASC[bid % 5];
             let normal = Contract::new(level, strain, Penalty::None);
