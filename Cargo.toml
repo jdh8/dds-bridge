@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.13.1-dev"
+version = "0.13.1"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 description = "Rusty API for DDS, the double dummy solver for bridge"
@@ -18,7 +18,3 @@ thiserror = "2.0.18"
 
 [profile.dev]
 opt-level = 2
-
-[dev-dependencies]
-anyhow = "1.0.102"
-clap = { version = "4", features = ["derive"] }
