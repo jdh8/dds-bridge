@@ -1,7 +1,7 @@
 use crate::contract::Strain;
 use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
-use core::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Index, IndexMut, Not, Sub, SubAssign};
+use core::ops;
 use core::str::FromStr;
 use std::sync::LazyLock;
 use thiserror::Error;
@@ -105,7 +105,7 @@ impl Seat {
     pub const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
 }
 
-impl Add<Wrapping<u8>> for Seat {
+impl ops::Add<Wrapping<u8>> for Seat {
     type Output = Self;
 
     #[inline]
@@ -114,7 +114,7 @@ impl Add<Wrapping<u8>> for Seat {
     }
 }
 
-impl Add<Seat> for Wrapping<u8> {
+impl ops::Add<Seat> for Wrapping<u8> {
     type Output = Seat;
 
     #[inline]
@@ -123,14 +123,14 @@ impl Add<Seat> for Wrapping<u8> {
     }
 }
 
-impl AddAssign<Wrapping<u8>> for Seat {
+impl ops::AddAssign<Wrapping<u8>> for Seat {
     #[inline]
     fn add_assign(&mut self, rhs: Wrapping<u8>) {
         *self = *self + rhs;
     }
 }
 
-impl Sub<Wrapping<u8>> for Seat {
+impl ops::Sub<Wrapping<u8>> for Seat {
     type Output = Self;
 
     #[inline]
@@ -139,14 +139,14 @@ impl Sub<Wrapping<u8>> for Seat {
     }
 }
 
-impl SubAssign<Wrapping<u8>> for Seat {
+impl ops::SubAssign<Wrapping<u8>> for Seat {
     #[inline]
     fn sub_assign(&mut self, rhs: Wrapping<u8>) {
         *self = *self - rhs;
     }
 }
 
-impl Sub<Self> for Seat {
+impl ops::Sub<Self> for Seat {
     type Output = Wrapping<u8>;
 
     #[inline]
@@ -265,7 +265,9 @@ impl Card {
 }
 
 /// A bitset whose size is known at compile time
-pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
+pub trait SmallSet<T>:
+    Copy + Eq + ops::BitAnd + ops::BitOr + ops::BitXor + ops::Not + ops::Sub
+{
     /// The empty set
     const EMPTY: Self;
 
@@ -310,35 +312,35 @@ pub trait SmallSet<T>: Copy + Eq + BitAnd + BitOr + BitXor + Not + Sub {
     /// Intersection of two sets
     #[must_use]
     #[inline]
-    fn intersection(self, rhs: Self) -> <Self as BitAnd>::Output {
+    fn intersection(self, rhs: Self) -> <Self as ops::BitAnd>::Output {
         self & rhs
     }
 
     /// Union of two sets
     #[must_use]
     #[inline]
-    fn union(self, rhs: Self) -> <Self as BitOr>::Output {
+    fn union(self, rhs: Self) -> <Self as ops::BitOr>::Output {
         self | rhs
     }
 
     /// Difference of two sets
     #[must_use]
     #[inline]
-    fn difference(self, rhs: Self) -> <Self as Sub>::Output {
+    fn difference(self, rhs: Self) -> <Self as ops::Sub>::Output {
         self - rhs
     }
 
     /// Symmetric difference of two sets
     #[must_use]
     #[inline]
-    fn symmetric_difference(self, rhs: Self) -> <Self as BitXor>::Output {
+    fn symmetric_difference(self, rhs: Self) -> <Self as ops::BitXor>::Output {
         self ^ rhs
     }
 
     /// Complement of the set
     #[must_use]
     #[inline]
-    fn complement(self) -> <Self as Not>::Output {
+    fn complement(self) -> <Self as ops::Not>::Output {
         !self
     }
 }
@@ -481,7 +483,7 @@ impl Holding {
     }
 }
 
-impl BitAnd for Holding {
+impl ops::BitAnd for Holding {
     type Output = Self;
 
     #[inline]
@@ -490,7 +492,7 @@ impl BitAnd for Holding {
     }
 }
 
-impl BitOr for Holding {
+impl ops::BitOr for Holding {
     type Output = Self;
 
     #[inline]
@@ -499,7 +501,7 @@ impl BitOr for Holding {
     }
 }
 
-impl BitXor for Holding {
+impl ops::BitXor for Holding {
     type Output = Self;
 
     #[inline]
@@ -508,7 +510,7 @@ impl BitXor for Holding {
     }
 }
 
-impl Not for Holding {
+impl ops::Not for Holding {
     type Output = Self;
 
     #[inline]
@@ -517,7 +519,7 @@ impl Not for Holding {
     }
 }
 
-impl Sub for Holding {
+impl ops::Sub for Holding {
     type Output = Self;
 
     #[inline]
@@ -630,7 +632,7 @@ impl FromStr for Holding {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hand(pub [Holding; 4]);
 
-impl Index<Suit> for Hand {
+impl ops::Index<Suit> for Hand {
     type Output = Holding;
 
     #[inline]
@@ -639,7 +641,7 @@ impl Index<Suit> for Hand {
     }
 }
 
-impl IndexMut<Suit> for Hand {
+impl ops::IndexMut<Suit> for Hand {
     #[inline]
     fn index_mut(&mut self, suit: Suit) -> &mut Holding {
         &mut self.0[suit as usize]
@@ -774,7 +776,7 @@ impl FromStr for Hand {
     }
 }
 
-impl BitAnd for Hand {
+impl ops::BitAnd for Hand {
     type Output = Self;
 
     #[inline]
@@ -783,7 +785,7 @@ impl BitAnd for Hand {
     }
 }
 
-impl BitOr for Hand {
+impl ops::BitOr for Hand {
     type Output = Self;
 
     #[inline]
@@ -792,7 +794,7 @@ impl BitOr for Hand {
     }
 }
 
-impl BitXor for Hand {
+impl ops::BitXor for Hand {
     type Output = Self;
 
     #[inline]
@@ -801,7 +803,7 @@ impl BitXor for Hand {
     }
 }
 
-impl Not for Hand {
+impl ops::Not for Hand {
     type Output = Self;
 
     #[inline]
@@ -810,7 +812,7 @@ impl Not for Hand {
     }
 }
 
-impl Sub for Hand {
+impl ops::Sub for Hand {
     type Output = Self;
 
     #[inline]
@@ -823,7 +825,7 @@ impl Sub for Hand {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Deal(pub [Hand; 4]);
 
-impl Index<Seat> for Deal {
+impl ops::Index<Seat> for Deal {
     type Output = Hand;
 
     #[inline]
@@ -832,7 +834,7 @@ impl Index<Seat> for Deal {
     }
 }
 
-impl IndexMut<Seat> for Deal {
+impl ops::IndexMut<Seat> for Deal {
     #[inline]
     fn index_mut(&mut self, seat: Seat) -> &mut Hand {
         &mut self.0[seat as usize]
