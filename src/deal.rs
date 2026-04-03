@@ -265,9 +265,22 @@ impl Card {
 }
 
 /// A bitset whose size is known at compile time
-pub trait SmallSet<T>:
-    Copy + Eq + ops::BitAnd + ops::BitOr + ops::BitXor + ops::Not + ops::Sub
+pub trait SmallSet:
+    Copy
+    + Eq
+    + ops::BitAnd<Output = Self>
+    + ops::BitAndAssign
+    + ops::BitOr<Output = Self>
+    + ops::BitOrAssign
+    + ops::BitXor<Output = Self>
+    + ops::BitXorAssign
+    + ops::Not<Output = Self>
+    + ops::Sub<Output = Self>
+    + ops::SubAssign
 {
+    /// The element type of the set
+    type Item;
+
     /// The empty set
     const EMPTY: Self;
 
@@ -286,19 +299,19 @@ pub trait SmallSet<T>:
     }
 
     /// Whether the set contains a value
-    fn contains(self, value: T) -> bool;
+    fn contains(self, value: Self::Item) -> bool;
 
     /// Insert a value into the set
-    fn insert(&mut self, value: T) -> bool;
+    fn insert(&mut self, value: Self::Item) -> bool;
 
     /// Remove a value from the set
-    fn remove(&mut self, value: T) -> bool;
+    fn remove(&mut self, value: Self::Item) -> bool;
 
     /// Toggle a value in the set
-    fn toggle(&mut self, value: T) -> bool;
+    fn toggle(&mut self, value: Self::Item) -> bool;
 
     /// Conditionally insert/remove a value from the set
-    fn set(&mut self, value: T, condition: bool) {
+    fn set(&mut self, value: Self::Item, condition: bool) {
         if condition {
             self.insert(value);
         } else {
@@ -307,7 +320,7 @@ pub trait SmallSet<T>:
     }
 
     /// Iterate over the values in the set
-    fn iter(self) -> impl Iterator<Item = T>;
+    fn iter(self) -> impl Iterator<Item = Self::Item>;
 
     /// Intersection of two sets
     #[must_use]
@@ -384,7 +397,9 @@ impl Iterator for HoldingIter {
     }
 }
 
-impl SmallSet<u8> for Holding {
+impl SmallSet for Holding {
+    type Item = u8;
+
     const EMPTY: Self = Self(0);
     const ALL: Self = Self(0x7FFC);
 
@@ -525,6 +540,34 @@ impl ops::Sub for Holding {
     #[inline]
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 & !rhs.0)
+    }
+}
+
+impl ops::BitAndAssign for Holding {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl ops::BitOrAssign for Holding {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl ops::BitXorAssign for Holding {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
+impl ops::SubAssign for Holding {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
@@ -689,7 +732,9 @@ impl Hand {
     }
 }
 
-impl SmallSet<Card> for Hand {
+impl SmallSet for Hand {
+    type Item = Card;
+
     const EMPTY: Self = Self([Holding::EMPTY; 4]);
     const ALL: Self = Self([Holding::ALL; 4]);
 
@@ -818,6 +863,34 @@ impl ops::Sub for Hand {
     #[inline]
     fn sub(self, rhs: Self) -> Self {
         Self::from_bits_retain(self.to_bits() & !rhs.to_bits())
+    }
+}
+
+impl ops::BitAndAssign for Hand {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl ops::BitOrAssign for Hand {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl ops::BitXorAssign for Hand {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
+impl ops::SubAssign for Hand {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
