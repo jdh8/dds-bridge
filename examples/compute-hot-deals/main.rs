@@ -17,14 +17,19 @@ fn get_random_average_hand(rng: &mut (impl rand::Rng + ?Sized)) -> Hand {
 
 fn get_random_symmetric_deal(rng: &mut (impl rand::Rng + ?Sized)) -> Deal {
     let hand = get_random_average_hand(rng);
-    let sequence = [
-        hand.0[1], hand.0[2], hand.0[3], hand.0[0], hand.0[1], hand.0[2],
+    let seq = [
+        hand[Suit::Diamonds],
+        hand[Suit::Hearts],
+        hand[Suit::Spades],
+        hand[Suit::Clubs],
+        hand[Suit::Diamonds],
+        hand[Suit::Hearts],
     ];
     let north = hand;
-    let east = Hand(sequence[0..4].try_into().expect("Invalid hand"));
-    let south = Hand(sequence[1..5].try_into().expect("Invalid hand"));
-    let west = Hand(sequence[2..6].try_into().expect("Invalid hand"));
-    Deal([north, east, south, west])
+    let east = Hand::new(seq[0], seq[1], seq[2], seq[3]);
+    let south = Hand::new(seq[1], seq[2], seq[3], seq[4]);
+    let west = Hand::new(seq[2], seq[3], seq[4], seq[5]);
+    Deal::new(north, east, south, west)
 }
 
 fn compute_deal(

@@ -39,12 +39,12 @@ pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
     let mut deck = Deck::ALL.cards;
     let (shuffled, rest) = deck.partial_shuffle(rng, 39);
 
-    Deal([
+    Deal::new(
         force_collect(rest),
         force_collect(&shuffled[00..13]),
         force_collect(&shuffled[13..26]),
         force_collect(&shuffled[26..39]),
-    ])
+    )
 }
 
 impl Deck {
@@ -190,18 +190,14 @@ pub fn fill_n_filtered_deals(
     n: usize,
     filter: impl FnMut(&Deal) -> bool,
 ) -> Result<Vec<Deal>, SystemError> {
-    if deal.0.into_iter().any(|hand| hand.len() > 13) {
+    if deal.into_iter().any(|hand| hand.len() > 13) {
         return Err(SystemError::TooManyCards);
     }
-    if deal.0.into_iter().reduce(Hand::intersection) != Some(Hand::EMPTY) {
+    if deal.into_iter().reduce(Hand::intersection) != Some(Hand::EMPTY) {
         return Err(SystemError::DuplicateCards);
     }
 
-    let deck = Deck::from(
-        deal.0
-            .into_iter()
-            .fold(Hand::ALL, Hand::symmetric_difference),
-    );
+    let deck = Deck::from(deal.into_iter().fold(Hand::ALL, Hand::symmetric_difference));
 
     #[allow(clippy::missing_panics_doc)]
     let shortest = Seat::ALL

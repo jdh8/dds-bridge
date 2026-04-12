@@ -673,7 +673,7 @@ impl FromStr for Holding {
 
 /// A hand of playing cards
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Hand(pub [Holding; 4]);
+pub struct Hand([Holding; 4]);
 
 impl ops::Index<Suit> for Hand {
     type Output = Holding;
@@ -729,6 +729,13 @@ impl Hand {
     #[inline]
     pub const fn from_bits_truncate(bits: u64) -> Self {
         Self::from_bits_retain(bits & Self::ALL.to_bits())
+    }
+
+    /// Create a hand from four holdings in suit order (clubs, diamonds, hearts, spades)
+    #[must_use]
+    #[inline]
+    pub const fn new(clubs: Holding, diamonds: Holding, hearts: Holding, spades: Holding) -> Self {
+        Self([clubs, diamonds, hearts, spades])
     }
 }
 
@@ -896,7 +903,17 @@ impl ops::SubAssign for Hand {
 
 /// A deal of four hands
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Deal(pub [Hand; 4]);
+pub struct Deal([Hand; 4]);
+
+impl IntoIterator for Deal {
+    type Item = Hand;
+    type IntoIter = core::array::IntoIter<Hand, 4>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
 
 impl ops::Index<Seat> for Deal {
     type Output = Hand;
@@ -917,6 +934,12 @@ impl ops::IndexMut<Seat> for Deal {
 impl Deal {
     /// Empty deal
     pub const EMPTY: Self = Self([Hand::EMPTY; 4]);
+
+    /// Construct a deal from four hands
+    #[must_use]
+    pub const fn new(north: Hand, east: Hand, south: Hand, west: Hand) -> Self {
+        Self([north, east, south, west])
+    }
 
     /// PBN-compatible display from a seat's perspective
     #[must_use]

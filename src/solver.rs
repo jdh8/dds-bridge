@@ -357,7 +357,8 @@ impl From<TricksTable> for sys::ddTableResults {
 impl From<Deal> for sys::ddTableDeal {
     fn from(deal: Deal) -> Self {
         Self {
-            cards: deal.0.map(|hand| {
+            cards: Seat::ALL.map(|seat| {
+                let hand = deal[seat];
                 [
                     hand[Suit::Spades].to_bits().into(),
                     hand[Suit::Hearts].to_bits().into(),

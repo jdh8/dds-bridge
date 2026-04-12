@@ -94,7 +94,7 @@ fn test_iter_aqt() {
 fn test_iter_spot_cards() {
     const XXX: Holding = Holding::from_bits_truncate(0b10101 << 2);
     const XX: Holding = Holding::from_bits_truncate(0b1001 << 5);
-    const HAND: Hand = Hand([XXX, Holding::EMPTY, XX, Holding::EMPTY]);
+    const HAND: Hand = Hand::new(XXX, Holding::EMPTY, XX, Holding::EMPTY);
     let mut iter = HAND.iter();
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 2)));
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, 4)));
@@ -166,12 +166,12 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
 
     assert_eq!(
         "AT74.QJ9.32.AK64".parse(),
-        Ok(Hand([
+        Ok(Hand::new(
             "AK64".parse()?,
             "32".parse()?,
             "QJ9".parse()?,
             "AT74".parse()?,
-        ]))
+        ))
     );
 
     Ok(())
@@ -184,7 +184,7 @@ fn test_deal_parser() -> Result<(), ParseHandError> {
 
     assert_eq!(
         "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse(),
-        Ok(Deal([Hand::EMPTY, east, Hand::EMPTY, west])),
+        Ok(Deal::new(Hand::EMPTY, east, Hand::EMPTY, west)),
     );
 
     assert_eq!(
