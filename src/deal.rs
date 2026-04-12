@@ -227,6 +227,14 @@ impl From<Seat> for SeatFlags {
     }
 }
 
+/// Error indicating an invalid rank
+///
+/// The rank of a card must be in `2..=14`, where J, Q, K, A are denoted as 11,
+/// 12, 13, 14 respectively.
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[error("{0} is not a valid rank (2..=14)")]
+pub struct InvalidRank(u8);
+
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Card(NonZeroU8);
@@ -237,13 +245,30 @@ impl Card {
     /// The rank is a number from 2 to 14.  J, Q, K, A are encoded as 11, 12,
     /// 13, 14 respectively.
     ///
-    /// # Panics
-    /// Panics if the rank is not in the range 2..=14.
+    /// # Errors
+    ///
+    /// When the rank is not in `2..=14`.
+    #[inline]
+    pub const fn new(suit: Suit, rank: u8) -> Result<Self, InvalidRank> {
+        if rank >= 2 && rank <= 14 {
+            Ok(unsafe { Self::new_unchecked(suit, rank) })
+        } else {
+            Err(InvalidRank(rank))
+        }
+    }
+
+    /// Create a card from suit and rank without checking the validity of the rank
+    ///
+    /// The rank is a number from 2 to 14.  J, Q, K, A are encoded as 11, 12,
+    /// 13, 14 respectively.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the rank is in `2..=14` to avoid creating an invalid card.
     #[must_use]
     #[inline]
-    pub const fn new(suit: Suit, rank: u8) -> Self {
-        assert!(rank >= 2 && rank <= 14);
-        Self(unsafe { NonZeroU8::new_unchecked(rank << 2 | suit as u8) })
+    pub const unsafe fn new_unchecked(suit: Suit, rank: u8) -> Self {
+        Self(unsafe { NonZeroU8::new_unchecked((rank << 2) | suit as u8) })
     }
 
     /// The suit of the card
@@ -777,9 +802,11 @@ impl SmallSet for Hand {
 
     #[inline]
     fn iter(self) -> impl Iterator<Item = Card> {
-        Suit::ASC
-            .into_iter()
-            .flat_map(move |suit| self[suit].iter().map(move |rank| Card::new(suit, rank)))
+        Suit::ASC.into_iter().flat_map(move |suit| {
+            self[suit]
+                .iter()
+                .map(move |rank| unsafe { Card::new_unchecked(suit, rank) })
+        })
     }
 }
 

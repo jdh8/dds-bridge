@@ -117,10 +117,10 @@ impl Strain {
 
 /// Error indicating an invalid level
 ///
-/// The level of a contract must be between 1 and 7, inclusive.
-#[derive(Debug, Error)]
+/// The level of a contract must be in `1..=7`
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[error("{0} is not a valid level (1..=7)")]
-pub struct InvalidLevel(pub u8);
+pub struct InvalidLevel(u8);
 
 /// The level of a contract, from 1 to 7
 ///

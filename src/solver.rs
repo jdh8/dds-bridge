@@ -774,18 +774,21 @@ impl From<sys::futureTricks> for FoundPlays {
             .enumerate()
             .take(future.cards as usize)
             .for_each(|(i, play)| {
-                let card = Card::new(
-                    Suit::DESC[future.suit[i] as usize],
-                    (future.rank[i] & 0xFF) as u8,
-                );
                 let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
                 let score = (future.score[i] & 0xFF) as i8;
+
                 *play = Some(Play {
-                    card,
+                    card: unsafe {
+                        Card::new_unchecked(
+                            Suit::DESC[future.suit[i] as usize],
+                            (future.rank[i] & 0xFF) as u8,
+                        )
+                    },
                     equals,
                     score,
                 });
             });
+
         Self {
             plays,
             nodes: future.nodes as u32,

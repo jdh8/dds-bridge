@@ -64,7 +64,10 @@ impl Deck {
 
         while (i as usize) < Self::CAPACITY {
             let index = i as usize;
-            cards[index].replace(Card::new(Suit::ASC[index & 3], (i >> 2) + 2));
+            let Ok(card) = Card::new(Suit::ASC[index & 3], (i >> 2) + 2) else {
+                panic!("Invalid card in the standard deck");
+            };
+            cards[index].replace(card);
             i += 1;
         }
         Self {

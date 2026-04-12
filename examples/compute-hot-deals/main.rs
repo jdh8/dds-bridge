@@ -8,9 +8,9 @@ use std::process::ExitCode;
 fn get_random_average_hand(rng: &mut (impl rand::Rng + ?Sized)) -> Hand {
     let bits: u64 = rng.random();
 
-    (0..13).fold(Hand::EMPTY, |mut hand, i| {
-        let suit: Suit = unsafe { core::mem::transmute((bits >> (2 * i) & 3) as u8) };
-        hand.insert(Card::new(suit, i + 2));
+    (0..13).fold(Hand::EMPTY, |mut hand, i| unsafe {
+        let suit: Suit = core::mem::transmute((bits >> (2 * i) & 3) as u8);
+        hand.insert(Card::new_unchecked(suit, i + 2));
         hand
     })
 }
