@@ -1,6 +1,6 @@
 use crate::Suit;
 use core::fmt::{self, Write as _};
-use core::num::NonZeroU8;
+use core::num::NonZero;
 use core::ops;
 use core::str::FromStr;
 use std::sync::LazyLock;
@@ -142,26 +142,55 @@ impl From<Seat> for SeatFlags {
 #[error("{0} is not a valid rank (2..=14)")]
 pub struct InvalidRank(u8);
 
-/// A playing card
+/// The rank of a card, from 2 to 14, where J, Q, K, A are internally denoted as
+/// 11, 12, 13, 14 respectively.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Card(NonZeroU8);
+pub struct Rank(NonZero<u8>);
 
-impl Card {
-    /// Create a card from suit and rank
-    ///
-    /// The rank is a number from 2 to 14.  J, Q, K, A are encoded as 11, 12,
-    /// 13, 14 respectively.
+impl Rank {
+    /// Jack
+    pub const J: Self = Self(NonZero::new(11).unwrap());
+
+    /// Queen
+    pub const Q: Self = Self(NonZero::new(12).unwrap());
+
+    /// King
+    pub const K: Self = Self(NonZero::new(13).unwrap());
+
+    /// Ace
+    pub const A: Self = Self(NonZero::new(14).unwrap());
+
+    /// Create a rank from a number
     ///
     /// # Errors
     ///
     /// When the rank is not in `2..=14`.
     #[inline]
-    pub const fn new(suit: Suit, rank: u8) -> Result<Self, InvalidRank> {
-        if rank >= 2 && rank <= 14 {
-            Ok(unsafe { Self::new_unchecked(suit, rank) })
-        } else {
-            Err(InvalidRank(rank))
+    pub const fn new(rank: u8) -> Result<Self, InvalidRank> {
+        match NonZero::new(rank) {
+            Some(nonzero) if rank >= 2 && rank <= 14 => Ok(Self(nonzero)),
+            _ => Err(InvalidRank(rank)),
         }
+    }
+
+    /// Get the stored rank as [`u8`]
+    #[must_use]
+    #[inline]
+    pub const fn get(self) -> u8 {
+        self.0.get()
+    }
+}
+
+/// A playing card
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Card(NonZero<u8>);
+
+impl Card {
+    /// Create a card from suit and rank
+    #[must_use]
+    #[inline]
+    pub const fn new(suit: Suit, rank: Rank) -> Self {
+        unsafe { Self::new_unchecked(suit, rank.get()) }
     }
 
     /// Create a card from suit and rank without checking the validity of the rank
@@ -175,7 +204,7 @@ impl Card {
     #[must_use]
     #[inline]
     pub const unsafe fn new_unchecked(suit: Suit, rank: u8) -> Self {
-        Self(unsafe { NonZeroU8::new_unchecked((rank << 2) | suit as u8) })
+        Self(unsafe { NonZero::new_unchecked((rank << 2) | suit as u8) })
     }
 
     /// The suit of the card
@@ -186,13 +215,11 @@ impl Card {
     }
 
     /// The rank of the card
-    ///
-    /// The rank is a number from 2 to 14.  J, Q, K, A are denoted as 11, 12,
-    /// 13, 14 respectively.
     #[must_use]
     #[inline]
-    pub const fn rank(self) -> u8 {
-        self.0.get() >> 2
+    pub const fn rank(self) -> Rank {
+        // SAFETY: the stored rank is always in 2..=14 by construction
+        unsafe { Rank(core::num::NonZero::new_unchecked(self.0.get() >> 2)) }
     }
 }
 
@@ -649,27 +676,27 @@ impl SmallSet for Hand {
 
     #[inline]
     fn contains(self, card: Card) -> bool {
-        self[card.suit()].contains(card.rank())
+        self[card.suit()].contains(card.rank().get())
     }
 
     #[inline]
     fn insert(&mut self, card: Card) -> bool {
-        self[card.suit()].insert(card.rank())
+        self[card.suit()].insert(card.rank().get())
     }
 
     #[inline]
     fn remove(&mut self, card: Card) -> bool {
-        self[card.suit()].remove(card.rank())
+        self[card.suit()].remove(card.rank().get())
     }
 
     #[inline]
     fn toggle(&mut self, card: Card) -> bool {
-        self[card.suit()].toggle(card.rank())
+        self[card.suit()].toggle(card.rank().get())
     }
 
     #[inline]
     fn set(&mut self, card: Card, condition: bool) {
-        self[card.suit()].set(card.rank(), condition);
+        self[card.suit()].set(card.rank().get(), condition);
     }
 
     #[inline]

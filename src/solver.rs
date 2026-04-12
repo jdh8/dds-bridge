@@ -633,7 +633,7 @@ impl From<Board> for sys::deal {
 
         for (i, card) in board.current_cards.into_iter().flatten().enumerate() {
             suits[i] = 3 - card.suit() as c_int;
-            ranks[i] = c_int::from(card.rank());
+            ranks[i] = c_int::from(card.rank().get());
         }
 
         Self {

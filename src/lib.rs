@@ -17,7 +17,7 @@ pub mod deck;
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Card, Deal, Hand, Holding, Seat, SmallSet};
+pub use deal::{Card, Deal, Hand, Holding, Rank, Seat, SmallSet};
 pub use solver::Solver;
 
 /// Denomination, a suit or notrump

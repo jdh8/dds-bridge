@@ -1,5 +1,5 @@
 use crate::Suit;
-use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _};
+use crate::deal::{Card, Deal, Hand, Rank, Seat, SmallSet as _};
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
@@ -63,10 +63,10 @@ impl Deck {
 
         while (i as usize) < Self::CAPACITY {
             let index = i as usize;
-            let Ok(card) = Card::new(Suit::ASC[index & 3], (i >> 2) + 2) else {
-                panic!("Invalid card in the standard deck");
+            let Ok(rank) = Rank::new((i >> 2) + 2) else {
+                panic!("Invalid rank in the standard deck");
             };
-            cards[index].replace(card);
+            cards[index].replace(Card::new(Suit::ASC[index & 3], rank));
             i += 1;
         }
         Self {

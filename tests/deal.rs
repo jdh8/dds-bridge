@@ -1,4 +1,4 @@
-use dds_bridge::deal::ParseHandError;
+use dds_bridge::deal::{InvalidRank, ParseHandError};
 use dds_bridge::*;
 
 const _: () = {
@@ -68,17 +68,18 @@ fn test_iter_aqt() {
 }
 
 #[test]
-fn test_iter_spot_cards() {
+fn test_iter_spot_cards() -> Result<(), InvalidRank> {
     const XXX: Holding = Holding::from_bits_truncate(0b10101 << 2);
     const XX: Holding = Holding::from_bits_truncate(0b1001 << 5);
     const HAND: Hand = Hand::new(XXX, Holding::EMPTY, XX, Holding::EMPTY);
     let mut iter = HAND.iter();
-    assert_eq!(iter.next(), Card::new(Suit::Clubs, 2).ok());
-    assert_eq!(iter.next(), Card::new(Suit::Clubs, 4).ok());
-    assert_eq!(iter.next(), Card::new(Suit::Clubs, 6).ok());
-    assert_eq!(iter.next(), Card::new(Suit::Hearts, 5).ok());
-    assert_eq!(iter.next(), Card::new(Suit::Hearts, 8).ok());
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(2)?)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(4)?)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(6)?)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(5)?)));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(8)?)));
     assert_eq!(iter.next(), None);
+    Ok(())
 }
 
 #[test]
