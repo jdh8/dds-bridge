@@ -1,90 +1,10 @@
-use crate::contract::Strain;
+use crate::Suit;
 use core::fmt::{self, Write as _};
 use core::num::{NonZeroU8, Wrapping};
 use core::ops;
 use core::str::FromStr;
 use std::sync::LazyLock;
 use thiserror::Error;
-
-/// A suit of playing cards
-///
-/// Suits are convertible to [`Strain`]s since suits form a subset of strains.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum Suit {
-    /// ♣, convertible to [`Strain::Clubs`]
-    Clubs,
-    /// ♦, convertible to [`Strain::Diamonds`]
-    Diamonds,
-    /// ♥, convertible to [`Strain::Hearts`]
-    Hearts,
-    /// ♠, convertible to [`Strain::Spades`]
-    Spades,
-}
-
-impl Suit {
-    /// Suits in the ascending order, the order in this crate
-    pub const ASC: [Self; 4] = [Self::Clubs, Self::Diamonds, Self::Hearts, Self::Spades];
-
-    /// Suits in the descending order, the order in [`dds_bridge_sys`]
-    pub const DESC: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
-
-    /// Unicode character
-    #[must_use]
-    #[inline]
-    pub const fn unicode(self) -> char {
-        match self {
-            Self::Clubs => '♣',
-            Self::Diamonds => '♦',
-            Self::Hearts => '♥',
-            Self::Spades => '♠',
-        }
-    }
-
-    /// Uppercase letter
-    #[must_use]
-    #[inline]
-    pub const fn letter(self) -> char {
-        match self {
-            Self::Clubs => 'C',
-            Self::Diamonds => 'D',
-            Self::Hearts => 'H',
-            Self::Spades => 'S',
-        }
-    }
-}
-
-impl From<Suit> for Strain {
-    #[inline]
-    fn from(suit: Suit) -> Self {
-        match suit {
-            Suit::Clubs => Self::Clubs,
-            Suit::Diamonds => Self::Diamonds,
-            Suit::Hearts => Self::Hearts,
-            Suit::Spades => Self::Spades,
-        }
-    }
-}
-
-/// Error raised when converting [`Strain::Notrump`] to a suit
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
-#[error("Notrump is not a suit")]
-pub struct SuitFromNotrumpError;
-
-impl TryFrom<Strain> for Suit {
-    type Error = SuitFromNotrumpError;
-
-    #[inline]
-    fn try_from(strain: Strain) -> Result<Self, Self::Error> {
-        match strain {
-            Strain::Clubs => Ok(Self::Clubs),
-            Strain::Diamonds => Ok(Self::Diamonds),
-            Strain::Hearts => Ok(Self::Hearts),
-            Strain::Spades => Ok(Self::Spades),
-            Strain::Notrump => Err(SuitFromNotrumpError),
-        }
-    }
-}
 
 /// Position at the table
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -104,7 +24,7 @@ impl Seat {
     pub const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
 
     /// The partner of the seat
-    #[must_use] 
+    #[must_use]
     pub const fn partner(self) -> Self {
         match self {
             Self::North => Self::South,
@@ -115,7 +35,7 @@ impl Seat {
     }
 
     /// The opponent on the left of the seat
-    #[must_use] 
+    #[must_use]
     pub const fn lho(self) -> Self {
         match self {
             Self::North => Self::East,
@@ -126,7 +46,7 @@ impl Seat {
     }
 
     /// The opponent on the right of the seat
-    #[must_use] 
+    #[must_use]
     pub const fn rho(self) -> Self {
         match self {
             Self::North => Self::West,

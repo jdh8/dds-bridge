@@ -1,4 +1,5 @@
-use dds_bridge::contract::{Bid, Contract, Penalty, Strain};
+use dds_bridge::Strain;
+use dds_bridge::contract::{Bid, Contract, Penalty};
 use dds_bridge::deal::{Deal, Hand, Holding, Seat, SmallSet as _};
 use dds_bridge::deck::full_deal;
 use dds_bridge::solver::*;

@@ -1,5 +1,6 @@
-use crate::contract::{Bid, Contract, Level, Penalty, Strain};
-use crate::deal::{Card, Deal, Holding, Seat, Suit};
+use crate::contract::{Bid, Contract, Level, Penalty};
+use crate::deal::{Card, Deal, Holding, Seat};
+use crate::{Strain, Suit};
 use core::ffi::c_int;
 use core::fmt;
 use core::num::Wrapping;

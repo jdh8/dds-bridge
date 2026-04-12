@@ -1,4 +1,5 @@
-use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _, Suit};
+use crate::Suit;
+use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _};
 use core::num::Wrapping;
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
