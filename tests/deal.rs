@@ -1,6 +1,6 @@
 use core::num::Wrapping;
-use dds_bridge::Suit;
-use dds_bridge::deal::*;
+use dds_bridge::deal::ParseHandError;
+use dds_bridge::*;
 
 const _: () = {
     let mut bits = 0;

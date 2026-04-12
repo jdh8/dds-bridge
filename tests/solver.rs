@@ -1,8 +1,6 @@
-use dds_bridge::Strain;
-use dds_bridge::contract::{Bid, Contract, Penalty};
-use dds_bridge::deal::{Deal, Hand, Holding, Seat, SmallSet as _};
 use dds_bridge::deck::full_deal;
 use dds_bridge::solver::*;
+use dds_bridge::{Bid, Contract, Deal, Hand, Holding, Penalty, Seat, SmallSet as _, Strain};
 use dds_bridge_sys as sys;
 
 const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of::<Play>());
@@ -16,6 +14,7 @@ fn test_solving_deals() {
     let vec = solver
         .solve_deals(&deals, StrainFlags::all())
         .expect("Failed to solve all deals");
+    core::mem::drop(solver);
     assert_eq!(array, vec.as_slice());
 }
 

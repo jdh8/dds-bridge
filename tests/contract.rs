@@ -1,5 +1,4 @@
-use dds_bridge::Strain;
-use dds_bridge::contract::{Bid, Contract, Penalty};
+use dds_bridge::{Bid, Contract, Penalty, Strain};
 
 const fn bid(level: u8, strain: Strain) -> Bid {
     match Bid::new(level, strain) {

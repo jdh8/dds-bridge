@@ -1,7 +1,6 @@
-use dds_bridge::Strain;
-use dds_bridge::deal::Seat;
 use dds_bridge::deck::full_deal;
 use dds_bridge::solver;
+use dds_bridge::{Seat, Strain};
 use std::process::ExitCode;
 
 /// Histogram of notrump tricks

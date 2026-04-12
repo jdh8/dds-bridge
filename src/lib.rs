@@ -16,6 +16,10 @@ pub mod deck;
 /// Solver functions for double dummy problems
 pub mod solver;
 
+pub use contract::{Bid, Contract, Level, Penalty};
+pub use deal::{Card, Deal, Hand, Holding, Seat, SmallSet};
+pub use solver::Solver;
+
 /// Denomination, a suit or notrump
 ///
 /// We choose this representation over `Option<Suit>` because we are not sure if

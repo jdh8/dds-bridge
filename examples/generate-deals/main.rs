@@ -1,4 +1,4 @@
-use dds_bridge::deal::Seat;
+use dds_bridge::Seat;
 use dds_bridge::deck::full_deal;
 use std::process::ExitCode;
 
