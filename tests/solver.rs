@@ -34,29 +34,16 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 13, 0, 13),
         TricksRow::new(0, 0, 0, 0),
     ]);
-    const CONTRACTS: [(Contract, Seat, i8); 2] = [
-        (
-            Contract {
-                bid: match Bid::new(7, Strain::Spades) {
-                    Ok(b) => b,
-                    Err(_) => panic!(),
-                },
-                penalty: Penalty::Undoubled,
-            },
-            Seat::East,
-            0,
-        ),
-        (
-            Contract {
-                bid: match Bid::new(7, Strain::Spades) {
-                    Ok(b) => b,
-                    Err(_) => panic!(),
-                },
-                penalty: Penalty::Undoubled,
-            },
-            Seat::West,
-            0,
-        ),
+    const CONTRACT: Contract = Contract {
+        bid: match Bid::new(7, Strain::Spades) {
+            Ok(b) => b,
+            Err(_) => panic!(),
+        },
+        penalty: Penalty::Undoubled,
+    };
+    const CONTRACTS: [ParContract; 2] = [
+        ParContract { contract: CONTRACT, declarer: Seat::East, overtricks: 0 },
+        ParContract { contract: CONTRACT, declarer: Seat::West, overtricks: 0 },
     ];
     let ns = Par {
         score: -2210,
@@ -147,11 +134,17 @@ fn solve_everyone_makes_1nt() {
 
     let ns = Par {
         score: 90,
-        contracts: vec![(CONTRACT, Seat::North, 0), (CONTRACT, Seat::South, 0)],
+        contracts: vec![
+            ParContract { contract: CONTRACT, declarer: Seat::North, overtricks: 0 },
+            ParContract { contract: CONTRACT, declarer: Seat::South, overtricks: 0 },
+        ],
     };
     let ew = Par {
         score: 90,
-        contracts: vec![(CONTRACT, Seat::East, 0), (CONTRACT, Seat::West, 0)],
+        contracts: vec![
+            ParContract { contract: CONTRACT, declarer: Seat::East, overtricks: 0 },
+            ParContract { contract: CONTRACT, declarer: Seat::West, overtricks: 0 },
+        ],
     };
     assert_eq!(
         calculate_pars(SOLUTION, Vulnerability::all()).expect("Failed to calculate par scores"),

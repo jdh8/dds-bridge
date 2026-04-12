@@ -421,6 +421,19 @@ const _: () = {
     assert!(matches!(Vulnerability::EW.rotate(false), Vulnerability::EW));
 };
 
+/// Par contract
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ParContract {
+    /// The contract
+    pub contract: Contract,
+
+    /// The declarer of the contract
+    pub declarer: Seat,
+
+    /// The number of overtricks (negative for undertricks)
+    pub overtricks: i8,
+}
+
 /// Par score and contracts
 #[derive(Debug, Clone)]
 pub struct Par {
@@ -428,10 +441,7 @@ pub struct Par {
     pub score: i32,
 
     /// The contracts that achieve the par score
-    ///
-    /// Each tuple contains a contract, the declarer, and the number of
-    /// overtricks (undertricks in negative).
-    pub contracts: Vec<(Contract, Seat, i8)>,
+    pub contracts: Vec<ParContract>,
 }
 
 impl PartialEq for Par {
@@ -439,10 +449,10 @@ impl PartialEq for Par {
         // Since every contract scores the same, we can compare only the set of
         // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
         // a `u32` as a bitset.
-        fn key(contracts: &[(Contract, Seat, i8)]) -> u32 {
+        fn key(contracts: &[ParContract]) -> u32 {
             contracts
                 .iter()
-                .map(|&(contract, seat, _)| 1 << ((contract.bid.strain as u8) << 2 | seat as u8))
+                .map(|p| 1 << ((p.contract.bid.strain as u8) << 2 | p.declarer as u8))
                 .fold(0, u32::bitor)
         }
         self.score == other.score && key(&self.contracts) == key(&other.contracts)
@@ -492,8 +502,17 @@ impl From<sys::parResultsMaster> for Par {
                     penalty,
                 };
 
-                core::iter::once((contract, seat, overtricks)).chain(if is_pair {
-                    Some((contract, seat + core::num::Wrapping(2), overtricks))
+                core::iter::once(ParContract {
+                    contract,
+                    declarer: seat,
+                    overtricks,
+                })
+                .chain(if is_pair {
+                    Some(ParContract {
+                        contract,
+                        declarer: seat.partner(),
+                        overtricks,
+                    })
                 } else {
                     None
                 })
