@@ -346,41 +346,6 @@ pub trait SmallSet:
 
     /// Iterate over the values in the set
     fn iter(self) -> impl Iterator<Item = Self::Item>;
-
-    /// Intersection of two sets
-    #[must_use]
-    #[inline]
-    fn intersection(self, rhs: Self) -> <Self as ops::BitAnd>::Output {
-        self & rhs
-    }
-
-    /// Union of two sets
-    #[must_use]
-    #[inline]
-    fn union(self, rhs: Self) -> <Self as ops::BitOr>::Output {
-        self | rhs
-    }
-
-    /// Difference of two sets
-    #[must_use]
-    #[inline]
-    fn difference(self, rhs: Self) -> <Self as ops::Sub>::Output {
-        self - rhs
-    }
-
-    /// Symmetric difference of two sets
-    #[must_use]
-    #[inline]
-    fn symmetric_difference(self, rhs: Self) -> <Self as ops::BitXor>::Output {
-        self ^ rhs
-    }
-
-    /// Complement of the set
-    #[must_use]
-    #[inline]
-    fn complement(self) -> <Self as ops::Not>::Output {
-        !self
-    }
 }
 
 /// A set of cards of the same suit

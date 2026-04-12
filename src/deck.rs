@@ -1,6 +1,7 @@
 use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _, Suit};
 use crate::solver::SystemError;
 use core::num::Wrapping;
+use core::ops::{BitAnd as _, BitXor as _};
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
@@ -196,11 +197,11 @@ pub fn fill_n_filtered_deals(
     if deal.into_iter().any(|hand| hand.len() > 13) {
         return Err(SystemError::TooManyCards);
     }
-    if deal.into_iter().reduce(Hand::intersection) != Some(Hand::EMPTY) {
+    if deal.into_iter().reduce(Hand::bitand) != Some(Hand::EMPTY) {
         return Err(SystemError::DuplicateCards);
     }
 
-    let deck = Deck::from(deal.into_iter().fold(Hand::ALL, Hand::symmetric_difference));
+    let deck = Deck::from(deal.into_iter().fold(Hand::ALL, Hand::bitxor));
 
     #[allow(clippy::missing_panics_doc)]
     let shortest = Seat::ALL
