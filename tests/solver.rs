@@ -15,18 +15,6 @@ fn test_solving_deals() {
     assert_eq!(array, vec.as_slice());
 }
 
-#[test]
-fn test_solving_segment() {
-    const FLAGS: StrainFlags = StrainFlags::SPADES.union(StrainFlags::HEARTS);
-    const N: usize = (sys::MAXNOOFBOARDS / FLAGS.bits().count_ones()) as usize;
-    let deals: [_; N] = core::array::from_fn(|_| full_deal(&mut rand::rng()));
-    let vec = solve_deals(&deals, FLAGS).expect("Failed to solve all deals");
-    let result = unsafe { solve_deal_segment(&deals, FLAGS).expect("Failed to solve all deals") };
-    let result: [_; N] = result.results[..N].try_into().expect("Not enough results");
-    let result = result.map(TricksTable::from);
-    assert_eq!(vec.as_slice(), result);
-}
-
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
 fn solve_four_13_card_straight_flushes() {

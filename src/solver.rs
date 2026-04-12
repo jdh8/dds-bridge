@@ -392,7 +392,7 @@ pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub unsafe fn solve_deal_segment(
+unsafe fn solve_deal_segment(
     deals: &[Deal],
     flags: StrainFlags,
 ) -> Result<sys::ddTablesRes, Error> {
@@ -829,7 +829,7 @@ pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
 ///
 /// # Errors
 /// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solvedBoards, Error> {
+unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solvedBoards, Error> {
     debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
     let mut pack = sys::boards {
         noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
