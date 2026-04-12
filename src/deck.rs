@@ -1,6 +1,5 @@
 use crate::Suit;
 use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _};
-use core::num::Wrapping;
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
@@ -207,11 +206,12 @@ pub fn fill_n_filtered_deals(
     Ok(core::iter::repeat_with(|| {
         let mut deck = deck.clone();
         let mut deal = *deal;
+        let mut fill = |hand: &mut Hand| *hand |= deck.partial_shuffle(rng, 13 - hand.len());
 
-        for i in 1..=3 {
-            let hand = &mut deal[shortest + Wrapping(i)];
-            *hand |= deck.partial_shuffle(rng, 13 - hand.len());
-        }
+        fill(&mut deal[shortest.lho()]);
+        fill(&mut deal[shortest.partner()]);
+        fill(&mut deal[shortest.rho()]);
+
         deal[shortest] |= deck.collect();
         deal
     })

@@ -1,6 +1,6 @@
 use crate::Suit;
 use core::fmt::{self, Write as _};
-use core::num::{NonZeroU8, Wrapping};
+use core::num::NonZeroU8;
 use core::ops;
 use core::str::FromStr;
 use std::sync::LazyLock;
@@ -61,56 +61,6 @@ const _: () = assert!(Seat::ALL[0] as u8 == 0);
 const _: () = assert!(Seat::ALL[1] as u8 == 1);
 const _: () = assert!(Seat::ALL[2] as u8 == 2);
 const _: () = assert!(Seat::ALL[3] as u8 == 3);
-
-impl ops::Add<Wrapping<usize>> for Seat {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Wrapping<usize>) -> Self {
-        Self::ALL[(Wrapping(self as usize) + rhs).0 & 3]
-    }
-}
-
-impl ops::Add<Seat> for Wrapping<usize> {
-    type Output = Seat;
-
-    #[inline]
-    fn add(self, rhs: Seat) -> Seat {
-        rhs + self
-    }
-}
-
-impl ops::AddAssign<Wrapping<usize>> for Seat {
-    #[inline]
-    fn add_assign(&mut self, rhs: Wrapping<usize>) {
-        *self = *self + rhs;
-    }
-}
-
-impl ops::Sub<Wrapping<usize>> for Seat {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, rhs: Wrapping<usize>) -> Self {
-        Self::ALL[(Wrapping(self as usize) - rhs).0 & 3]
-    }
-}
-
-impl ops::SubAssign<Wrapping<usize>> for Seat {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Wrapping<usize>) {
-        *self = *self - rhs;
-    }
-}
-
-impl ops::Sub<Self> for Seat {
-    type Output = Wrapping<usize>;
-
-    #[inline]
-    fn sub(self, rhs: Self) -> Wrapping<usize> {
-        (Wrapping(self as usize) - Wrapping(rhs as usize)) & Wrapping(3)
-    }
-}
 
 impl From<Seat> for char {
     #[inline]
@@ -926,13 +876,13 @@ impl Deal {
                 self.deal[self.seat].fmt(f)?;
                 f.write_char(' ')?;
 
-                self.deal[self.seat + Wrapping(1)].fmt(f)?;
+                self.deal[self.seat.lho()].fmt(f)?;
                 f.write_char(' ')?;
 
-                self.deal[self.seat + Wrapping(2)].fmt(f)?;
+                self.deal[self.seat.partner()].fmt(f)?;
                 f.write_char(' ')?;
 
-                self.deal[self.seat + Wrapping(3)].fmt(f)
+                self.deal[self.seat.rho()].fmt(f)
             }
         }
         DisplayAt { deal: self, seat }

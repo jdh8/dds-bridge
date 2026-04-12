@@ -1,4 +1,3 @@
-use core::num::Wrapping;
 use dds_bridge::deal::ParseHandError;
 use dds_bridge::*;
 
@@ -55,20 +54,6 @@ fn test_not() {
     all_holdings().for_each(|v| {
         assert_eq!(!v, Holding::ALL - v);
         assert_eq!(!v, Holding::ALL ^ v);
-    });
-}
-
-#[test]
-fn test_seat_arithmetics() {
-    // Any rotation should work
-    const SEATS: [Seat; 4] = [Seat::East, Seat::South, Seat::West, Seat::North];
-
-    (0..4).for_each(|x| {
-        (0..4).for_each(|y| {
-            assert_eq!(SEATS[x] + Wrapping(y), SEATS[y] + Wrapping(x));
-            assert_eq!(SEATS[x] + Wrapping(y), SEATS[(x + y) & 3]);
-            assert_eq!(SEATS[x] - Wrapping(y), SEATS[(x + 4 - y) & 3]);
-        });
     });
 }
 

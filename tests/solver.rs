@@ -42,8 +42,16 @@ fn solve_four_13_card_straight_flushes() {
         penalty: Penalty::Undoubled,
     };
     const CONTRACTS: [ParContract; 2] = [
-        ParContract { contract: CONTRACT, declarer: Seat::East, overtricks: 0 },
-        ParContract { contract: CONTRACT, declarer: Seat::West, overtricks: 0 },
+        ParContract {
+            contract: CONTRACT,
+            declarer: Seat::East,
+            overtricks: 0,
+        },
+        ParContract {
+            contract: CONTRACT,
+            declarer: Seat::West,
+            overtricks: 0,
+        },
     ];
     let ns = Par {
         score: -2210,
@@ -135,15 +143,31 @@ fn solve_everyone_makes_1nt() {
     let ns = Par {
         score: 90,
         contracts: vec![
-            ParContract { contract: CONTRACT, declarer: Seat::North, overtricks: 0 },
-            ParContract { contract: CONTRACT, declarer: Seat::South, overtricks: 0 },
+            ParContract {
+                contract: CONTRACT,
+                declarer: Seat::North,
+                overtricks: 0,
+            },
+            ParContract {
+                contract: CONTRACT,
+                declarer: Seat::South,
+                overtricks: 0,
+            },
         ],
     };
     let ew = Par {
         score: 90,
         contracts: vec![
-            ParContract { contract: CONTRACT, declarer: Seat::East, overtricks: 0 },
-            ParContract { contract: CONTRACT, declarer: Seat::West, overtricks: 0 },
+            ParContract {
+                contract: CONTRACT,
+                declarer: Seat::East,
+                overtricks: 0,
+            },
+            ParContract {
+                contract: CONTRACT,
+                declarer: Seat::West,
+                overtricks: 0,
+            },
         ],
     };
     assert_eq!(

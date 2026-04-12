@@ -3,7 +3,6 @@ use crate::deal::{Card, Deal, Holding, Seat};
 use crate::{Strain, Suit};
 use core::ffi::c_int;
 use core::fmt;
-use core::num::Wrapping;
 use core::ops::BitOr as _;
 use core::str::FromStr;
 use dds_bridge_sys as sys;
@@ -221,9 +220,9 @@ impl TricksRow {
                     f,
                     "{:X}{:X}{:X}{:X}",
                     self.deal.get(self.seat),
-                    self.deal.get(self.seat + Wrapping(1)),
-                    self.deal.get(self.seat + Wrapping(2)),
-                    self.deal.get(self.seat + Wrapping(3)),
+                    self.deal.get(self.seat.lho()),
+                    self.deal.get(self.seat.partner()),
+                    self.deal.get(self.seat.rho()),
                 )
             }
         }
