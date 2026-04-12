@@ -10,8 +10,11 @@ const _: () = assert!(core::mem::size_of::<Option<Play>>() == core::mem::size_of
 fn test_solving_deals() {
     const N: usize = sys::MAXNOOFBOARDS as usize * 2;
     let deals: [_; N] = core::array::from_fn(|_| full_deal(&mut rand::rng()));
-    let array = deals.map(|x| solve_deal(x).expect("Failed to solve a deal"));
-    let vec = solve_deals(&deals, StrainFlags::all()).expect("Failed to solve all deals");
+    let solver = Solver::new();
+    let array = deals.map(|x| solver.solve_deal(x).expect("Failed to solve a deal"));
+    let vec = solver
+        .solve_deals(&deals, StrainFlags::all())
+        .expect("Failed to solve all deals");
     assert_eq!(array, vec.as_slice());
 }
 
@@ -64,7 +67,9 @@ fn solve_four_13_card_straight_flushes() {
         contracts: CONTRACTS.to_vec(),
     };
     assert_eq!(
-        solve_deal(DEAL).expect("Failed to solve the deal"),
+        Solver::new()
+            .solve_deal(DEAL)
+            .expect("Failed to solve the deal"),
         SOLUTION
     );
     assert_eq!(
@@ -95,7 +100,9 @@ fn solve_par_5_tricks() {
         contracts: Vec::new(),
     };
     assert_eq!(
-        solve_deal(DEAL).expect("Failed to solve the deal"),
+        Solver::new()
+            .solve_deal(DEAL)
+            .expect("Failed to solve the deal"),
         SOLUTION
     );
     assert_eq!(
@@ -132,7 +139,9 @@ fn solve_everyone_makes_1nt() {
         penalty: Penalty::None,
     };
     assert_eq!(
-        solve_deal(DEAL).expect("Failed to solve the deal"),
+        Solver::new()
+            .solve_deal(DEAL)
+            .expect("Failed to solve the deal"),
         SOLUTION
     );
 

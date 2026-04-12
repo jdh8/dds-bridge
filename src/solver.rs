@@ -6,13 +6,9 @@ use core::num::Wrapping;
 use core::ops::BitOr as _;
 use core::str::FromStr;
 use dds_bridge_sys as sys;
-use std::sync::{LazyLock, Mutex, PoisonError};
+use parking_lot::Mutex;
+use std::sync::LazyLock;
 use thiserror::Error;
-
-static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
-    unsafe { sys::SetMaxThreads(0) };
-    Mutex::new(())
-});
 
 /// Errors that occurred in [`dds_bridge_sys`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
@@ -169,30 +165,6 @@ impl SystemError {
             sys::RETURN_CHUNK_SIZE => Err(Self::ChunkSize),
             _ => Err(Self::UnknownFault),
         }
-    }
-}
-
-/// The sum type of all solver errors
-#[derive(Debug, Error)]
-pub enum Error {
-    /// An error propagated from [`dds_bridge_sys`]
-    #[error(transparent)]
-    System(SystemError),
-
-    /// A poisoned mutex of the thread pool
-    #[error("The thread pool is poisoned")]
-    Poison,
-}
-
-impl From<SystemError> for Error {
-    fn from(err: SystemError) -> Self {
-        Self::System(err)
-    }
-}
-
-impl<T> From<PoisonError<T>> for Error {
-    fn from(_: PoisonError<T>) -> Self {
-        Self::Poison
     }
 }
 
@@ -368,81 +340,6 @@ impl From<Deal> for sys::ddTableDeal {
             }),
         }
     }
-}
-
-/// Solve a single deal with [`sys::CalcDDtable`]
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_deal(deal: Deal) -> Result<TricksTable, Error> {
-    let mut result = sys::ddTableResults::default();
-    let _guard = THREAD_POOL.lock()?;
-    let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
-    Ok(SystemError::propagate(result.into(), status)?)
-}
-
-/// Solve deals with a single call of [`sys::CalcAllTables`]
-///
-/// - `deals`: A slice of deals to solve
-/// - `flags`: Flags of strains to solve for
-///
-/// # Safety
-/// `deals.len() * flags.bits().count_ones()` must not exceed
-/// [`sys::MAXNOOFBOARDS`].
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-unsafe fn solve_deal_segment(
-    deals: &[Deal],
-    flags: StrainFlags,
-) -> Result<sys::ddTablesRes, Error> {
-    debug_assert!(deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize);
-    let mut pack = sys::ddTableDeals {
-        noOfTables: c_int::try_from(deals.len()).unwrap_or(c_int::MAX),
-        ..Default::default()
-    };
-    deals
-        .iter()
-        .enumerate()
-        .for_each(|(i, &deal)| pack.deals[i] = deal.into());
-
-    let mut res = sys::ddTablesRes::default();
-    let status = unsafe {
-        let _guard = THREAD_POOL.lock()?;
-        sys::CalcAllTables(
-            &raw mut pack,
-            -1,
-            &mut [
-                c_int::from(!flags.contains(StrainFlags::SPADES)),
-                c_int::from(!flags.contains(StrainFlags::HEARTS)),
-                c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
-                c_int::from(!flags.contains(StrainFlags::CLUBS)),
-                c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
-            ][0],
-            &raw mut res,
-            &mut sys::allParResults::default(),
-        )
-    };
-    Ok(SystemError::propagate(res, status)?)
-}
-
-/// Solve deals in parallel for given strains
-///
-/// - `deals`: A slice of deals to solve
-/// - `flags`: Flags of strains to solve for
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_deals(deals: &[Deal], flags: StrainFlags) -> Result<Vec<TricksTable>, Error> {
-    let mut tables = Vec::new();
-    for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
-        tables.extend(
-            unsafe { solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
-                .iter()
-                .map(|&x| TricksTable::from(x)),
-        );
-    }
-    Ok(tables)
 }
 
 bitflags::bitflags! {
@@ -796,70 +693,189 @@ impl From<sys::futureTricks> for FoundPlays {
     }
 }
 
-/// Solve a single board with [`sys::SolveBoard`]
-///
-/// - `board`: The board to solve
-/// - `target`: The target tricks and number of solutions to find
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_board(board: Board, target: Target) -> Result<FoundPlays, Error> {
-    let mut result = sys::futureTricks::default();
-    let status = unsafe {
-        let _guard = THREAD_POOL.lock()?;
-        sys::SolveBoard(
-            board.into(),
-            target.target(),
-            target.solutions(),
-            0,
-            &raw mut result,
-            //TODO: Enable multithreading
-            0,
-        )
-    };
-    Ok(SystemError::propagate(result, status)?.into())
-}
+static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
+    unsafe { sys::SetMaxThreads(0) };
+    Mutex::new(())
+});
 
-/// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
+/// Exclusive handle to the DDS solver
 ///
-/// - `args`: A slice of boards and their targets to solve
+/// DDS functions are not reentrant, so this struct holds a lock on the global
+/// thread pool.  Acquire a `Solver` once and call methods on it to avoid
+/// repeated locking.
 ///
-/// # Safety
-/// `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-unsafe fn solve_board_segment(args: &[(Board, Target)]) -> Result<sys::solvedBoards, Error> {
-    debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
-    let mut pack = sys::boards {
-        noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
-        ..Default::default()
-    };
-    args.iter().enumerate().for_each(|(i, &(board, target))| {
-        pack.deals[i] = board.into();
-        pack.target[i] = target.target();
-        pack.solutions[i] = target.solutions();
-    });
-    let mut res = sys::solvedBoards::default();
-    let _guard = THREAD_POOL.lock()?;
-    let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
-    Ok(SystemError::propagate(res, status)?)
-}
+/// The batch functions ([`CalcAllTables`](sys::CalcAllTables),
+/// [`SolveAllBoardsBin`](sys::SolveAllBoardsBin)) are internally
+/// multi-threaded, so parallelism is still utilized within each call.
+pub struct Solver(#[allow(dead_code)] parking_lot::MutexGuard<'static, ()>);
 
-/// Solve boards in parallel
-///
-/// - `args`: A slice of boards and their targets to solve
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS or a [`std::sync::PoisonError`]
-pub fn solve_boards(args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, Error> {
-    let mut solutions = Vec::new();
-    for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
-        solutions.extend(
-            unsafe { solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
-                .iter()
-                .map(|&x| FoundPlays::from(x)),
-        );
+impl Default for Solver {
+    fn default() -> Self {
+        Self::new()
     }
-    Ok(solutions)
+}
+
+impl Solver {
+    /// Acquire exclusive access to the DDS solver
+    #[must_use]
+    pub fn new() -> Self {
+        Self(THREAD_POOL.lock())
+    }
+
+    /// Solve a single deal with [`sys::CalcDDtable`]
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    pub fn solve_deal(&self, deal: Deal) -> Result<TricksTable, SystemError> {
+        let mut result = sys::ddTableResults::default();
+        let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
+        SystemError::propagate(result.into(), status)
+    }
+
+    /// Solve deals with a single call of [`sys::CalcAllTables`]
+    ///
+    /// - `deals`: A slice of deals to solve
+    /// - `flags`: Flags of strains to solve for
+    ///
+    /// # Safety
+    ///
+    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
+    ///    calling any DDS function while this function is running.  This is
+    ///    automatically guaranteed if the caller acquires a `Solver` before
+    ///    calling this function.
+    /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
+    ///    [`sys::MAXNOOFBOARDS`].
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    unsafe fn solve_deal_segment(
+        deals: &[Deal],
+        flags: StrainFlags,
+    ) -> Result<sys::ddTablesRes, SystemError> {
+        debug_assert!(
+            deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
+        );
+        let mut pack = sys::ddTableDeals {
+            noOfTables: c_int::try_from(deals.len()).unwrap_or(c_int::MAX),
+            ..Default::default()
+        };
+        deals
+            .iter()
+            .enumerate()
+            .for_each(|(i, &deal)| pack.deals[i] = deal.into());
+
+        let mut res = sys::ddTablesRes::default();
+        let status = unsafe {
+            sys::CalcAllTables(
+                &raw mut pack,
+                -1,
+                &mut [
+                    c_int::from(!flags.contains(StrainFlags::SPADES)),
+                    c_int::from(!flags.contains(StrainFlags::HEARTS)),
+                    c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
+                    c_int::from(!flags.contains(StrainFlags::CLUBS)),
+                    c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
+                ][0],
+                &raw mut res,
+                &mut sys::allParResults::default(),
+            )
+        };
+        SystemError::propagate(res, status)
+    }
+
+    /// Solve deals in parallel for given strains
+    ///
+    /// - `deals`: A slice of deals to solve
+    /// - `flags`: Flags of strains to solve for
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    pub fn solve_deals(
+        &self,
+        deals: &[Deal],
+        flags: StrainFlags,
+    ) -> Result<Vec<TricksTable>, SystemError> {
+        let mut tables = Vec::new();
+        for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
+            tables.extend(
+                unsafe { Self::solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
+                    .iter()
+                    .map(|&x| TricksTable::from(x)),
+            );
+        }
+        Ok(tables)
+    }
+
+    /// Solve a single board with [`sys::SolveBoard`]
+    ///
+    /// - `board`: The board to solve
+    /// - `target`: The target tricks and number of solutions to find
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    pub fn solve_board(&self, board: Board, target: Target) -> Result<FoundPlays, SystemError> {
+        let mut result = sys::futureTricks::default();
+        let status = unsafe {
+            sys::SolveBoard(
+                board.into(),
+                target.target(),
+                target.solutions(),
+                0,
+                &raw mut result,
+                //TODO: Enable multithreading
+                0,
+            )
+        };
+        SystemError::propagate(result, status).map(FoundPlays::from)
+    }
+
+    /// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
+    ///
+    /// - `args`: A slice of boards and their targets to solve
+    ///
+    /// # Safety
+    ///
+    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
+    ///    calling any DDS function while this function is running.  This is
+    ///    automatically guaranteed if the caller acquires a `Solver` before
+    ///    calling this function.
+    /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    unsafe fn solve_board_segment(
+        args: &[(Board, Target)],
+    ) -> Result<sys::solvedBoards, SystemError> {
+        debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
+        let mut pack = sys::boards {
+            noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
+            ..Default::default()
+        };
+        args.iter().enumerate().for_each(|(i, &(board, target))| {
+            pack.deals[i] = board.into();
+            pack.target[i] = target.target();
+            pack.solutions[i] = target.solutions();
+        });
+        let mut res = sys::solvedBoards::default();
+        let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
+        SystemError::propagate(res, status)
+    }
+
+    /// Solve boards in parallel
+    ///
+    /// - `args`: A slice of boards and their targets to solve
+    ///
+    /// # Errors
+    /// A [`SystemError`] propagated from DDS
+    pub fn solve_boards(&self, args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, SystemError> {
+        let mut solutions = Vec::new();
+        for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
+            solutions.extend(
+                unsafe { Self::solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
+                    .iter()
+                    .map(|&x| FoundPlays::from(x)),
+            );
+        }
+        Ok(solutions)
+    }
 }

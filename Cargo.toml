@@ -12,6 +12,7 @@ keywords = ["bridge", "double-dummy"]
 [dependencies]
 bitflags = "2.11.0"
 dds-bridge-sys = "2.0.4"
+parking_lot = "0.12.0"
 rand = "0.10.1"
 regex = "1.12.3"
 thiserror = "2.0.18"
