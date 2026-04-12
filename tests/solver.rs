@@ -1,4 +1,4 @@
-use dds_bridge::contract::{Contract, Penalty, Strain};
+use dds_bridge::contract::{Bid, Contract, Penalty, Strain};
 use dds_bridge::deal::{Deal, Hand, Holding, Seat, SmallSet as _};
 use dds_bridge::deck::full_deal;
 use dds_bridge::solver::*;
@@ -45,12 +45,24 @@ fn solve_four_13_card_straight_flushes() {
     ]);
     const CONTRACTS: [(Contract, Seat, i8); 2] = [
         (
-            Contract::new(7, Strain::Spades, Penalty::None),
+            Contract {
+                bid: match Bid::new(7, Strain::Spades) {
+                    Ok(b) => b,
+                    Err(_) => panic!(),
+                },
+                penalty: Penalty::None,
+            },
             Seat::East,
             0,
         ),
         (
-            Contract::new(7, Strain::Spades, Penalty::None),
+            Contract {
+                bid: match Bid::new(7, Strain::Spades) {
+                    Ok(b) => b,
+                    Err(_) => panic!(),
+                },
+                penalty: Penalty::None,
+            },
             Seat::West,
             0,
         ),
@@ -124,7 +136,13 @@ fn solve_everyone_makes_1nt() {
     const SUIT: TricksRow = TricksRow::new(6, 6, 6, 6);
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
-    const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::None);
+    const CONTRACT: Contract = Contract {
+        bid: match Bid::new(1, Strain::Notrump) {
+            Ok(b) => b,
+            Err(_) => panic!(),
+        },
+        penalty: Penalty::None,
+    };
     assert_eq!(
         solve_deal(DEAL).expect("Failed to solve the deal"),
         SOLUTION

@@ -1,4 +1,4 @@
-use crate::contract::{Contract, Penalty, Strain};
+use crate::contract::{Bid, Contract, Level, Penalty, Strain};
 use crate::deal::{Card, Deal, Holding, Seat, Suit};
 use core::ffi::c_int;
 use core::fmt;
@@ -582,7 +582,16 @@ impl From<sys::parResultsMaster> for Par {
                 assert_eq!(contract.level, contract.level & 7);
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
-                let contract = Contract::new((contract.level & 7) as u8, strain, penalty);
+
+                // SAFETY: Already implemented `Error` on `InvalidLevel`
+                #[allow(clippy::unwrap_used)]
+                let contract = Contract {
+                    bid: Bid {
+                        level: Level::new(contract.level.try_into().unwrap()).unwrap(),
+                        strain,
+                    },
+                    penalty,
+                };
 
                 core::iter::once((contract, seat, overtricks)).chain(if is_pair {
                     Some((contract, seat + core::num::Wrapping(2), overtricks))

@@ -1,4 +1,6 @@
 use core::fmt::{self, Write as _};
+use core::num::NonZero;
+use thiserror::Error;
 
 /// Denomination, a suit or notrump
 ///
@@ -113,15 +115,50 @@ impl Strain {
     ];
 }
 
+/// Error indicating an invalid level
+///
+/// The level of a contract must be between 1 and 7, inclusive.
+#[derive(Debug, Error)]
+#[error("{0} is not a valid level (1..=7)")]
+pub struct InvalidLevel(pub u8);
+
+/// The level of a contract, from 1 to 7
+///
+/// The number of tricks (adding the book of 6 tricks) to take to fulfill
+/// the contract
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Level(NonZero<u8>);
+
+impl Level {
+    /// Create a level from a number of tricks
+    ///
+    /// # Errors
+    ///
+    /// When the level is not in `1..=7`.
+    #[inline]
+    pub const fn new(level: u8) -> Result<Self, InvalidLevel> {
+        match NonZero::new(level) {
+            Some(nonzero) if level <= 7 => Ok(Self(nonzero)),
+            _ => Err(InvalidLevel(level)),
+        }
+    }
+
+    /// Get the stored level as [`u8`]
+    #[must_use]
+    #[inline]
+    pub const fn get(self) -> u8 {
+        self.0.get()
+    }
+}
+
 /// A call that proposes a contract
 ///
 /// The order of the fields ensures natural ordering by deriving [`PartialOrd`]
 /// and [`Ord`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bid {
-    /// The number of tricks (adding the book of 6 tricks) to take to fulfill
-    /// the contract
-    pub level: u8,
+    /// The level of the contract
+    pub level: Level,
 
     /// The strain of the contract
     pub strain: Strain,
@@ -129,10 +166,16 @@ pub struct Bid {
 
 impl Bid {
     /// Create a bid from level and strain
-    #[must_use]
+    ///
+    /// # Errors
+    ///
+    /// When the level is not in `1..=7`.
     #[inline]
-    pub const fn new(level: u8, strain: Strain) -> Self {
-        Self { level, strain }
+    pub const fn new(level: u8, strain: Strain) -> Result<Self, InvalidLevel> {
+        match Level::new(level) {
+            Ok(level) => Ok(Self { level, strain }),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -215,23 +258,13 @@ const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
 }
 
 impl Contract {
-    /// Create a contract from level, strain, and penalty
-    #[must_use]
-    #[inline]
-    pub const fn new(level: u8, strain: Strain, penalty: Penalty) -> Self {
-        Self {
-            bid: Bid::new(level, strain),
-            penalty,
-        }
-    }
-
     /// Base score for making this contract
     ///
     /// <https://en.wikipedia.org/wiki/Bridge_scoring#Contract_points>
     #[must_use]
     #[inline]
     pub const fn contract_points(self) -> i32 {
-        let level = self.bid.level as i32;
+        let level = self.bid.level.get() as i32;
         let per_trick = self.bid.strain.is_minor() as i32 * -10 + 30;
         let notrump = self.bid.strain.is_notrump() as i32 * 10;
         (per_trick * level + notrump) << (self.penalty as u8)
@@ -245,7 +278,7 @@ impl Contract {
     #[must_use]
     #[inline]
     pub const fn score(self, tricks: u8, vulnerable: bool) -> i32 {
-        let overtricks = tricks as i32 - self.bid.level as i32 - 6;
+        let overtricks = tricks as i32 - self.bid.level.get() as i32 - 6;
 
         if overtricks >= 0 {
             let base = self.contract_points();
@@ -258,7 +291,7 @@ impl Contract {
             };
             let doubled = self.penalty as i32 * 50;
 
-            let slam = match self.bid.level {
+            let slam = match self.bid.level.get() {
                 6 => (vulnerable as i32 + 2) * 250,
                 7 => (vulnerable as i32 + 2) * 500,
                 _ => 0,
