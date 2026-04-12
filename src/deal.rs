@@ -937,6 +937,27 @@ impl Deal {
         Self([north, east, south, west])
     }
 
+    /// If the deal is a subset of a bridge deal, collect all the cards into a
+    /// single hand.  Otherwise, return `None`.  This function checks the
+    /// validity of the deal and also returns potentially useful information.
+    ///
+    /// A deal is a subset of a bridge deal if it satisfies the following
+    /// conditions:
+    ///
+    /// 1. Each hand contains at most 13 cards.
+    /// 2. The hands are pairwise disjoint.
+    #[must_use]
+    pub fn validate_and_collect(self) -> Option<Hand> {
+        let mut seen = Hand::EMPTY;
+        for hand in self.0 {
+            if hand.len() > 13 || hand & seen != Hand::EMPTY {
+                return None;
+            }
+            seen |= hand;
+        }
+        Some(seen)
+    }
+
     /// PBN-compatible display from a seat's perspective
     #[must_use]
     pub fn display(self, seat: Seat) -> impl fmt::Display {

@@ -1,7 +1,5 @@
 use crate::deal::{Card, Deal, Hand, Seat, SmallSet as _, Suit};
-use crate::solver::SystemError;
 use core::num::Wrapping;
-use core::ops::{BitAnd as _, BitXor as _};
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
@@ -173,6 +171,11 @@ impl From<Hand> for Deck {
     }
 }
 
+/// Error indicating an invalid deal
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[error("The deal is not a valid subset of a bridge deal")]
+pub struct InvalidDeal;
+
 /// Given a deal, randomly fill the remaining cards and filter the results.
 ///
 /// The filter is applied before collecting the results, so the resulting vector
@@ -184,24 +187,15 @@ impl From<Hand> for Deck {
 ///
 /// # Errors
 ///
-/// [`SystemError`] if `deal` is invalid, such as
-///
-/// - Any hand having more than 13 cards.
-/// - Duplicate cards across hands.
+/// [`InvalidDeal`] if `deal` is invalid determined by
+/// [`Deal::validate_and_collect`].
 pub fn fill_n_filtered_deals(
     rng: &mut (impl Rng + ?Sized),
     deal: &Deal,
     n: usize,
     filter: impl FnMut(&Deal) -> bool,
-) -> Result<Vec<Deal>, SystemError> {
-    if deal.into_iter().any(|hand| hand.len() > 13) {
-        return Err(SystemError::TooManyCards);
-    }
-    if deal.into_iter().reduce(Hand::bitand) != Some(Hand::EMPTY) {
-        return Err(SystemError::DuplicateCards);
-    }
-
-    let deck = Deck::from(deal.into_iter().fold(Hand::ALL, Hand::bitxor));
+) -> Result<Vec<Deal>, InvalidDeal> {
+    let deck = Deck::from(deal.validate_and_collect().ok_or(InvalidDeal)?);
 
     #[allow(clippy::missing_panics_doc)]
     let shortest = Seat::ALL
@@ -232,14 +226,12 @@ pub fn fill_n_filtered_deals(
 ///
 /// # Errors
 ///
-/// [`SystemError`] if `deal` is invalid, such as
-///
-/// - Any hand having more than 13 cards.
-/// - Duplicate cards across hands.
+/// [`InvalidDeal`] if `deal` is invalid determined by
+/// [`Deal::validate_and_collect`].
 pub fn fill_n_deals(
     rng: &mut (impl Rng + ?Sized),
     deal: &Deal,
     n: usize,
-) -> Result<Vec<Deal>, SystemError> {
+) -> Result<Vec<Deal>, InvalidDeal> {
     fill_n_filtered_deals(rng, deal, n, |_| true)
 }
