@@ -102,6 +102,39 @@ pub enum Seat {
 impl Seat {
     /// Seats in the order of dealing
     pub const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
+
+    /// The partner of the seat
+    #[must_use] 
+    pub const fn partner(self) -> Self {
+        match self {
+            Self::North => Self::South,
+            Self::East => Self::West,
+            Self::South => Self::North,
+            Self::West => Self::East,
+        }
+    }
+
+    /// The opponent on the left of the seat
+    #[must_use] 
+    pub const fn lho(self) -> Self {
+        match self {
+            Self::North => Self::East,
+            Self::East => Self::South,
+            Self::South => Self::West,
+            Self::West => Self::North,
+        }
+    }
+
+    /// The opponent on the right of the seat
+    #[must_use] 
+    pub const fn rho(self) -> Self {
+        match self {
+            Self::North => Self::West,
+            Self::East => Self::North,
+            Self::South => Self::East,
+            Self::West => Self::South,
+        }
+    }
 }
 
 const _: () = assert!(Seat::ALL[0] as u8 == 0);
