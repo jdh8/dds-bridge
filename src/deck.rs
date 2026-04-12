@@ -128,9 +128,9 @@ impl Deck {
         Ok(())
     }
 
-    /// Collect all cards in the deck into a hand.
+    /// Drain the remaining cards in the deck into a hand.
     #[must_use]
-    pub fn collect(&mut self) -> Hand {
+    pub fn drain(&mut self) -> Hand {
         let hand = force_collect(&self.cards[..self.len]);
         self.len = 0;
         hand
@@ -212,7 +212,7 @@ pub fn fill_n_filtered_deals(
         fill(&mut deal[shortest.partner()]);
         fill(&mut deal[shortest.rho()]);
 
-        deal[shortest] |= deck.collect();
+        deal[shortest] |= deck.drain();
         deal
     })
     .filter(filter)
