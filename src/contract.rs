@@ -204,7 +204,7 @@ impl From<Bid> for Call {
 #[repr(u8)]
 pub enum Penalty {
     /// No penalty
-    None,
+    Undoubled,
     /// Penalty by [`Call::Double`]
     Doubled,
     /// Penalty by [`Call::Redouble`]
@@ -214,7 +214,7 @@ pub enum Penalty {
 impl fmt::Display for Penalty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::None => Ok(()),
+            Self::Undoubled => Ok(()),
             Self::Doubled => f.write_char('x'),
             Self::Redoubled => f.write_str("xx"),
         }
@@ -237,7 +237,7 @@ impl From<Bid> for Contract {
     fn from(bid: Bid) -> Self {
         Self {
             bid,
-            penalty: Penalty::None,
+            penalty: Penalty::Undoubled,
         }
     }
 }
@@ -298,14 +298,14 @@ impl Contract {
             };
 
             let per_trick = match self.penalty {
-                Penalty::None => self.bid.strain.is_minor() as i32 * -10 + 30,
+                Penalty::Undoubled => self.bid.strain.is_minor() as i32 * -10 + 30,
                 penalty => penalty as i32 * if vulnerable { 200 } else { 100 },
             };
 
             base + game + slam + doubled + overtricks * per_trick
         } else {
             match self.penalty {
-                Penalty::None => overtricks * if vulnerable { 100 } else { 50 },
+                Penalty::Undoubled => overtricks * if vulnerable { 100 } else { 50 },
                 penalty => penalty as i32 * -compute_doubled_penalty(-overtricks, vulnerable),
             }
         }

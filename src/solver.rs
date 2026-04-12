@@ -474,7 +474,7 @@ impl From<sys::parResultsMaster> for Par {
                     (Penalty::Doubled, -((contract.underTricks & 0xFF) as i8))
                 } else {
                     assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
-                    (Penalty::None, (contract.overTricks & 0xFF) as i8)
+                    (Penalty::Undoubled, (contract.overTricks & 0xFF) as i8)
                 };
 
                 assert_eq!(contract.level, contract.level & 7);

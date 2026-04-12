@@ -41,7 +41,7 @@ fn solve_four_13_card_straight_flushes() {
                     Ok(b) => b,
                     Err(_) => panic!(),
                 },
-                penalty: Penalty::None,
+                penalty: Penalty::Undoubled,
             },
             Seat::East,
             0,
@@ -52,7 +52,7 @@ fn solve_four_13_card_straight_flushes() {
                     Ok(b) => b,
                     Err(_) => panic!(),
                 },
-                penalty: Penalty::None,
+                penalty: Penalty::Undoubled,
             },
             Seat::West,
             0,
@@ -136,7 +136,7 @@ fn solve_everyone_makes_1nt() {
             Ok(b) => b,
             Err(_) => panic!(),
         },
-        penalty: Penalty::None,
+        penalty: Penalty::Undoubled,
     };
     assert_eq!(
         Solver::new()

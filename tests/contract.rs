@@ -20,7 +20,7 @@ const H: Strain = Strain::Hearts;
 const S: Strain = Strain::Spades;
 const N: Strain = Strain::Notrump;
 
-const P: Penalty = Penalty::None;
+const P: Penalty = Penalty::Undoubled;
 const X: Penalty = Penalty::Doubled;
 const XX: Penalty = Penalty::Redoubled;
 
@@ -49,7 +49,7 @@ const _: () = {
     const fn test_set_contract(bid: Bid) {
         let undoubled = Contract {
             bid,
-            penalty: Penalty::None,
+            penalty: Penalty::Undoubled,
         };
         let mut tricks = 0;
 
