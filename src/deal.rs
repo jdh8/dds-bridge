@@ -88,7 +88,6 @@ impl TryFrom<Strain> for Suit {
 
 /// Position at the table
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[repr(u8)]
 pub enum Seat {
     /// Dealer of Board 1, partner of [`Seat::South`]
     North,
@@ -105,16 +104,21 @@ impl Seat {
     pub const ALL: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
 }
 
-impl ops::Add<Wrapping<u8>> for Seat {
+const _: () = assert!(Seat::ALL[0] as u8 == 0);
+const _: () = assert!(Seat::ALL[1] as u8 == 1);
+const _: () = assert!(Seat::ALL[2] as u8 == 2);
+const _: () = assert!(Seat::ALL[3] as u8 == 3);
+
+impl ops::Add<Wrapping<usize>> for Seat {
     type Output = Self;
 
     #[inline]
-    fn add(self, rhs: Wrapping<u8>) -> Self {
-        unsafe { core::mem::transmute((Wrapping(self as u8) + rhs).0 & 3) }
+    fn add(self, rhs: Wrapping<usize>) -> Self {
+        Self::ALL[(Wrapping(self as usize) + rhs).0 & 3]
     }
 }
 
-impl ops::Add<Seat> for Wrapping<u8> {
+impl ops::Add<Seat> for Wrapping<usize> {
     type Output = Seat;
 
     #[inline]
@@ -123,35 +127,35 @@ impl ops::Add<Seat> for Wrapping<u8> {
     }
 }
 
-impl ops::AddAssign<Wrapping<u8>> for Seat {
+impl ops::AddAssign<Wrapping<usize>> for Seat {
     #[inline]
-    fn add_assign(&mut self, rhs: Wrapping<u8>) {
+    fn add_assign(&mut self, rhs: Wrapping<usize>) {
         *self = *self + rhs;
     }
 }
 
-impl ops::Sub<Wrapping<u8>> for Seat {
+impl ops::Sub<Wrapping<usize>> for Seat {
     type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: Wrapping<u8>) -> Self {
-        unsafe { core::mem::transmute((Wrapping(self as u8) - rhs).0 & 3) }
+    fn sub(self, rhs: Wrapping<usize>) -> Self {
+        Self::ALL[(Wrapping(self as usize) - rhs).0 & 3]
     }
 }
 
-impl ops::SubAssign<Wrapping<u8>> for Seat {
+impl ops::SubAssign<Wrapping<usize>> for Seat {
     #[inline]
-    fn sub_assign(&mut self, rhs: Wrapping<u8>) {
+    fn sub_assign(&mut self, rhs: Wrapping<usize>) {
         *self = *self - rhs;
     }
 }
 
 impl ops::Sub<Self> for Seat {
-    type Output = Wrapping<u8>;
+    type Output = Wrapping<usize>;
 
     #[inline]
-    fn sub(self, rhs: Self) -> Wrapping<u8> {
-        (Wrapping(self as u8) - Wrapping(rhs as u8)) & Wrapping(3)
+    fn sub(self, rhs: Self) -> Wrapping<usize> {
+        (Wrapping(self as usize) - Wrapping(rhs as usize)) & Wrapping(3)
     }
 }
 
