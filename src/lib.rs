@@ -122,15 +122,6 @@ impl Strain {
         Self::Diamonds,
         Self::Clubs,
     ];
-
-    /// Strains in the order in [`dds_bridge_sys`]
-    pub const SYS: [Self; 5] = [
-        Self::Spades,
-        Self::Hearts,
-        Self::Diamonds,
-        Self::Clubs,
-        Self::Notrump,
-    ];
 }
 
 /// A suit of playing cards
