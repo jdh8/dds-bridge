@@ -156,6 +156,13 @@ impl TryFrom<Hand> for Deck {
 /// - `n`: The number of deals to generate.
 /// - `filter`: A constraint to filter deals.
 ///
+/// # Warning
+///
+/// If the filter is too restrictive or unsatisfiable, this function will loop
+/// indefinitely.  For example, requiring 21--23 HCP and (4441) distribution
+/// simultaneously is rare (1 in ~4750).  The caller is responsible for ensuring
+/// the filter accepts deals at a reasonable rate.
+///
 /// # Errors
 ///
 /// [`Error::Invalid`] if `deal` is invalid determined by
