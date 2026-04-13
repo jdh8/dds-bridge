@@ -7,10 +7,16 @@ use thiserror::Error;
 /// Check optimal memory layout
 const _: () = assert!(core::mem::size_of::<Option<Card>>() == core::mem::size_of::<Card>());
 
-/// Error indicating that the deck is already full and cannot accept more cards.
+/// Error while generating deals
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
-#[error("The deck is already full")]
-pub struct CapacityError;
+pub enum Error {
+    /// The deck is already full and cannot accept more cards.
+    #[error("The deck is already full")]
+    Capacity,
+    /// The deal is not a valid subset of a bridge deal
+    #[error("The deal is not a valid subset of a bridge deal")]
+    Invalid,
+}
 
 /// A subset of the standard 52-card deck
 ///
@@ -102,10 +108,10 @@ impl Deck {
     ///
     /// # Errors
     ///
-    /// Returns an error if the deck already contains 52 cards.
-    pub const fn try_push(&mut self, card: Card) -> Result<(), CapacityError> {
+    /// [`Error::Capacity`] if the deck already contains 52 cards.
+    pub const fn try_push(&mut self, card: Card) -> Result<(), Error> {
         if self.len >= Self::CAPACITY {
-            return Err(CapacityError);
+            return Err(Error::Capacity);
         }
         self.cards[self.len].replace(card);
         self.len += 1;
@@ -116,10 +122,10 @@ impl Deck {
     ///
     /// # Errors
     ///
-    /// Returns an error if the resulting deck would contain more than 52 cards.
-    pub fn try_extend(&mut self, hand: Hand) -> Result<(), CapacityError> {
+    /// [`Error::Capacity`] if the resulting deck would contain more than 52 cards.
+    pub fn try_extend(&mut self, hand: Hand) -> Result<(), Error> {
         if self.len + hand.len() > Self::CAPACITY {
-            return Err(CapacityError);
+            return Err(Error::Capacity);
         }
         for card in hand.iter() {
             self.cards[self.len].replace(card);
@@ -163,18 +169,15 @@ impl Default for Deck {
     }
 }
 
-impl From<Hand> for Deck {
-    fn from(hand: Hand) -> Self {
+impl TryFrom<Hand> for Deck {
+    type Error = Error;
+
+    fn try_from(hand: Hand) -> Result<Self, Self::Error> {
         let mut deck = Self::new();
-        deck.try_extend(hand).expect("Hand exceeds deck capacity");
-        deck
+        deck.try_extend(hand)?;
+        Ok(deck)
     }
 }
-
-/// Error indicating an invalid deal
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-#[error("The deal is not a valid subset of a bridge deal")]
-pub struct InvalidDeal;
 
 /// Given a deal, randomly fill the remaining cards and filter the results.
 ///
@@ -194,8 +197,8 @@ pub fn fill_n_filtered_deals(
     deal: &Deal,
     n: usize,
     filter: impl FnMut(&Deal) -> bool,
-) -> Result<Vec<Deal>, InvalidDeal> {
-    let deck = Deck::from(deal.validate_and_collect().ok_or(InvalidDeal)?);
+) -> Result<Vec<Deal>, Error> {
+    let deck = Deck::try_from(deal.validate_and_collect().ok_or(Error::Invalid)?)?;
 
     #[allow(clippy::missing_panics_doc)]
     let shortest = Seat::ALL
@@ -233,6 +236,6 @@ pub fn fill_n_deals(
     rng: &mut (impl Rng + ?Sized),
     deal: &Deal,
     n: usize,
-) -> Result<Vec<Deal>, InvalidDeal> {
+) -> Result<Vec<Deal>, Error> {
     fill_n_filtered_deals(rng, deal, n, |_| true)
 }
