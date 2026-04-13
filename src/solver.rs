@@ -15,11 +15,6 @@ use thiserror::Error;
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum SystemError {
-    /// Success, no error
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_NO_FAULT) })]
-    #[allow(clippy::cast_possible_wrap)]
-    Success = sys::RETURN_NO_FAULT as i32,
-
     /// A general or unknown error
     #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_UNKNOWN_FAULT) })]
     UnknownFault = sys::RETURN_UNKNOWN_FAULT,
