@@ -490,9 +490,6 @@ impl From<sys::parResultsMaster> for Par {
                 assert_eq!(contract.level, contract.level & 7);
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
-
-                // SAFETY: Already implemented `Error` on `InvalidLevel`
-                #[allow(clippy::unwrap_used)]
                 let contract = Contract {
                     bid: Bid {
                         level: Level::new(contract.level.try_into().unwrap()).unwrap(),
