@@ -723,17 +723,19 @@ static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
 /// multi-threaded, so parallelism is still utilized within each call.
 pub struct Solver(#[allow(dead_code)] parking_lot::MutexGuard<'static, ()>);
 
-impl Default for Solver {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Solver {
-    /// Acquire exclusive access to the DDS solver
+    /// Acquire exclusive access to the DDS solver, blocking until available
     #[must_use]
-    pub fn new() -> Self {
+    pub fn lock() -> Self {
         Self(THREAD_POOL.lock())
+    }
+
+    /// Try to acquire exclusive access to the DDS solver without blocking
+    ///
+    /// Returns `None` if the solver is currently in use.
+    #[must_use]
+    pub fn try_lock() -> Option<Self> {
+        THREAD_POOL.try_lock().map(Self)
     }
 
     /// Solve a single deal with [`sys::CalcDDtable`]

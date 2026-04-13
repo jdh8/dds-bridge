@@ -29,7 +29,7 @@ fn analyze_deals(n: usize) -> Result<(), solver::SystemError> {
         .take(n)
         .collect();
 
-    let histogram = solver::Solver::new()
+    let histogram = solver::Solver::lock()
         .solve_deals(&deals, solver::StrainFlags::NOTRUMP)?
         .into_iter()
         .map(|table| table[Strain::Notrump])
