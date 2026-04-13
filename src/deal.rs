@@ -3,7 +3,6 @@ use core::fmt::{self, Write as _};
 use core::num::NonZero;
 use core::ops;
 use core::str::FromStr;
-use std::sync::LazyLock;
 use thiserror::Error;
 
 /// Position at the table
@@ -328,7 +327,7 @@ impl Holding {
 
     /// Insert a rank into the holding, returning whether it was newly inserted
     #[inline]
-    pub fn insert(&mut self, rank: Rank) -> bool {
+    pub const fn insert(&mut self, rank: Rank) -> bool {
         let insertion = 1 << rank.get() & Self::ALL.0;
         let inserted = insertion & !self.0 != 0;
         self.0 |= insertion;
@@ -337,7 +336,7 @@ impl Holding {
 
     /// Remove a rank from the holding, returning whether it was present
     #[inline]
-    pub fn remove(&mut self, rank: Rank) -> bool {
+    pub const fn remove(&mut self, rank: Rank) -> bool {
         let removed = self.contains(rank);
         self.0 &= !(1 << rank.get());
         removed
@@ -345,7 +344,7 @@ impl Holding {
 
     /// Toggle a rank in the holding, returning whether it is now present
     #[inline]
-    pub fn toggle(&mut self, rank: Rank) -> bool {
+    pub const fn toggle(&mut self, rank: Rank) -> bool {
         self.0 ^= 1 << rank.get() & Self::ALL.0;
         self.contains(rank)
     }
@@ -537,51 +536,56 @@ impl FromStr for Holding {
     type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-            regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
-                .case_insensitive(true)
-                .build()
-                .unwrap()
-        });
-
-        // 13 cards + 1 ten
-        if s.len() > 13 + 1 {
+        // 13 cards + 1 extra char for "10"
+        if s.len() > 14 {
             return Err(ParseHandError::TooManyCards);
         }
 
-        let Some((_, [explicit, spots])) = RE.captures(s).map(|x| x.extract()) else {
-            return Err(ParseHandError::InvalidHolding);
-        };
+        let bytes = s.as_bytes();
+        let mut i = 0;
+        let mut prev_rank: u8 = 15;
+        let mut explicit = Self::EMPTY;
 
-        let explicit = explicit.bytes().try_fold(Self::EMPTY, |mut holding, c| {
-            let rank = match c.to_ascii_uppercase() {
-                b'1' => return Ok(holding),
-                b'2' => 2,
-                b'3' => 3,
-                b'4' => 4,
-                b'5' => 5,
-                b'6' => 6,
-                b'7' => 7,
-                b'8' => 8,
-                b'9' => 9,
-                b'T' | b'0' => 10,
-                b'J' => 11,
-                b'Q' => 12,
-                b'K' => 13,
+        while i < bytes.len() {
+            let c = bytes[i].to_ascii_uppercase();
+            let rank: u8 = match c {
                 b'A' => 14,
-                _ => unreachable!("Invalid ranks should have been caught by the regex"),
+                b'K' => 13,
+                b'Q' => 12,
+                b'J' => 11,
+                b'T' => 10,
+                b'1' => {
+                    if bytes.get(i + 1) != Some(&b'0') {
+                        return Err(ParseHandError::InvalidHolding);
+                    }
+                    i += 1;
+                    10
+                }
+                b'2'..=b'9' => c - b'0',
+                b'X' => break,
+                _ => return Err(ParseHandError::InvalidHolding),
             };
 
-            // SAFETY: rank is in 2..=14 by construction above
-            let rank = Rank(unsafe { core::num::NonZero::new_unchecked(rank) });
-            if holding.insert(rank) {
-                Ok(holding)
-            } else {
-                Err(ParseHandError::RepeatedRank)
+            if rank >= prev_rank {
+                return Err(ParseHandError::InvalidHolding);
             }
-        })?;
+            prev_rank = rank;
 
-        let spots = Self::from_bits_truncate((4 << spots.len()) - 4);
+            // SAFETY: rank is in 2..=14 by construction above
+            let r = Rank(unsafe { core::num::NonZero::new_unchecked(rank) });
+            explicit.insert(r);
+            i += 1;
+        }
+
+        let spot_count = bytes.len() - i;
+        if bytes[i..].iter().any(|&b| !b.eq_ignore_ascii_case(&b'x')) {
+            return Err(ParseHandError::InvalidHolding);
+        }
+        if spot_count > 13 {
+            return Err(ParseHandError::TooManyCards);
+        }
+
+        let spots = Self::from_bits_truncate((4u16 << spot_count) - 4);
 
         if explicit & spots == Self::EMPTY {
             Ok(explicit | spots)
@@ -940,26 +944,21 @@ impl FromStr for Deal {
     type Err = ParseHandError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static DEALER: LazyLock<regex::Regex> = LazyLock::new(|| {
-            regex::RegexBuilder::new(r"^[NESW]:\s*")
-                .case_insensitive(true)
-                .build()
-                .unwrap()
-        });
+        let bytes = s.as_bytes();
 
-        let Some(tag) = DEALER.find(s) else {
+        let dealer = match bytes.first().map(u8::to_ascii_uppercase) {
+            Some(b'N') => Seat::North,
+            Some(b'E') => Seat::East,
+            Some(b'S') => Seat::South,
+            Some(b'W') => Seat::West,
+            _ => return Err(ParseHandError::InvalidDealer),
+        };
+
+        if bytes.get(1) != Some(&b':') {
             return Err(ParseHandError::InvalidDealer);
-        };
+        }
 
-        let dealer = match s.as_bytes()[0].to_ascii_uppercase() {
-            b'N' => Seat::North,
-            b'E' => Seat::East,
-            b'S' => Seat::South,
-            b'W' => Seat::West,
-            _ => unreachable!("Invalid dealer should have been caught by the regex"),
-        };
-
-        let hands: Result<Vec<_>, _> = s[tag.end()..]
+        let hands: Result<Vec<_>, _> = s[2..]
             .split_whitespace()
             .map(Hand::from_str)
             .collect();
