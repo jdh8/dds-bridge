@@ -444,8 +444,16 @@ pub struct Par {
     pub contracts: Vec<ParContract>,
 }
 
-impl PartialEq for Par {
-    fn eq(&self, other: &Self) -> bool {
+impl Par {
+    /// Check if two pars are equivalent
+    ///
+    /// Two pars are equivalent if they
+    /// 
+    /// - have the same par score, and
+    /// - have the same set of strains and declarers in their contracts,
+    ///   ignoring overtricks and duplicates.
+    #[must_use] 
+    pub fn equivalent(&self, other: &Self) -> bool {
         // Since every contract scores the same, we can compare only the set of
         // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
         // a `u32` as a bitset.
@@ -458,8 +466,6 @@ impl PartialEq for Par {
         self.score == other.score && key(&self.contracts) == key(&other.contracts)
     }
 }
-
-impl Eq for Par {}
 
 impl From<sys::parResultsMaster> for Par {
     fn from(par: sys::parResultsMaster) -> Self {

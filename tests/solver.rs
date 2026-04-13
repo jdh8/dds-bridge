@@ -55,10 +55,9 @@ fn solve_four_13_card_straight_flushes() {
         contracts: CONTRACTS.to_vec(),
     };
     assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
-    assert_eq!(
-        calculate_pars(SOLUTION, Vulnerability::all()).unwrap(),
-        [ns, ew]
-    );
+    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    assert!(pars[0].equivalent(&ns));
+    assert!(pars[1].equivalent(&ew));
 }
 
 /// Defenders can cash 8 tricks in every strain.
@@ -83,10 +82,9 @@ fn solve_par_5_tricks() {
         contracts: Vec::new(),
     };
     assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
-    assert_eq!(
-        calculate_pars(SOLUTION, Vulnerability::all()).unwrap(),
-        [PAR; 2]
-    );
+    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    assert!(pars[0].equivalent(&PAR));
+    assert!(pars[1].equivalent(&PAR));
 }
 
 /// A symmetric deal where everyone makes 1NT but no suit contract
@@ -114,7 +112,6 @@ fn solve_everyone_makes_1nt() {
         penalty: Penalty::Undoubled,
     };
     assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
-
     let ns = Par {
         score: 90,
         contracts: vec![
@@ -145,8 +142,7 @@ fn solve_everyone_makes_1nt() {
             },
         ],
     };
-    assert_eq!(
-        calculate_pars(SOLUTION, Vulnerability::all()).unwrap(),
-        [ns, ew]
-    );
+    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    assert!(pars[0].equivalent(&ns));
+    assert!(pars[1].equivalent(&ew));
 }
