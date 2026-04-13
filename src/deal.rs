@@ -163,27 +163,28 @@ impl Rank {
     /// Ten
     pub const T: Self = Self(NonZero::new(10).unwrap());
 
-    /// Spot cards, from 2 to 9
-    pub const SPOTS: ((), (), Self, Self, Self, Self, Self, Self, Self, Self) = (
-        (),
-        (),
-        Self(NonZero::new(2).unwrap()),
-        Self(NonZero::new(3).unwrap()),
-        Self(NonZero::new(4).unwrap()),
-        Self(NonZero::new(5).unwrap()),
-        Self(NonZero::new(6).unwrap()),
-        Self(NonZero::new(7).unwrap()),
-        Self(NonZero::new(8).unwrap()),
-        Self(NonZero::new(9).unwrap()),
-    );
-
     /// Create a rank from a number
+    ///
+    /// # Panics
+    ///
+    /// When the rank is not in `2..=14`.  In const contexts, this is a
+    /// compile-time error.
+    #[must_use]
+    #[inline]
+    pub const fn new(rank: u8) -> Self {
+        match Self::try_new(rank) {
+            Ok(r) => r,
+            Err(_) => panic!("rank must be in 2..=14"),
+        }
+    }
+
+    /// Try to create a rank from a number
     ///
     /// # Errors
     ///
     /// When the rank is not in `2..=14`.
     #[inline]
-    pub const fn new(rank: u8) -> Result<Self, InvalidRank> {
+    pub const fn try_new(rank: u8) -> Result<Self, InvalidRank> {
         match NonZero::new(rank) {
             Some(nonzero) if rank >= 2 && rank <= 14 => Ok(Self(nonzero)),
             _ => Err(InvalidRank(rank)),
@@ -198,8 +199,8 @@ impl Rank {
     }
 }
 
-const _: () = assert!(Rank::SPOTS.2.get() == 2);
-const _: () = assert!(Rank::SPOTS.9.get() == 9);
+const _: () = assert!(Rank::new(2).get() == 2);
+const _: () = assert!(Rank::new(9).get() == 9);
 
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -210,21 +211,7 @@ impl Card {
     #[must_use]
     #[inline]
     pub const fn new(suit: Suit, rank: Rank) -> Self {
-        unsafe { Self::new_unchecked(suit, rank.get()) }
-    }
-
-    /// Create a card from suit and rank without checking the validity of the rank
-    ///
-    /// The rank is a number from 2 to 14.  J, Q, K, A are encoded as 11, 12,
-    /// 13, 14 respectively.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that the rank is in `2..=14` to avoid creating an invalid card.
-    #[must_use]
-    #[inline]
-    pub const unsafe fn new_unchecked(suit: Suit, rank: u8) -> Self {
-        Self(unsafe { NonZero::new_unchecked((rank << 2) | suit as u8) })
+        Self(unsafe { NonZero::new_unchecked(rank.get() << 2 | suit as u8) })
     }
 
     /// The suit of the card

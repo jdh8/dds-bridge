@@ -1,5 +1,5 @@
 use crate::contract::{Bid, Contract, Level, Penalty};
-use crate::deal::{Card, Deal, Holding, Seat};
+use crate::deal::{Card, Deal, Holding, Rank, Seat};
 use crate::{Strain, Suit};
 use core::ffi::c_int;
 use core::fmt;
@@ -691,12 +691,10 @@ impl From<sys::futureTricks> for FoundPlays {
                 let score = (future.score[i] & 0xFF) as i8;
 
                 *play = Some(Play {
-                    card: unsafe {
-                        Card::new_unchecked(
-                            Suit::DESC[future.suit[i] as usize],
-                            (future.rank[i] & 0xFF) as u8,
-                        )
-                    },
+                    card: Card::new(
+                        Suit::DESC[future.suit[i] as usize],
+                        Rank::new((future.rank[i] & 0xFF) as u8),
+                    ),
                     equals,
                     score,
                 });
