@@ -651,6 +651,77 @@ impl FromStr for Holding {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hand([Holding; 4]);
 
+/// Iterator over the cards in a [`Hand`], yielding [`Card`]s in descending
+/// suit order and descending rank order within each suit
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HandIter {
+    suits: [HoldingIter; 4],
+    fwd: u8,
+    bwd: u8,
+}
+
+impl Iterator for HandIter {
+    type Item = Card;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.fwd > 3 {
+                return None;
+            }
+            let suit = Suit::ASC[self.fwd as usize];
+            if let Some(rank) = self.suits[self.fwd as usize].next() {
+                return Some(Card::new(suit, rank));
+            }
+            if self.fwd == self.bwd {
+                self.fwd = 4;
+                return None;
+            }
+            self.fwd -= 1;
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let count = self.len();
+        (count, Some(count))
+    }
+
+    fn count(self) -> usize {
+        self.len()
+    }
+}
+
+impl DoubleEndedIterator for HandIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.fwd > 3 {
+                return None;
+            }
+            let suit = Suit::ASC[self.bwd as usize];
+            if let Some(rank) = self.suits[self.bwd as usize].next_back() {
+                return Some(Card::new(suit, rank));
+            }
+            if self.fwd == self.bwd {
+                self.fwd = 4;
+                return None;
+            }
+            self.bwd += 1;
+        }
+    }
+}
+
+impl ExactSizeIterator for HandIter {
+    fn len(&self) -> usize {
+        if self.fwd > 3 {
+            return 0;
+        }
+        (self.bwd as usize..=self.fwd as usize)
+            .map(|i| self.suits[i].len())
+            .sum()
+    }
+}
+
+impl FusedIterator for HandIter {}
+
 impl ops::Index<Suit> for Hand {
     type Output = Holding;
 
@@ -767,10 +838,28 @@ impl Hand {
 
     /// Iterate over the cards in the hand
     #[inline]
-    pub fn iter(self) -> impl Iterator<Item = Card> {
-        Suit::ASC
-            .into_iter()
-            .flat_map(move |suit| self[suit].iter().map(move |rank| Card::new(suit, rank)))
+    #[must_use]
+    pub const fn iter(self) -> HandIter {
+        HandIter {
+            suits: [
+                self.0[0].iter(),
+                self.0[1].iter(),
+                self.0[2].iter(),
+                self.0[3].iter(),
+            ],
+            fwd: 3,
+            bwd: 0,
+        }
+    }
+}
+
+impl IntoIterator for Hand {
+    type Item = Card;
+    type IntoIter = HandIter;
+
+    #[inline]
+    fn into_iter(self) -> HandIter {
+        self.iter()
     }
 }
 

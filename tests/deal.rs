@@ -85,11 +85,12 @@ fn test_iter_spot_cards() {
     const XX: Holding = Holding::from_bits_truncate(0b1001 << 5);
     const HAND: Hand = Hand::new(XXX, Holding::EMPTY, XX, Holding::EMPTY);
     let mut iter = HAND.iter();
+    assert_eq!(iter.len(), 5);
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(8))));
+    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(5))));
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(6))));
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(4))));
     assert_eq!(iter.next(), Some(Card::new(Suit::Clubs, Rank::new(2))));
-    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(8))));
-    assert_eq!(iter.next(), Some(Card::new(Suit::Hearts, Rank::new(5))));
     assert_eq!(iter.next(), None);
 }
 
