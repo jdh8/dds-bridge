@@ -177,7 +177,6 @@ impl fmt::Display for Suit {
 }
 
 impl From<Suit> for Strain {
-    #[inline]
     fn from(suit: Suit) -> Self {
         match suit {
             Suit::Clubs => Self::Clubs,
@@ -196,7 +195,6 @@ pub struct SuitFromNotrumpError;
 impl TryFrom<Strain> for Suit {
     type Error = SuitFromNotrumpError;
 
-    #[inline]
     fn try_from(strain: Strain) -> Result<Self, Self::Error> {
         match strain {
             Strain::Clubs => Ok(Self::Clubs),

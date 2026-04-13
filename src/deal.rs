@@ -129,7 +129,6 @@ impl SeatFlags {
 }
 
 impl From<Seat> for SeatFlags {
-    #[inline]
     fn from(seat: Seat) -> Self {
         match seat {
             Seat::North => Self::NORTH,
@@ -445,7 +444,6 @@ impl IntoIterator for Holding {
     type Item = Rank;
     type IntoIter = HoldingIter;
 
-    #[inline]
     fn into_iter(self) -> HoldingIter {
         self.iter()
     }
@@ -454,7 +452,6 @@ impl IntoIterator for Holding {
 impl ops::BitAnd for Holding {
     type Output = Self;
 
-    #[inline]
     fn bitand(self, rhs: Self) -> Self {
         Self(self.0 & rhs.0)
     }
@@ -463,7 +460,6 @@ impl ops::BitAnd for Holding {
 impl ops::BitOr for Holding {
     type Output = Self;
 
-    #[inline]
     fn bitor(self, rhs: Self) -> Self {
         Self(self.0 | rhs.0)
     }
@@ -472,7 +468,6 @@ impl ops::BitOr for Holding {
 impl ops::BitXor for Holding {
     type Output = Self;
 
-    #[inline]
     fn bitxor(self, rhs: Self) -> Self {
         Self(self.0 ^ rhs.0)
     }
@@ -481,7 +476,6 @@ impl ops::BitXor for Holding {
 impl ops::Not for Holding {
     type Output = Self;
 
-    #[inline]
     fn not(self) -> Self {
         Self::from_bits_truncate(!self.0)
     }
@@ -490,35 +484,30 @@ impl ops::Not for Holding {
 impl ops::Sub for Holding {
     type Output = Self;
 
-    #[inline]
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 & !rhs.0)
     }
 }
 
 impl ops::BitAndAssign for Holding {
-    #[inline]
     fn bitand_assign(&mut self, rhs: Self) {
         *self = *self & rhs;
     }
 }
 
 impl ops::BitOrAssign for Holding {
-    #[inline]
     fn bitor_assign(&mut self, rhs: Self) {
         *self = *self | rhs;
     }
 }
 
 impl ops::BitXorAssign for Holding {
-    #[inline]
     fn bitxor_assign(&mut self, rhs: Self) {
         *self = *self ^ rhs;
     }
 }
 
 impl ops::SubAssign for Holding {
-    #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }

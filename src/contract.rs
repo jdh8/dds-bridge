@@ -113,7 +113,6 @@ impl fmt::Display for Contract {
 }
 
 impl From<Bid> for Contract {
-    #[inline]
     fn from(bid: Bid) -> Self {
         Self {
             bid,
@@ -122,7 +121,6 @@ impl From<Bid> for Contract {
     }
 }
 
-#[inline]
 const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
     match undertricks + vulnerable as i32 {
         1 => 100,
