@@ -97,35 +97,15 @@ impl Bid {
     }
 }
 
-/// Any legal announcement in the bidding stage
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Call {
-    /// A call indicating no wish to change the contract
-    Pass,
-    /// A call increasing penalties and bonuses for the contract
-    Double,
-    /// A call doubling the score to the previous double
-    Redouble,
-    /// A call proposing a contract
-    Bid(Bid),
-}
-
-impl From<Bid> for Call {
-    #[inline]
-    fn from(bid: Bid) -> Self {
-        Self::Bid(bid)
-    }
-}
-
 /// Penalty inflicted on a contract
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Penalty {
     /// No penalty
     Undoubled,
-    /// Penalty by [`Call::Double`]
+    /// Penalty by doubling
     Doubled,
-    /// Penalty by [`Call::Redouble`]
+    /// Penalty by redoubling
     Redoubled,
 }
 

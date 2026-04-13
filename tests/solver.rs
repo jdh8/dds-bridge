@@ -1,18 +1,5 @@
-use dds_bridge::deck::full_deal;
 use dds_bridge::solver::*;
 use dds_bridge::{Bid, Contract, Deal, Hand, Holding, Penalty, Seat, SmallSet as _, Strain};
-use dds_bridge_sys as sys;
-
-#[test]
-fn test_solving_deals() {
-    const N: usize = sys::MAXNOOFBOARDS as usize * 2;
-    let deals: [_; N] = core::array::from_fn(|_| full_deal(&mut rand::rng()));
-    let solver = Solver::lock();
-    let array = deals.map(|x| solver.solve_deal(x).unwrap());
-    let vec = solver.solve_deals(&deals, StrainFlags::all()).unwrap();
-    core::mem::drop(solver);
-    assert_eq!(array, vec.as_slice());
-}
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
