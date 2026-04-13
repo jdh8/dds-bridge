@@ -1,10 +1,7 @@
 use dds_bridge::{Bid, Contract, Penalty, Strain};
 
 const fn bid(level: u8, strain: Strain) -> Bid {
-    match Bid::new(level, strain) {
-        Ok(b) => b,
-        Err(_) => panic!("Invalid bid level"),
-    }
+    Bid::new(level, strain)
 }
 
 const fn contract(level: u8, strain: Strain, penalty: Penalty) -> Contract {

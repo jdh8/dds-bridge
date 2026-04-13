@@ -20,11 +20,26 @@ pub struct Level(NonZero<u8>);
 impl Level {
     /// Create a level from a number of tricks
     ///
+    /// # Panics
+    ///
+    /// When the level is not in `1..=7`.  In const contexts, this is a
+    /// compile-time error.
+    #[must_use]
+    #[inline]
+    pub const fn new(level: u8) -> Self {
+        match Self::try_new(level) {
+            Ok(l) => l,
+            Err(_) => panic!("level must be in 1..=7"),
+        }
+    }
+
+    /// Try to create a level from a number of tricks
+    ///
     /// # Errors
     ///
     /// When the level is not in `1..=7`.
     #[inline]
-    pub const fn new(level: u8) -> Result<Self, InvalidLevel> {
+    pub const fn try_new(level: u8) -> Result<Self, InvalidLevel> {
         match NonZero::new(level) {
             Some(nonzero) if level <= 7 => Ok(Self(nonzero)),
             _ => Err(InvalidLevel(level)),
@@ -55,12 +70,27 @@ pub struct Bid {
 impl Bid {
     /// Create a bid from level and strain
     ///
+    /// # Panics
+    ///
+    /// When the level is not in `1..=7`.  In const contexts, this is a
+    /// compile-time error.
+    #[must_use]
+    #[inline]
+    pub const fn new(level: u8, strain: Strain) -> Self {
+        Self {
+            level: Level::new(level),
+            strain,
+        }
+    }
+
+    /// Try to create a bid from level and strain
+    ///
     /// # Errors
     ///
     /// When the level is not in `1..=7`.
     #[inline]
-    pub const fn new(level: u8, strain: Strain) -> Result<Self, InvalidLevel> {
-        match Level::new(level) {
+    pub const fn try_new(level: u8, strain: Strain) -> Result<Self, InvalidLevel> {
+        match Level::try_new(level) {
             Ok(level) => Ok(Self { level, strain }),
             Err(e) => Err(e),
         }

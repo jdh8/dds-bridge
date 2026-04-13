@@ -33,10 +33,7 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 0, 0, 0),
     ]);
     const CONTRACT: Contract = Contract {
-        bid: match Bid::new(7, Strain::Spades) {
-            Ok(b) => b,
-            Err(_) => panic!(),
-        },
+        bid: Bid::new(7, Strain::Spades),
         penalty: Penalty::Undoubled,
     };
     const CONTRACTS: [ParContract; 2] = [
@@ -115,10 +112,7 @@ fn solve_everyone_makes_1nt() {
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract {
-        bid: match Bid::new(1, Strain::Notrump) {
-            Ok(b) => b,
-            Err(_) => panic!(),
-        },
+        bid: Bid::new(1, Strain::Notrump),
         penalty: Penalty::Undoubled,
     };
     assert_eq!(Solver::new().solve_deal(DEAL).unwrap(), SOLUTION);

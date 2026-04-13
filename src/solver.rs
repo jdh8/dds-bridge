@@ -492,7 +492,7 @@ impl From<sys::parResultsMaster> for Par {
                 let is_pair = contract.seats >= 4;
                 let contract = Contract {
                     bid: Bid {
-                        level: Level::new(contract.level.try_into().unwrap()).unwrap(),
+                        level: Level::new(contract.level.try_into().unwrap()),
                         strain,
                     },
                     penalty,
