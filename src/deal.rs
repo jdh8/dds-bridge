@@ -150,7 +150,7 @@ pub struct InvalidRank(u8);
 
 /// The rank of a card, from 2 to 14, where J, Q, K, A are internally denoted as
 /// 11, 12, 13, 14 respectively.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rank(NonZero<u8>);
 
 impl Rank {
