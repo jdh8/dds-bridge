@@ -260,7 +260,7 @@ impl fmt::Display for Card {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
 
-/// Iterator over the ranks in a [`Holding`], yielding [`Rank`]s in ascending order
+/// Iterator over the ranks in a [`Holding`], yielding [`Rank`]s in descending order
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HoldingIter {
     rest: u16,
@@ -275,17 +275,15 @@ impl Iterator for HoldingIter {
             return None;
         }
 
-        // 1. Trailing zeros are in the range of 0..=15, which fits in `u8``
-        // 2. Trailing zeros cannot be 15 since the bitset is from a `Holding`
+        // For non-zero u16, leading_zeros is in 0..=15, fitting in u8.
+        // Bit 15 is never set in a valid Holding (max rank is 14), so pos <= 14.
         #[allow(clippy::cast_possible_truncation)]
-        let step = self.rest.trailing_zeros() as u8 + 1;
-        self.rest >>= step;
-        self.cursor += step;
+        let pos = 15 - self.rest.leading_zeros() as u8;
+        self.rest &= !(1u16 << pos);
+        let rank = self.cursor + pos;
 
-        // SAFETY: cursor is in 2..=14 by construction from a valid Holding
-        Some(Rank(unsafe {
-            core::num::NonZero::new_unchecked(self.cursor - 1)
-        }))
+        // SAFETY: rank is in 2..=14 by construction from a valid Holding
+        Some(Rank(unsafe { core::num::NonZero::new_unchecked(rank) }))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -304,15 +302,17 @@ impl DoubleEndedIterator for HoldingIter {
             return None;
         }
 
-        // For non-zero u16, leading_zeros is in 0..=15, fitting in u8.
-        // Bit 15 is never set in a valid Holding (max rank is 14), so pos <= 14.
+        // 1. Trailing zeros are in the range of 0..=15, which fits in `u8`
+        // 2. Trailing zeros cannot be 15 since the bitset is from a `Holding`
         #[allow(clippy::cast_possible_truncation)]
-        let pos = 15 - self.rest.leading_zeros() as u8;
-        self.rest &= !(1u16 << pos);
-        let rank = self.cursor + pos;
+        let step = self.rest.trailing_zeros() as u8 + 1;
+        self.rest >>= step;
+        self.cursor += step;
 
-        // SAFETY: rank is in 2..=14 by construction from a valid Holding
-        Some(Rank(unsafe { core::num::NonZero::new_unchecked(rank) }))
+        // SAFETY: cursor is in 2..=14 by construction from a valid Holding
+        Some(Rank(unsafe {
+            core::num::NonZero::new_unchecked(self.cursor - 1)
+        }))
     }
 }
 
