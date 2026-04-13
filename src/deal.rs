@@ -570,7 +570,7 @@ impl FromStr for Holding {
             regex::RegexBuilder::new("^(A?K?Q?J?(?:T|10)?9?8?7?6?5?4?3?2?)(x*)$")
                 .case_insensitive(true)
                 .build()
-                .expect("Invalid regex")
+                .unwrap()
         });
 
         // 13 cards + 1 ten
@@ -947,7 +947,7 @@ impl FromStr for Deal {
             regex::RegexBuilder::new(r"^[NESW]:\s*")
                 .case_insensitive(true)
                 .build()
-                .expect("Invalid regex")
+                .unwrap()
         });
 
         let Some(tag) = DEALER.find(s) else {
