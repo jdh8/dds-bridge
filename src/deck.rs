@@ -190,7 +190,7 @@ impl TryFrom<Hand> for Deck {
 ///
 /// # Errors
 ///
-/// [`InvalidDeal`] if `deal` is invalid determined by
+/// [`Error::Invalid`] if `deal` is invalid determined by
 /// [`Deal::validate_and_collect`].
 pub fn fill_n_filtered_deals(
     rng: &mut (impl Rng + ?Sized),
@@ -230,7 +230,7 @@ pub fn fill_n_filtered_deals(
 ///
 /// # Errors
 ///
-/// [`InvalidDeal`] if `deal` is invalid determined by
+/// [`Error::Invalid`] if `deal` is invalid determined by
 /// [`Deal::validate_and_collect`].
 pub fn fill_n_deals(
     rng: &mut (impl Rng + ?Sized),
