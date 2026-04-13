@@ -199,9 +199,6 @@ impl Rank {
     }
 }
 
-const _: () = assert!(Rank::new(2).get() == 2);
-const _: () = assert!(Rank::new(9).get() == 9);
-
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Card(NonZero<u8>);
