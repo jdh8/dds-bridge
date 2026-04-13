@@ -1,6 +1,7 @@
 use crate::contract::{Bid, Contract, Level, Penalty};
 use crate::deal::{Card, Deal, Holding, Rank, Seat};
 use crate::{Strain, Suit};
+use arrayvec::ArrayVec;
 use core::ffi::c_int;
 use core::fmt;
 use core::ops::BitOr as _;
@@ -611,14 +612,14 @@ impl Target {
 }
 
 /// A snapshot of a board
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
     /// The strain of the contract
     pub trump: Strain,
     /// The player leading the trick
     pub lead: Seat,
     /// The played cards in the current trick
-    pub current_cards: [Option<Card>; 3],
+    pub current_cards: ArrayVec<Card, 3>,
     /// The remaining cards in the deal
     pub deal: Deal,
 }
@@ -628,7 +629,7 @@ impl From<Board> for sys::deal {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
 
-        for (i, card) in board.current_cards.into_iter().flatten().enumerate() {
+        for (i, card) in board.current_cards.into_iter().enumerate() {
             suits[i] = 3 - card.suit() as c_int;
             ranks[i] = c_int::from(card.rank().get());
         }
@@ -670,10 +671,10 @@ pub struct Play {
 }
 
 /// Solved plays for a board
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundPlays {
     /// The plays and their consequences
-    pub plays: [Option<Play>; 13],
+    pub plays: ArrayVec<Play, 13>,
     /// The number of nodes searched by the solver
     pub nodes: u32,
 }
@@ -681,24 +682,21 @@ pub struct FoundPlays {
 impl From<sys::futureTricks> for FoundPlays {
     #[allow(clippy::cast_sign_loss)]
     fn from(future: sys::futureTricks) -> Self {
-        let mut plays = [None; 13];
-        plays
-            .iter_mut()
-            .enumerate()
-            .take(future.cards as usize)
-            .for_each(|(i, play)| {
-                let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
-                let score = (future.score[i] & 0xFF) as i8;
+        let mut plays = ArrayVec::new();
 
-                *play = Some(Play {
-                    card: Card::new(
-                        Suit::DESC[future.suit[i] as usize],
-                        Rank::new((future.rank[i] & 0xFF) as u8),
-                    ),
-                    equals,
-                    score,
-                });
+        for i in 0..future.cards as usize {
+            let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
+            let score = (future.score[i] & 0xFF) as i8;
+
+            plays.push(Play {
+                card: Card::new(
+                    Suit::DESC[future.suit[i] as usize],
+                    Rank::new((future.rank[i] & 0xFF) as u8),
+                ),
+                equals,
+                score,
             });
+        }
 
         Self {
             plays,
@@ -867,8 +865,8 @@ impl Solver {
             noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
             ..Default::default()
         };
-        args.iter().enumerate().for_each(|(i, &(board, target))| {
-            pack.deals[i] = board.into();
+        args.iter().enumerate().for_each(|(i, (board, target))| {
+            pack.deals[i] = board.clone().into();
             pack.target[i] = target.target();
             pack.solutions[i] = target.solutions();
         });

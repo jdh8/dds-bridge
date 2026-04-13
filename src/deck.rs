@@ -1,21 +1,25 @@
 use crate::Suit;
 use crate::deal::{Card, Deal, Hand, Rank, Seat, SmallSet as _};
+use arrayvec::{ArrayVec, CapacityError};
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
-
-/// Check optimal memory layout
-const _: () = assert!(core::mem::size_of::<Option<Card>>() == core::mem::size_of::<Card>());
 
 /// Error while generating deals
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
     /// The deck is already full and cannot accept more cards.
-    #[error("The deck is already full")]
-    Capacity,
+    #[error("{0}")]
+    Capacity(CapacityError<Card>),
     /// The deal is not a valid subset of a bridge deal
     #[error("The deal is not a valid subset of a bridge deal")]
     Invalid,
+}
+
+impl From<CapacityError<Card>> for Error {
+    fn from(value: CapacityError<Card>) -> Self {
+        Self::Capacity(value)
+    }
 }
 
 /// A subset of the standard 52-card deck
@@ -24,31 +28,27 @@ pub enum Error {
 /// it is deterministic to collect all cards.
 #[derive(Debug, Clone)]
 pub struct Deck {
-    /// The first `len` cards must be `Some`
-    cards: [Option<Card>; Self::CAPACITY],
-    /// The number of cards currently in the deck
-    len: usize,
+    cards: ArrayVec<Card, 52>,
 }
 
-fn force_collect(cards: &[Option<Card>]) -> Hand {
+fn collect_hand(cards: &[Card]) -> Hand {
     let mut hand = Hand::EMPTY;
-
     for &card in cards {
-        hand.insert(card.expect("Invalid card in the deck"));
+        hand.insert(card);
     }
     hand
 }
 
 /// Shuffle and evenly deal 52 cards into 4 hands
 pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
-    let mut deck = Deck::ALL.cards;
+    let mut deck = Deck::standard_52().cards;
     let (shuffled, rest) = deck.partial_shuffle(rng, 39);
 
     Deal::new(
-        force_collect(rest),
-        force_collect(&shuffled[00..13]),
-        force_collect(&shuffled[13..26]),
-        force_collect(&shuffled[26..39]),
+        collect_hand(rest),
+        collect_hand(&shuffled[00..13]),
+        collect_hand(&shuffled[13..26]),
+        collect_hand(&shuffled[26..39]),
     )
 }
 
@@ -56,78 +56,62 @@ impl Deck {
     /// The maximum number of cards in a deck
     pub const CAPACITY: usize = 52;
 
-    /// The empty deck
-    pub const EMPTY: Self = Self {
-        cards: [None; Self::CAPACITY],
-        len: 0,
-    };
-
     /// The standard 52-card deck
-    pub const ALL: Self = {
-        let mut cards = [None; Self::CAPACITY];
-        let mut i = 0;
-
-        while (i as usize) < Self::CAPACITY {
-            let index = i as usize;
-            let rank = Rank::new((i >> 2) + 2);
-            cards[index].replace(Card::new(Suit::ASC[index & 3], rank));
-            i += 1;
+    #[must_use]
+    pub fn standard_52() -> Self {
+        let mut cards = ArrayVec::new();
+        for i in 0..Self::CAPACITY {
+            // SAFETY: `i` < `Self::CAPACITY` = 52, so `(i >> 2) as u8 + 2` is
+            // in the range [2, 14], which is valid for `Rank`.
+            #[allow(clippy::cast_possible_truncation)]
+            let rank = Rank::new((i >> 2) as u8 + 2);
+            cards.push(Card::new(Suit::ASC[i & 3], rank));
         }
-        Self {
-            cards,
-            len: Self::CAPACITY,
-        }
-    };
+        Self { cards }
+    }
 
     /// Create a new empty deck
     #[must_use]
     pub const fn new() -> Self {
-        Self::EMPTY
+        Self {
+            cards: ArrayVec::new_const(),
+        }
     }
 
     /// The number of cards currently in the deck
     #[must_use]
     pub const fn len(&self) -> usize {
-        self.len
+        self.cards.len()
     }
 
     /// Whether the deck is empty
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.len == 0
+        self.cards.is_empty()
     }
 
     /// Clear the deck, removing all the cards.
-    pub const fn clear(&mut self) {
-        self.len = 0;
+    pub fn clear(&mut self) {
+        self.cards.clear();
     }
 
     /// Try pushing a card into the deck
     ///
     /// # Errors
     ///
-    /// [`Error::Capacity`] if the deck already contains 52 cards.
-    pub const fn try_push(&mut self, card: Card) -> Result<(), Error> {
-        if self.len >= Self::CAPACITY {
-            return Err(Error::Capacity);
-        }
-        self.cards[self.len].replace(card);
-        self.len += 1;
-        Ok(())
+    /// [`CapacityError`] if the deck already contains 52 cards.
+    pub fn try_push(&mut self, card: Card) -> Result<(), CapacityError<Card>> {
+        self.cards.try_push(card)
     }
 
     /// Try pushing cards in a hand into the deck
     ///
     /// # Errors
     ///
-    /// [`Error::Capacity`] if the resulting deck would contain more than 52 cards.
-    pub fn try_extend(&mut self, hand: Hand) -> Result<(), Error> {
-        if self.len + hand.len() > Self::CAPACITY {
-            return Err(Error::Capacity);
-        }
+    /// [`CapacityError`] if the resulting deck would contain more than 52 cards.
+    pub fn try_extend(&mut self, hand: Hand) -> Result<(), CapacityError<Card>> {
         for card in hand.iter() {
-            self.cards[self.len].replace(card);
-            self.len += 1;
+            self.cards.try_push(card)?;
         }
         Ok(())
     }
@@ -135,29 +119,30 @@ impl Deck {
     /// Drain the remaining cards in the deck into a hand.
     #[must_use]
     pub fn drain(&mut self) -> Hand {
-        let hand = force_collect(&self.cards[..self.len]);
-        self.len = 0;
+        let hand = collect_hand(&self.cards);
+        self.cards.clear();
         hand
     }
 
     /// Randomly pick `n` cards from the deck and collect them into a hand.
     #[must_use]
     pub fn partial_shuffle(&mut self, rng: &mut (impl Rng + ?Sized), n: usize) -> Hand {
-        let hand = force_collect(self.cards[..self.len].partial_shuffle(rng, n).0);
-        self.len -= n;
+        let len = self.cards.len();
+        self.cards.partial_shuffle(rng, n);
+        let hand = collect_hand(&self.cards[len - n..]);
+        self.cards.truncate(len - n);
         hand
     }
 
     /// Randomly pop a card from the deck
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub fn pop(&mut self, rng: &mut (impl Rng + ?Sized)) -> Option<Card> {
-        (self.len > 0).then(|| {
-            let index = rng.random_range(0..self.len);
-            self.len -= 1;
-            self.cards.swap(index, self.len);
-            self.cards[self.len].expect("Invalid card in the deck")
-        })
+        if !self.cards.is_empty() {
+            let last = self.cards.len() - 1;
+            let index = rng.random_range(0..=last);
+            self.cards.swap(index, last);
+        }
+        self.cards.pop()
     }
 }
 
@@ -168,7 +153,7 @@ impl Default for Deck {
 }
 
 impl TryFrom<Hand> for Deck {
-    type Error = Error;
+    type Error = CapacityError<Card>;
 
     fn try_from(hand: Hand) -> Result<Self, Self::Error> {
         let mut deck = Self::new();
