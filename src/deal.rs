@@ -1,5 +1,6 @@
 use crate::Suit;
 use core::fmt::{self, Write as _};
+use core::iter::FusedIterator;
 use core::num::NonZero;
 use core::ops;
 use core::str::FromStr;
@@ -296,6 +297,32 @@ impl Iterator for HoldingIter {
         self.rest.count_ones() as usize
     }
 }
+
+impl DoubleEndedIterator for HoldingIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.rest == 0 {
+            return None;
+        }
+
+        // For non-zero u16, leading_zeros is in 0..=15, fitting in u8.
+        // Bit 15 is never set in a valid Holding (max rank is 14), so pos <= 14.
+        #[allow(clippy::cast_possible_truncation)]
+        let pos = 15 - self.rest.leading_zeros() as u8;
+        self.rest &= !(1u16 << pos);
+        let rank = self.cursor + pos;
+
+        // SAFETY: rank is in 2..=14 by construction from a valid Holding
+        Some(Rank(unsafe { core::num::NonZero::new_unchecked(rank) }))
+    }
+}
+
+impl ExactSizeIterator for HoldingIter {
+    fn len(&self) -> usize {
+        self.rest.count_ones() as usize
+    }
+}
+
+impl FusedIterator for HoldingIter {}
 
 impl Holding {
     /// The empty set

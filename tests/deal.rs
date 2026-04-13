@@ -61,9 +61,21 @@ fn test_not() {
 fn test_iter_aqt() {
     const AQT: Holding = Holding::from_bits_truncate(0b10101 << 10);
     let mut iter = AQT.iter();
+    assert_eq!(iter.len(), 3);
     assert_eq!(iter.next(), Some(Rank::T));
     assert_eq!(iter.next(), Some(Rank::Q));
     assert_eq!(iter.next(), Some(Rank::A));
+    assert_eq!(iter.next(), None);
+}
+
+#[test]
+fn test_iter_aqt_rev() {
+    const AQT: Holding = Holding::from_bits_truncate(0b10101 << 10);
+    let mut iter = AQT.iter().rev();
+    assert_eq!(iter.len(), 3);
+    assert_eq!(iter.next(), Some(Rank::A));
+    assert_eq!(iter.next(), Some(Rank::Q));
+    assert_eq!(iter.next(), Some(Rank::T));
     assert_eq!(iter.next(), None);
 }
 
