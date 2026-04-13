@@ -148,17 +148,34 @@ pub struct InvalidRank(u8);
 pub struct Rank(NonZero<u8>);
 
 impl Rank {
-    /// Jack
-    pub const J: Self = Self(NonZero::new(11).unwrap());
-
-    /// Queen
-    pub const Q: Self = Self(NonZero::new(12).unwrap());
+    /// Ace
+    pub const A: Self = Self(NonZero::new(14).unwrap());
 
     /// King
     pub const K: Self = Self(NonZero::new(13).unwrap());
 
-    /// Ace
-    pub const A: Self = Self(NonZero::new(14).unwrap());
+    /// Queen
+    pub const Q: Self = Self(NonZero::new(12).unwrap());
+
+    /// Jack
+    pub const J: Self = Self(NonZero::new(11).unwrap());
+
+    /// Ten
+    pub const T: Self = Self(NonZero::new(10).unwrap());
+
+    /// Spot cards, from 2 to 9
+    pub const SPOTS: ((), (), Self, Self, Self, Self, Self, Self, Self, Self) = (
+        (),
+        (),
+        Self(NonZero::new(2).unwrap()),
+        Self(NonZero::new(3).unwrap()),
+        Self(NonZero::new(4).unwrap()),
+        Self(NonZero::new(5).unwrap()),
+        Self(NonZero::new(6).unwrap()),
+        Self(NonZero::new(7).unwrap()),
+        Self(NonZero::new(8).unwrap()),
+        Self(NonZero::new(9).unwrap()),
+    );
 
     /// Create a rank from a number
     ///
@@ -180,6 +197,9 @@ impl Rank {
         self.0.get()
     }
 }
+
+const _: () = assert!(Rank::SPOTS.2.get() == 2);
+const _: () = assert!(Rank::SPOTS.9.get() == 9);
 
 /// A playing card
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -293,7 +313,7 @@ struct HoldingIter {
 }
 
 impl Iterator for HoldingIter {
-    type Item = u8;
+    type Item = Rank;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -306,7 +326,10 @@ impl Iterator for HoldingIter {
         let step = self.rest.trailing_zeros() as u8 + 1;
         self.rest >>= step;
         self.cursor += step;
-        Some(self.cursor - 1)
+        // SAFETY: cursor is in 2..=14 by construction from a valid Holding
+        Some(Rank(unsafe {
+            core::num::NonZero::new_unchecked(self.cursor - 1)
+        }))
     }
 
     #[inline]
@@ -322,7 +345,7 @@ impl Iterator for HoldingIter {
 }
 
 impl SmallSet for Holding {
-    type Item = u8;
+    type Item = Rank;
 
     const EMPTY: Self = Self(0);
     const ALL: Self = Self(0x7FFC);
@@ -333,40 +356,40 @@ impl SmallSet for Holding {
     }
 
     #[inline]
-    fn contains(self, rank: u8) -> bool {
-        self.0 & 1 << rank != 0
+    fn contains(self, rank: Rank) -> bool {
+        self.0 & 1 << rank.get() != 0
     }
 
     #[inline]
-    fn insert(&mut self, rank: u8) -> bool {
-        let insertion = 1 << rank & Self::ALL.0;
+    fn insert(&mut self, rank: Rank) -> bool {
+        let insertion = 1 << rank.get() & Self::ALL.0;
         let inserted = insertion & !self.0 != 0;
         self.0 |= insertion;
         inserted
     }
 
     #[inline]
-    fn remove(&mut self, rank: u8) -> bool {
+    fn remove(&mut self, rank: Rank) -> bool {
         let removed = self.contains(rank);
-        self.0 &= !(1 << rank);
+        self.0 &= !(1 << rank.get());
         removed
     }
 
     #[inline]
-    fn toggle(&mut self, rank: u8) -> bool {
-        self.0 ^= 1 << rank & Self::ALL.0;
+    fn toggle(&mut self, rank: Rank) -> bool {
+        self.0 ^= 1 << rank.get() & Self::ALL.0;
         self.contains(rank)
     }
 
     #[inline]
-    fn set(&mut self, rank: u8, condition: bool) {
-        let flag = 1 << rank;
+    fn set(&mut self, rank: Rank, condition: bool) {
+        let flag = 1 << rank.get();
         let mask = u16::from(condition).wrapping_neg();
         self.0 = (self.0 & !flag) | (mask & flag);
     }
 
     #[inline]
-    fn iter(self) -> impl Iterator<Item = u8> {
+    fn iter(self) -> impl Iterator<Item = Rank> {
         HoldingIter {
             rest: self.0,
             cursor: 0,
@@ -417,8 +440,8 @@ impl Holding {
     /// Create a holding from a rank
     #[must_use]
     #[inline]
-    pub const fn from_rank(rank: u8) -> Self {
-        Self(1 << rank)
+    pub const fn from_rank(rank: Rank) -> Self {
+        Self(1 << rank.get())
     }
 }
 
@@ -502,8 +525,8 @@ impl ops::SubAssign for Holding {
 ///    If you want to pad or align the output, use [`fmt::Formatter::pad`].
 impl fmt::Display for Holding {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for rank in (2..15).rev() {
-            if self.contains(rank) {
+        for rank in (2u8..15).rev() {
+            if self.0 & 1 << rank != 0 {
                 f.write_char(b"23456789TJQKA"[rank as usize - 2] as char)?;
             }
         }
@@ -578,6 +601,8 @@ impl FromStr for Holding {
                 _ => unreachable!("Invalid ranks should have been caught by the regex"),
             };
 
+            // SAFETY: rank is in 2..=14 by construction above
+            let rank = Rank(unsafe { core::num::NonZero::new_unchecked(rank) });
             if holding.insert(rank) {
                 Ok(holding)
             } else {
@@ -676,36 +701,34 @@ impl SmallSet for Hand {
 
     #[inline]
     fn contains(self, card: Card) -> bool {
-        self[card.suit()].contains(card.rank().get())
+        self[card.suit()].contains(card.rank())
     }
 
     #[inline]
     fn insert(&mut self, card: Card) -> bool {
-        self[card.suit()].insert(card.rank().get())
+        self[card.suit()].insert(card.rank())
     }
 
     #[inline]
     fn remove(&mut self, card: Card) -> bool {
-        self[card.suit()].remove(card.rank().get())
+        self[card.suit()].remove(card.rank())
     }
 
     #[inline]
     fn toggle(&mut self, card: Card) -> bool {
-        self[card.suit()].toggle(card.rank().get())
+        self[card.suit()].toggle(card.rank())
     }
 
     #[inline]
     fn set(&mut self, card: Card, condition: bool) {
-        self[card.suit()].set(card.rank().get(), condition);
+        self[card.suit()].set(card.rank(), condition);
     }
 
     #[inline]
     fn iter(self) -> impl Iterator<Item = Card> {
-        Suit::ASC.into_iter().flat_map(move |suit| {
-            self[suit]
-                .iter()
-                .map(move |rank| unsafe { Card::new_unchecked(suit, rank) })
-        })
+        Suit::ASC
+            .into_iter()
+            .flat_map(move |suit| self[suit].iter().map(move |rank| Card::new(suit, rank)))
     }
 }
 
