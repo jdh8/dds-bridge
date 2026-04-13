@@ -1,4 +1,4 @@
-use dds_bridge::deal::ParseHandError;
+use dds_bridge::deal::{ParseDealError, ParseHandError, ParseHoldingError};
 use dds_bridge::*;
 
 const _: () = {
@@ -82,8 +82,8 @@ fn test_iter_spot_cards() {
 }
 
 #[test]
-fn test_holding_parser() -> Result<(), ParseHandError> {
-    type Err = ParseHandError;
+fn test_holding_parser() -> Result<(), ParseHoldingError> {
+    type Err = ParseHoldingError;
     const AQT: Holding = Holding::from_bits_truncate(0b10101 << 10);
     const KJ32: Holding = Holding::from_bits_truncate(0b0101 << 11 | 0b11 << 2);
     const KJ2: Holding = Holding::from_bits_truncate(0b0101 << 11 | 0b1 << 2);
@@ -93,8 +93,8 @@ fn test_holding_parser() -> Result<(), ParseHandError> {
 
     assert!(matches!("AQT".parse()?, AQT));
     assert!(matches!("AQ10".parse()?, AQT));
-    assert!(matches!("ATQ".parse::<Holding>(), Err(Err::InvalidHolding)));
-    assert!(matches!("KxJ".parse::<Holding>(), Err(Err::InvalidHolding)));
+    assert!(matches!("ATQ".parse::<Holding>(), Err(Err::InvalidRanks)));
+    assert!(matches!("KxJ".parse::<Holding>(), Err(Err::InvalidRanks)));
 
     assert!(matches!("KJ2".parse()?, KJ2));
     assert!(matches!("KJx".parse()?, KJ2));
@@ -108,7 +108,7 @@ fn test_holding_parser() -> Result<(), ParseHandError> {
 }
 
 #[test]
-fn test_holding_io() -> Result<(), ParseHandError> {
+fn test_holding_io() -> Result<(), ParseHoldingError> {
     (0..1 << 13).try_for_each(|bits| {
         let holding = Holding::from_bits_truncate(bits << 2);
         assert_eq!(holding, holding.to_string().parse()?);
@@ -155,7 +155,7 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
 }
 
 #[test]
-fn test_deal_parser() -> Result<(), ParseHandError> {
+fn test_deal_parser() -> Result<(), ParseDealError> {
     let west: Hand = "KQT2.AT.J6542.85".parse()?;
     let east: Hand = "A8654.KQ5.T.QJT6".parse()?;
 

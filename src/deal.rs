@@ -259,8 +259,9 @@ impl fmt::Display for Card {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);
 
+/// Iterator over the ranks in a [`Holding`], yielding [`Rank`]s in ascending order
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct HoldingIter {
+pub struct HoldingIter {
     rest: u16,
     cursor: u8,
 }
@@ -268,30 +269,29 @@ struct HoldingIter {
 impl Iterator for HoldingIter {
     type Item = Rank;
 
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.rest == 0 {
             return None;
         }
+
         // 1. Trailing zeros are in the range of 0..=15, which fits in `u8``
         // 2. Trailing zeros cannot be 15 since the bitset is from a `Holding`
         #[allow(clippy::cast_possible_truncation)]
         let step = self.rest.trailing_zeros() as u8 + 1;
         self.rest >>= step;
         self.cursor += step;
+
         // SAFETY: cursor is in 2..=14 by construction from a valid Holding
         Some(Rank(unsafe {
             core::num::NonZero::new_unchecked(self.cursor - 1)
         }))
     }
 
-    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let count = self.rest.count_ones() as usize;
         (count, Some(count))
     }
 
-    #[inline]
     fn count(self) -> usize {
         self.rest.count_ones() as usize
     }
@@ -359,15 +359,14 @@ impl Holding {
 
     /// Iterate over the ranks in the holding
     #[inline]
-    pub fn iter(self) -> impl Iterator<Item = Rank> {
+    #[must_use]
+    pub const fn iter(self) -> HoldingIter {
         HoldingIter {
             rest: self.0,
             cursor: 0,
         }
     }
-}
 
-impl Holding {
     /// As a bitset of ranks
     #[must_use]
     #[inline]
@@ -412,6 +411,16 @@ impl Holding {
     #[inline]
     pub const fn from_rank(rank: Rank) -> Self {
         Self(1 << rank.get())
+    }
+}
+
+impl IntoIterator for Holding {
+    type Item = Rank;
+    type IntoIter = HoldingIter;
+
+    #[inline]
+    fn into_iter(self) -> HoldingIter {
+        self.iter()
     }
 }
 
@@ -504,12 +513,12 @@ impl fmt::Display for Holding {
     }
 }
 
-/// An error which can be returned when parsing a [`Holding`], a [`Hand`], or a [`Deal`]
+/// An error which can be returned when parsing a [`Holding`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ParseHandError {
+pub enum ParseHoldingError {
     /// Ranks are not all valid or in descending order
     #[error("Ranks are not all valid or in descending order")]
-    InvalidHolding,
+    InvalidRanks,
 
     /// The same rank appears more than once
     #[error("The same rank appears more than once")]
@@ -518,14 +527,30 @@ pub enum ParseHandError {
     /// A suit contains more than 13 cards
     #[error("A suit contains more than 13 cards")]
     TooManyCards,
+}
+
+/// An error which can be returned when parsing a [`Hand`]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParseHandError {
+    /// Error in a holding
+    #[error(transparent)]
+    Holding(#[from] ParseHoldingError),
 
     /// The hand does not contain 4 suits
     #[error("The hand does not contain 4 suits")]
     NotFourSuits,
+}
 
-    /// Invalid dealer tag for a deal
+/// An error which can be returned when parsing a [`Deal`]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParseDealError {
+    /// Invalid dealer tag
     #[error("Invalid dealer tag for a deal")]
     InvalidDealer,
+
+    /// Error in a hand
+    #[error(transparent)]
+    Hand(#[from] ParseHandError),
 
     /// The deal does not contain 4 hands
     #[error("The deal does not contain 4 hands")]
@@ -533,12 +558,12 @@ pub enum ParseHandError {
 }
 
 impl FromStr for Holding {
-    type Err = ParseHandError;
+    type Err = ParseHoldingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // 13 cards + 1 extra char for "10"
         if s.len() > 14 {
-            return Err(ParseHandError::TooManyCards);
+            return Err(ParseHoldingError::TooManyCards);
         }
 
         let bytes = s.as_bytes();
@@ -556,18 +581,18 @@ impl FromStr for Holding {
                 b'T' => 10,
                 b'1' => {
                     if bytes.get(i + 1) != Some(&b'0') {
-                        return Err(ParseHandError::InvalidHolding);
+                        return Err(ParseHoldingError::InvalidRanks);
                     }
                     i += 1;
                     10
                 }
                 b'2'..=b'9' => c - b'0',
                 b'X' => break,
-                _ => return Err(ParseHandError::InvalidHolding),
+                _ => return Err(ParseHoldingError::InvalidRanks),
             };
 
             if rank >= prev_rank {
-                return Err(ParseHandError::InvalidHolding);
+                return Err(ParseHoldingError::InvalidRanks);
             }
             prev_rank = rank;
 
@@ -579,10 +604,10 @@ impl FromStr for Holding {
 
         let spot_count = bytes.len() - i;
         if bytes[i..].iter().any(|&b| !b.eq_ignore_ascii_case(&b'x')) {
-            return Err(ParseHandError::InvalidHolding);
+            return Err(ParseHoldingError::InvalidRanks);
         }
         if spot_count > 13 {
-            return Err(ParseHandError::TooManyCards);
+            return Err(ParseHoldingError::TooManyCards);
         }
 
         let spots = Self::from_bits_truncate((4u16 << spot_count) - 4);
@@ -590,7 +615,7 @@ impl FromStr for Holding {
         if explicit & spots == Self::EMPTY {
             Ok(explicit | spots)
         } else {
-            Err(ParseHandError::RepeatedRank)
+            Err(ParseHoldingError::RepeatedRank)
         }
     }
 }
@@ -661,9 +686,7 @@ impl Hand {
     pub const fn new(clubs: Holding, diamonds: Holding, hearts: Holding, spades: Holding) -> Self {
         Self([clubs, diamonds, hearts, spades])
     }
-}
 
-impl Hand {
     /// The empty hand
     pub const EMPTY: Self = Self([Holding::EMPTY; 4]);
 
@@ -761,7 +784,7 @@ impl FromStr for Hand {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // 52 cards + 4 tens + 3 dots
         if s.len() > 52 + 4 + 3 {
-            return Err(ParseHandError::TooManyCards);
+            return Err(ParseHoldingError::TooManyCards.into());
         }
 
         if s == "-" {
@@ -941,7 +964,7 @@ impl Deal {
 }
 
 impl FromStr for Deal {
-    type Err = ParseHandError;
+    type Err = ParseDealError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bytes = s.as_bytes();
@@ -951,22 +974,19 @@ impl FromStr for Deal {
             Some(b'E') => Seat::East,
             Some(b'S') => Seat::South,
             Some(b'W') => Seat::West,
-            _ => return Err(ParseHandError::InvalidDealer),
+            _ => return Err(ParseDealError::InvalidDealer),
         };
 
         if bytes.get(1) != Some(&b':') {
-            return Err(ParseHandError::InvalidDealer);
+            return Err(ParseDealError::InvalidDealer);
         }
 
-        let hands: Result<Vec<_>, _> = s[2..]
-            .split_whitespace()
-            .map(Hand::from_str)
-            .collect();
+        let hands: Result<Vec<_>, _> = s[2..].split_whitespace().map(Hand::from_str).collect();
 
         let mut deal = Self(
             hands?
                 .try_into()
-                .map_err(|_| ParseHandError::NotFourHands)?,
+                .map_err(|_| ParseDealError::NotFourHands)?,
         );
         deal.0.rotate_right(dealer as usize);
         Ok(deal)
