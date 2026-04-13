@@ -55,6 +55,18 @@ impl Seat {
             Self::West => Self::South,
         }
     }
+
+    /// Display character for this seat
+    #[must_use]
+    #[inline]
+    pub const fn letter(self) -> char {
+        match self {
+            Self::North => 'N',
+            Self::East => 'E',
+            Self::South => 'S',
+            Self::West => 'W',
+        }
+    }
 }
 
 const _: () = assert!(Seat::ALL[0] as u8 == 0);
@@ -62,21 +74,9 @@ const _: () = assert!(Seat::ALL[1] as u8 == 1);
 const _: () = assert!(Seat::ALL[2] as u8 == 2);
 const _: () = assert!(Seat::ALL[3] as u8 == 3);
 
-impl From<Seat> for char {
-    #[inline]
-    fn from(seat: Seat) -> Self {
-        match seat {
-            Seat::North => 'N',
-            Seat::East => 'E',
-            Seat::South => 'S',
-            Seat::West => 'W',
-        }
-    }
-}
-
 impl fmt::Display for Seat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_char(char::from(*self))
+        f.write_char(self.letter())
     }
 }
 
@@ -1060,7 +1060,7 @@ impl Deal {
         }
         impl fmt::Display for DisplayAt {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.write_char(char::from(self.seat))?;
+                f.write_char(self.seat.letter())?;
                 f.write_char(':')?;
 
                 self.deal[self.seat].fmt(f)?;
