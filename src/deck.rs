@@ -1,6 +1,7 @@
 use crate::Suit;
 use crate::deal::{Card, Deal, Hand, Rank, Seat, SmallSet as _};
 use arrayvec::{ArrayVec, CapacityError};
+use core::iter::FusedIterator;
 use rand::prelude::SliceRandom as _;
 use rand::{Rng, RngExt as _};
 use thiserror::Error;
@@ -29,19 +30,6 @@ impl From<CapacityError<Card>> for Error {
 #[derive(Debug, Clone)]
 pub struct Deck {
     cards: ArrayVec<Card, 52>,
-}
-
-/// Shuffle and evenly deal 52 cards into 4 hands
-pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
-    let mut deck = Deck::standard_52().cards;
-    let (shuffled, rest) = deck.partial_shuffle(rng, 39);
-
-    Deal::new(
-        rest.iter().copied().collect(),
-        shuffled[00..13].iter().copied().collect(),
-        shuffled[13..26].iter().copied().collect(),
-        shuffled[26..39].iter().copied().collect(),
-    )
 }
 
 impl Deck {
@@ -147,70 +135,72 @@ impl TryFrom<Hand> for Deck {
     }
 }
 
-/// Given a deal, randomly fill the remaining cards and filter the results.
-///
-/// The filter is applied before collecting the results, so the resulting vector
-/// still has `n` deals.
-///
-/// - `deal`: The initial deal with some cards already assigned.
-/// - `n`: The number of deals to generate.
-/// - `filter`: A constraint to filter deals.
-///
-/// # Warning
-///
-/// If the filter is too restrictive or unsatisfiable, this function will loop
-/// indefinitely.  For example, requiring 21--23 HCP and (4441) distribution
-/// simultaneously is rare (1 in ~4750).  The caller is responsible for ensuring
-/// the filter accepts deals at a reasonable rate.
-///
-/// # Errors
-///
-/// [`Error::Invalid`] if `deal` is invalid determined by
-/// [`Deal::validate_and_collect`].
-pub fn fill_n_filtered_deals(
-    rng: &mut (impl Rng + ?Sized),
-    deal: &Deal,
-    n: usize,
-    filter: impl FnMut(&Deal) -> bool,
-) -> Result<Vec<Deal>, Error> {
-    let deck = Deck::try_from(deal.validate_and_collect().ok_or(Error::Invalid)?)?;
+/// Shuffle and evenly deal 52 cards into 4 hands
+pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
+    let mut deck = Deck::standard_52().cards;
+    let (shuffled, rest) = deck.partial_shuffle(rng, 39);
 
-    #[allow(clippy::missing_panics_doc)]
-    let shortest = Seat::ALL
-        .into_iter()
-        .min_by_key(|&seat| deal[seat].len())
-        .expect("Seat::ALL shall not be empty");
-
-    Ok(core::iter::repeat_with(|| {
-        let mut deck = deck.clone();
-        let mut deal = *deal;
-        let mut fill = |hand: &mut Hand| *hand |= deck.partial_shuffle(rng, 13 - hand.len());
-
-        fill(&mut deal[shortest.lho()]);
-        fill(&mut deal[shortest.partner()]);
-        fill(&mut deal[shortest.rho()]);
-
-        deal[shortest] |= deck.drain();
-        deal
-    })
-    .filter(filter)
-    .take(n)
-    .collect())
+    Deal::new(
+        rest.iter().copied().collect(),
+        shuffled[00..13].iter().copied().collect(),
+        shuffled[13..26].iter().copied().collect(),
+        shuffled[26..39].iter().copied().collect(),
+    )
 }
 
-/// Given existing cards in a deal, randomly fill the remaining cards.
+/// An infinite iterator that fills undealt cards randomly into a partial deal.
 ///
-/// - `deal`: The initial deal with some cards already assigned.
-/// - `n`: The number of deals to generate.
+/// Created by [`fill_deals`].
+#[derive(Debug)]
+pub struct FillDeals<'a, R: Rng + ?Sized> {
+    rng: &'a mut R,
+    deal: Deal,
+    deck: Deck,
+
+    /// The seat with the fewest cards in the initial deal.  This seat will be
+    /// filled last to save entropy.
+    shortest: Seat,
+}
+
+impl<R: Rng + ?Sized> Iterator for FillDeals<'_, R> {
+    type Item = Deal;
+
+    fn next(&mut self) -> Option<Deal> {
+        let mut deck = self.deck.clone();
+        let mut deal = self.deal;
+        let mut fill = |hand: &mut Hand| *hand |= deck.partial_shuffle(self.rng, 13 - hand.len());
+
+        fill(&mut deal[self.shortest.lho()]);
+        fill(&mut deal[self.shortest.partner()]);
+        fill(&mut deal[self.shortest.rho()]);
+
+        deal[self.shortest] |= deck.drain();
+        Some(deal)
+    }
+}
+
+impl<R: Rng + ?Sized> FusedIterator for FillDeals<'_, R> {}
+
+/// Given a partial deal, return an iterator that fills in the remaining cards
+/// randomly on each iteration.
 ///
 /// # Errors
 ///
 /// [`Error::Invalid`] if `deal` is invalid determined by
 /// [`Deal::validate_and_collect`].
-pub fn fill_n_deals(
-    rng: &mut (impl Rng + ?Sized),
+pub fn fill_deals<'a, R: Rng + ?Sized>(
+    rng: &'a mut R,
     deal: &Deal,
-    n: usize,
-) -> Result<Vec<Deal>, Error> {
-    fill_n_filtered_deals(rng, deal, n, |_| true)
+) -> Result<FillDeals<'a, R>, Error> {
+    Ok(FillDeals {
+        rng,
+        deal: *deal,
+        deck: Deck::try_from(deal.validate_and_collect().ok_or(Error::Invalid)?)?,
+
+        #[allow(clippy::missing_panics_doc)]
+        shortest: Seat::ALL
+            .into_iter()
+            .min_by_key(|&seat| deal[seat].len())
+            .expect("Seat::ALL shall not be empty"),
+    })
 }

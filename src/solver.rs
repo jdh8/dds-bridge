@@ -448,11 +448,11 @@ impl Par {
     /// Check if two pars are equivalent
     ///
     /// Two pars are equivalent if they
-    /// 
+    ///
     /// - have the same par score, and
     /// - have the same set of strains and declarers in their contracts,
     ///   ignoring overtricks and duplicates.
-    #[must_use] 
+    #[must_use]
     pub fn equivalent(&self, other: &Self) -> bool {
         // Since every contract scores the same, we can compare only the set of
         // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
