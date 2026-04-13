@@ -716,6 +716,15 @@ impl SmallSet for Hand {
     }
 }
 
+impl FromIterator<Card> for Hand {
+    fn from_iter<I: IntoIterator<Item = Card>>(iter: I) -> Self {
+        iter.into_iter().fold(Self::EMPTY, |mut hand, card| {
+            hand.insert(card);
+            hand
+        })
+    }
+}
+
 /// PBN-compatible display of a hand
 ///
 /// This implementation ignores formatting flags for simplicity and speed.

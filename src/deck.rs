@@ -31,24 +31,16 @@ pub struct Deck {
     cards: ArrayVec<Card, 52>,
 }
 
-fn collect_hand(cards: &[Card]) -> Hand {
-    let mut hand = Hand::EMPTY;
-    for &card in cards {
-        hand.insert(card);
-    }
-    hand
-}
-
 /// Shuffle and evenly deal 52 cards into 4 hands
 pub fn full_deal(rng: &mut (impl Rng + ?Sized)) -> Deal {
     let mut deck = Deck::standard_52().cards;
     let (shuffled, rest) = deck.partial_shuffle(rng, 39);
 
     Deal::new(
-        collect_hand(rest),
-        collect_hand(&shuffled[00..13]),
-        collect_hand(&shuffled[13..26]),
-        collect_hand(&shuffled[26..39]),
+        rest.iter().copied().collect(),
+        shuffled[00..13].iter().copied().collect(),
+        shuffled[13..26].iter().copied().collect(),
+        shuffled[26..39].iter().copied().collect(),
     )
 }
 
@@ -119,30 +111,23 @@ impl Deck {
     /// Drain the remaining cards in the deck into a hand.
     #[must_use]
     pub fn drain(&mut self) -> Hand {
-        let hand = collect_hand(&self.cards);
-        self.cards.clear();
-        hand
+        self.cards.drain(..).collect()
     }
 
     /// Randomly pick `n` cards from the deck and collect them into a hand.
     #[must_use]
     pub fn partial_shuffle(&mut self, rng: &mut (impl Rng + ?Sized), n: usize) -> Hand {
-        let len = self.cards.len();
         self.cards.partial_shuffle(rng, n);
-        let hand = collect_hand(&self.cards[len - n..]);
-        self.cards.truncate(len - n);
-        hand
+        self.cards.drain(self.cards.len() - n..).collect()
     }
 
     /// Randomly pop a card from the deck
     #[must_use]
     pub fn pop(&mut self, rng: &mut (impl Rng + ?Sized)) -> Option<Card> {
-        if !self.cards.is_empty() {
-            let last = self.cards.len() - 1;
-            let index = rng.random_range(0..=last);
-            self.cards.swap(index, last);
+        match self.cards.len() {
+            0..=1 => self.cards.pop(),
+            len => self.cards.swap_pop(rng.random_range(0..len)),
         }
-        self.cards.pop()
     }
 }
 
