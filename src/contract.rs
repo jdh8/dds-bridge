@@ -67,33 +67,9 @@ pub struct Bid {
     pub strain: Strain,
 }
 
-impl Bid {
-    /// Create a bid from level and strain
-    ///
-    /// # Panics
-    ///
-    /// When the level is not in `1..=7`.  In const contexts, this is a
-    /// compile-time error.
-    #[must_use]
-    #[inline]
-    pub const fn new(level: u8, strain: Strain) -> Self {
-        Self {
-            level: Level::new(level),
-            strain,
-        }
-    }
-
-    /// Try to create a bid from level and strain
-    ///
-    /// # Errors
-    ///
-    /// When the level is not in `1..=7`.
-    #[inline]
-    pub const fn try_new(level: u8, strain: Strain) -> Result<Self, InvalidLevel> {
-        match Level::try_new(level) {
-            Ok(level) => Ok(Self { level, strain }),
-            Err(e) => Err(e),
-        }
+impl fmt::Display for Bid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.level.get(), self.strain)
     }
 }
 
@@ -128,6 +104,12 @@ pub struct Contract {
     pub bid: Bid,
     /// The penalty inflicted on the contract
     pub penalty: Penalty,
+}
+
+impl fmt::Display for Contract {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.bid, self.penalty)
+    }
 }
 
 impl From<Bid> for Contract {
@@ -170,6 +152,9 @@ impl Contract {
 
     /// Score for this contract given the number of taken tricks and
     /// vulnerability
+    ///
+    /// The `vulnerable` parameter refers to the *declaring* side's
+    /// vulnerability, not the defenders'.
     ///
     /// The score is positive if the declarer makes the contract, and negative
     /// if the declarer fails.

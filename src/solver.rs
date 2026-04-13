@@ -382,7 +382,10 @@ impl Vulnerability {
     #[must_use]
     #[inline]
     pub const fn rotate(self, condition: bool) -> Self {
-        Self::from_bits_truncate((self.bits() * 0x55_u8) >> (condition as u8))
+        // The trick: multiplying by 0x55 duplicates bit 0 into bit 1 (and bit 1
+        // into bit 2, etc.).  Shifting right by 1 when `condition` is true
+        // effectively moves bit 0 → nowhere and bit 1 → bit 0, swapping NS/EW.
+        Self::from_bits_truncate((self.bits() * 0x55) >> (condition as u8))
     }
 }
 
@@ -447,16 +450,21 @@ pub struct Par {
 impl Par {
     /// Check if two pars are equivalent
     ///
-    /// Two pars are equivalent if they
+    /// Two pars are equivalent if they have the same par score and the same
+    /// set of (strain, declarer) pairs.  Overtricks and duplicate entries are
+    /// ignored.
     ///
-    /// - have the same par score, and
-    /// - have the same set of strains and declarers in their contracts,
-    ///   ignoring overtricks and duplicates.
+    /// This is intentionally looser than [`PartialEq`], which compares every
+    /// field exactly.  `equivalent` exists because DDS may report the same
+    /// par result with different overtrick counts or orderings depending on
+    /// the code path (e.g. `DealerParBin` vs `SidesParBin`).  Use `==` when
+    /// you need exact structural equality; use `equivalent` when you only
+    /// care about the strategic meaning of the par result.
     #[must_use]
     pub fn equivalent(&self, other: &Self) -> bool {
         // Since every contract scores the same, we can compare only the set of
-        // (`Strain`, `Seat`).  Also, #`Strain` * #`Seat` is 20, which fits in
-        // a `u32` as a bitset.
+        // (`Strain`, `Seat`).  #`Strain` * #`Seat` = 5 * 4 = 20, which fits
+        // in a `u32` as a bitset.
         fn key(contracts: &[ParContract]) -> u32 {
             contracts
                 .iter()
@@ -627,7 +635,7 @@ pub struct Board {
     /// The played cards in the current trick
     pub current_cards: ArrayVec<Card, 3>,
     /// The remaining cards in the deal
-    pub deal: Deal,
+    pub remaining: Deal,
 }
 
 impl From<Board> for sys::deal {
@@ -651,7 +659,7 @@ impl From<Board> for sys::deal {
             first: board.lead as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
-            remainCards: sys::ddTableDeal::from(board.deal).cards,
+            remainCards: sys::ddTableDeal::from(board.remaining).cards,
         }
     }
 }

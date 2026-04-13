@@ -1,5 +1,5 @@
 use dds_bridge::solver::*;
-use dds_bridge::{Bid, Contract, Deal, Hand, Holding, Penalty, Seat, SmallSet as _, Strain};
+use dds_bridge::{Bid, Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
@@ -18,7 +18,10 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 0, 0, 0),
     ]);
     const CONTRACT: Contract = Contract {
-        bid: Bid::new(7, Strain::Spades),
+        bid: Bid {
+            level: dds_bridge::Level::new(7),
+            strain: Strain::Spades,
+        },
         penalty: Penalty::Undoubled,
     };
     const CONTRACTS: [ParContract; 2] = [
@@ -95,7 +98,10 @@ fn solve_everyone_makes_1nt() {
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract {
-        bid: Bid::new(1, Strain::Notrump),
+        bid: Bid {
+            level: dds_bridge::Level::new(1),
+            strain: Strain::Notrump,
+        },
         penalty: Penalty::Undoubled,
     };
     assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);

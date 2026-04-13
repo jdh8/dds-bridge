@@ -14,7 +14,7 @@ pub mod deal;
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Card, Deal, Hand, Holding, Rank, Seat, SmallSet};
+pub use deal::{Card, Deal, Hand, Holding, Rank, Seat};
 pub use solver::Solver;
 
 /// Denomination, a suit or notrump
@@ -70,23 +70,17 @@ impl Strain {
         matches!(self, Self::Notrump)
     }
 
-    /// Unicode display
+    /// Convert to a [`Suit`], returning `None` for notrump
     #[must_use]
-    pub const fn unicode(self) -> impl fmt::Display {
-        struct Unicode(Strain);
-
-        impl fmt::Display for Unicode {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self.0 {
-                    Strain::Clubs => f.write_char('♣'),
-                    Strain::Diamonds => f.write_char('♦'),
-                    Strain::Hearts => f.write_char('♥'),
-                    Strain::Spades => f.write_char('♠'),
-                    Strain::Notrump => f.write_str("NT"),
-                }
-            }
+    #[inline]
+    pub const fn suit(self) -> Option<Suit> {
+        match self {
+            Self::Clubs => Some(Suit::Clubs),
+            Self::Diamonds => Some(Suit::Diamonds),
+            Self::Hearts => Some(Suit::Hearts),
+            Self::Spades => Some(Suit::Spades),
+            Self::Notrump => None,
         }
-        Unicode(self)
     }
 
     /// Uppercase letter
@@ -101,7 +95,21 @@ impl Strain {
             Self::Notrump => 'N',
         }
     }
+}
 
+impl fmt::Display for Strain {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Clubs => f.write_char('♣'),
+            Self::Diamonds => f.write_char('♦'),
+            Self::Hearts => f.write_char('♥'),
+            Self::Spades => f.write_char('♠'),
+            Self::Notrump => f.write_str("NT"),
+        }
+    }
+}
+
+impl Strain {
     /// Strains in the ascending order, the order in this crate
     pub const ASC: [Self; 5] = [
         Self::Clubs,
@@ -144,18 +152,6 @@ impl Suit {
     /// Suits in the descending order, the order in [`dds_bridge_sys`]
     pub const DESC: [Self; 4] = [Self::Spades, Self::Hearts, Self::Diamonds, Self::Clubs];
 
-    /// Unicode character
-    #[must_use]
-    #[inline]
-    pub const fn unicode(self) -> char {
-        match self {
-            Self::Clubs => '♣',
-            Self::Diamonds => '♦',
-            Self::Hearts => '♥',
-            Self::Spades => '♠',
-        }
-    }
-
     /// Uppercase letter
     #[must_use]
     #[inline]
@@ -166,6 +162,17 @@ impl Suit {
             Self::Hearts => 'H',
             Self::Spades => 'S',
         }
+    }
+}
+
+impl fmt::Display for Suit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char(match self {
+            Self::Clubs => '♣',
+            Self::Diamonds => '♦',
+            Self::Hearts => '♥',
+            Self::Spades => '♠',
+        })
     }
 }
 

@@ -74,6 +74,12 @@ impl From<Seat> for char {
     }
 }
 
+impl fmt::Display for Seat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char(char::from(*self))
+    }
+}
+
 /// Error returned when parsing a [`Seat`] fails
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 #[error("Invalid seat: expected one of N, E, S, W (or full names)")]
@@ -197,9 +203,24 @@ impl Rank {
     pub const fn get(self) -> u8 {
         self.0.get()
     }
+
+    /// Display character for this rank
+    #[must_use]
+    #[inline]
+    pub const fn letter(self) -> char {
+        b"23456789TJQKA"[self.get() as usize - 2] as char
+    }
+}
+
+impl fmt::Display for Rank {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char(self.letter())
+    }
 }
 
 /// A playing card
+///
+/// Internally packed as `(rank << 2) | suit` in a single byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Card(NonZero<u8>);
 
@@ -208,6 +229,7 @@ impl Card {
     #[must_use]
     #[inline]
     pub const fn new(suit: Suit, rank: Rank) -> Self {
+        // SAFETY: rank is in 2..=14, so (rank << 2 | suit) is always nonzero
         Self(unsafe { NonZero::new_unchecked(rank.get() << 2 | suit as u8) })
     }
 
@@ -215,6 +237,7 @@ impl Card {
     #[must_use]
     #[inline]
     pub const fn suit(self) -> Suit {
+        // SAFETY: the low 2 bits are always a valid Suit (0..=3) by construction
         unsafe { core::mem::transmute(self.0.get() & 3) }
     }
 
@@ -227,63 +250,10 @@ impl Card {
     }
 }
 
-/// A bitset whose size is known at compile time
-pub trait SmallSet:
-    Copy
-    + Eq
-    + ops::BitAnd<Output = Self>
-    + ops::BitAndAssign
-    + ops::BitOr<Output = Self>
-    + ops::BitOrAssign
-    + ops::BitXor<Output = Self>
-    + ops::BitXorAssign
-    + ops::Not<Output = Self>
-    + ops::Sub<Output = Self>
-    + ops::SubAssign
-{
-    /// The element type of the set
-    type Item;
-
-    /// The empty set
-    const EMPTY: Self;
-
-    /// The set containing all possible values
-    const ALL: Self;
-
-    /// The number of elements in the set
-    #[must_use]
-    fn len(self) -> usize;
-
-    /// Whether the set is empty
-    #[must_use]
-    #[inline]
-    fn is_empty(self) -> bool {
-        self == Self::EMPTY
+impl fmt::Display for Card {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.suit(), self.rank())
     }
-
-    /// Whether the set contains a value
-    fn contains(self, value: Self::Item) -> bool;
-
-    /// Insert a value into the set
-    fn insert(&mut self, value: Self::Item) -> bool;
-
-    /// Remove a value from the set
-    fn remove(&mut self, value: Self::Item) -> bool;
-
-    /// Toggle a value in the set
-    fn toggle(&mut self, value: Self::Item) -> bool;
-
-    /// Conditionally insert/remove a value from the set
-    fn set(&mut self, value: Self::Item, condition: bool) {
-        if condition {
-            self.insert(value);
-        } else {
-            self.remove(value);
-        }
-    }
-
-    /// Iterate over the values in the set
-    fn iter(self) -> impl Iterator<Item = Self::Item>;
 }
 
 /// A set of cards of the same suit
@@ -328,52 +298,69 @@ impl Iterator for HoldingIter {
     }
 }
 
-impl SmallSet for Holding {
-    type Item = Rank;
+impl Holding {
+    /// The empty set
+    pub const EMPTY: Self = Self(0);
 
-    const EMPTY: Self = Self(0);
-    const ALL: Self = Self(0x7FFC);
+    /// The set containing all possible ranks (2..=14)
+    pub const ALL: Self = Self(0x7FFC);
 
+    /// The number of cards in the holding
+    #[must_use]
     #[inline]
-    fn len(self) -> usize {
+    pub const fn len(self) -> usize {
         self.0.count_ones() as usize
     }
 
+    /// Whether the holding is empty
+    #[must_use]
     #[inline]
-    fn contains(self, rank: Rank) -> bool {
+    pub const fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
+    /// Whether the holding contains a rank
+    #[must_use]
+    #[inline]
+    pub const fn contains(self, rank: Rank) -> bool {
         self.0 & 1 << rank.get() != 0
     }
 
+    /// Insert a rank into the holding, returning whether it was newly inserted
     #[inline]
-    fn insert(&mut self, rank: Rank) -> bool {
+    pub fn insert(&mut self, rank: Rank) -> bool {
         let insertion = 1 << rank.get() & Self::ALL.0;
         let inserted = insertion & !self.0 != 0;
         self.0 |= insertion;
         inserted
     }
 
+    /// Remove a rank from the holding, returning whether it was present
     #[inline]
-    fn remove(&mut self, rank: Rank) -> bool {
+    pub fn remove(&mut self, rank: Rank) -> bool {
         let removed = self.contains(rank);
         self.0 &= !(1 << rank.get());
         removed
     }
 
+    /// Toggle a rank in the holding, returning whether it is now present
     #[inline]
-    fn toggle(&mut self, rank: Rank) -> bool {
+    pub fn toggle(&mut self, rank: Rank) -> bool {
         self.0 ^= 1 << rank.get() & Self::ALL.0;
         self.contains(rank)
     }
 
+    /// Conditionally insert/remove a rank from the holding
     #[inline]
-    fn set(&mut self, rank: Rank, condition: bool) {
+    pub fn set(&mut self, rank: Rank, condition: bool) {
         let flag = 1 << rank.get();
         let mask = u16::from(condition).wrapping_neg();
         self.0 = (self.0 & !flag) | (mask & flag);
     }
 
+    /// Iterate over the ranks in the holding
     #[inline]
-    fn iter(self) -> impl Iterator<Item = Rank> {
+    pub fn iter(self) -> impl Iterator<Item = Rank> {
         HoldingIter {
             rest: self.0,
             cursor: 0,
@@ -672,44 +659,61 @@ impl Hand {
     }
 }
 
-impl SmallSet for Hand {
-    type Item = Card;
+impl Hand {
+    /// The empty hand
+    pub const EMPTY: Self = Self([Holding::EMPTY; 4]);
 
-    const EMPTY: Self = Self([Holding::EMPTY; 4]);
-    const ALL: Self = Self([Holding::ALL; 4]);
+    /// The hand containing all 52 cards
+    pub const ALL: Self = Self([Holding::ALL; 4]);
 
+    /// The number of cards in the hand
+    #[must_use]
     #[inline]
-    fn len(self) -> usize {
+    pub const fn len(self) -> usize {
         self.to_bits().count_ones() as usize
     }
 
+    /// Whether the hand is empty
+    #[must_use]
     #[inline]
-    fn contains(self, card: Card) -> bool {
+    pub const fn is_empty(self) -> bool {
+        self.to_bits() == 0
+    }
+
+    /// Whether the hand contains a card
+    #[must_use]
+    #[inline]
+    pub fn contains(self, card: Card) -> bool {
         self[card.suit()].contains(card.rank())
     }
 
+    /// Insert a card into the hand, returning whether it was newly inserted
     #[inline]
-    fn insert(&mut self, card: Card) -> bool {
+    pub fn insert(&mut self, card: Card) -> bool {
         self[card.suit()].insert(card.rank())
     }
 
+    /// Remove a card from the hand, returning whether it was present
     #[inline]
-    fn remove(&mut self, card: Card) -> bool {
+    pub fn remove(&mut self, card: Card) -> bool {
         self[card.suit()].remove(card.rank())
     }
 
+    /// Toggle a card in the hand, returning whether it is now present
     #[inline]
-    fn toggle(&mut self, card: Card) -> bool {
+    pub fn toggle(&mut self, card: Card) -> bool {
         self[card.suit()].toggle(card.rank())
     }
 
+    /// Conditionally insert/remove a card from the hand
     #[inline]
-    fn set(&mut self, card: Card, condition: bool) {
+    pub fn set(&mut self, card: Card, condition: bool) {
         self[card.suit()].set(card.rank(), condition);
     }
 
+    /// Iterate over the cards in the hand
     #[inline]
-    fn iter(self) -> impl Iterator<Item = Card> {
+    pub fn iter(self) -> impl Iterator<Item = Card> {
         Suit::ASC
             .into_iter()
             .flat_map(move |suit| self[suit].iter().map(move |rank| Card::new(suit, rank)))
