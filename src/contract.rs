@@ -55,6 +55,12 @@ impl Level {
     }
 }
 
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.get().fmt(f)
+    }
+}
+
 /// Error returned when parsing a [`Level`] fails
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 #[error("Invalid level: expected 1-7")]
@@ -87,7 +93,7 @@ pub struct Bid {
 
 impl fmt::Display for Bid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.level.get(), self.strain)
+        write!(f, "{}{}", self.level, self.strain)
     }
 }
 
