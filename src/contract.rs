@@ -133,6 +133,24 @@ impl fmt::Display for Penalty {
     }
 }
 
+/// Error returned when parsing [`Penalty`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid penalty: expected '', 'x', or 'xx'")]
+pub struct ParsePenaltyError;
+
+impl FromStr for Penalty {
+    type Err = ParsePenaltyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "" => Ok(Self::Undoubled),
+            "x" => Ok(Self::Doubled),
+            "xx" => Ok(Self::Redoubled),
+            _ => Err(ParsePenaltyError),
+        }
+    }
+}
+
 /// The statement of the pair winning the bidding that they will take at least
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.
@@ -228,5 +246,34 @@ impl Contract {
                 penalty => penalty as i32 * -compute_doubled_penalty(-overtricks, vulnerable),
             }
         }
+    }
+}
+
+/// Error returned when parsing a [`Contract`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid contract: expected <bid><penalty>, e.g. 1♥, 3♠x, 7NTxx")]
+pub struct ParseContractError;
+
+impl FromStr for Contract {
+    type Err = ParseContractError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let x_count = s
+            .bytes()
+            .rev()
+            .take_while(|c| b'x'.eq_ignore_ascii_case(c))
+            .take(3)
+            .count();
+
+        let penalty = match x_count {
+            0 => Penalty::Undoubled,
+            1 => Penalty::Doubled,
+            2 => Penalty::Redoubled,
+            _ => return Err(ParseContractError),
+        };
+
+        s[..s.len() - x_count]
+            .parse()
+            .map_or(Err(ParseContractError), |bid| Ok(Self { bid, penalty }))
     }
 }
