@@ -1,21 +1,20 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-use core::fmt::{self, Write as _};
-use thiserror::Error;
-
 /// Bidding and scoring
 pub mod contract;
-
 /// Deals and hands
 pub mod deal;
-
 /// Solver functions for double dummy problems
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
 pub use deal::{Card, Deal, Hand, Holding, Rank, Seat, SeatFlags};
 pub use solver::Solver;
+
+use core::fmt::{self, Write as _};
+use core::str::FromStr;
+use thiserror::Error;
 
 /// Denomination, a suit or notrump
 ///
@@ -202,6 +201,70 @@ impl TryFrom<Strain> for Suit {
             Strain::Hearts => Ok(Self::Hearts),
             Strain::Spades => Ok(Self::Spades),
             Strain::Notrump => Err(SuitFromNotrumpError),
+        }
+    }
+}
+
+/// Error returned when parsing a [`Suit`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid suit: expected one of C, D, H, S, ♣, ♦, ♥, ♠, ♧, ♢, ♡, ♤")]
+pub struct ParseSuitError;
+
+impl FromStr for Suit {
+    type Err = ParseSuitError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "C" | "♣" | "♧" => Ok(Self::Clubs),
+            "D" | "♦" | "♢" => Ok(Self::Diamonds),
+            "H" | "♥" | "♡" => Ok(Self::Hearts),
+            "S" | "♠" | "♤" => Ok(Self::Spades),
+            _ => Err(ParseSuitError),
+        }
+    }
+}
+
+/// Error returned when parsing a [`Strain`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid strain: expected one of C, D, H, S, N, NT, ♣, ♦, ♥, ♠, ♧, ♢, ♡, ♤")]
+pub struct ParseStrainError;
+
+impl FromStr for Strain {
+    type Err = ParseStrainError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "C" | "♣" | "♧" => Ok(Self::Clubs),
+            "D" | "♦" | "♢" => Ok(Self::Diamonds),
+            "H" | "♥" | "♡" => Ok(Self::Hearts),
+            "S" | "♠" | "♤" => Ok(Self::Spades),
+            "N" | "NT" => Ok(Self::Notrump),
+            _ => Err(ParseStrainError),
+        }
+    }
+}
+
+/// Error returned when parsing a [`Rank`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid rank: expected 2-10, T, J, Q, K, A")]
+pub struct ParseRankError;
+
+impl FromStr for Rank {
+    type Err = ParseRankError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "A" => Ok(Self::A),
+            "K" => Ok(Self::K),
+            "Q" => Ok(Self::Q),
+            "J" => Ok(Self::J),
+            "T" | "10" => Ok(Self::T),
+            "9" => Ok(Self::new(9)),
+            "8" => Ok(Self::new(8)),
+            "7" => Ok(Self::new(7)),
+            "6" => Ok(Self::new(6)),
+            "5" => Ok(Self::new(5)),
+            "4" => Ok(Self::new(4)),
+            "3" => Ok(Self::new(3)),
+            "2" => Ok(Self::new(2)),
+            _ => Err(ParseRankError),
         }
     }
 }

@@ -255,6 +255,28 @@ impl fmt::Display for Card {
     }
 }
 
+/// Error returned when parsing a [`Card`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+pub enum ParseCardError {
+    /// Invalid suit in card
+    #[error("Invalid suit in card: expected <suit><rank>, e.g. S7, ♥A, ♢10")]
+    Suit,
+    /// Invalid rank in card
+    #[error("Invalid rank in card: expected <suit><rank>, e.g. S7, ♥A, ♢10")]
+    Rank,
+}
+
+impl FromStr for Card {
+    type Err = ParseCardError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let border = s.find(|c: char| c.is_ascii_digit()).unwrap_or(s.len());
+        let (suit, rank) = s.split_at(border);
+        let suit: Suit = suit.parse().map_err(|_| ParseCardError::Suit)?;
+        let rank: Rank = rank.parse().map_err(|_| ParseCardError::Rank)?;
+        Ok(Self::new(suit, rank))
+    }
+}
+
 /// A set of cards of the same suit
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Holding(u16);

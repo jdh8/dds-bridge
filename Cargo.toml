@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.14.0"
+version = "0.14.1"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 description = "Rusty API for DDS, the double dummy solver for bridge"
@@ -11,7 +11,7 @@ keywords = ["bridge", "double-dummy"]
 
 [dependencies]
 arrayvec = "0.7.6"
-bitflags = "2.11.0"
+bitflags = "2.11.1"
 dds-bridge-sys = "2.0.4"
 parking_lot = "0.12.0"
 thiserror = "2.0.18"
