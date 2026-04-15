@@ -636,8 +636,8 @@ impl From<Board> for sys::deal {
         let mut ranks = [0; 3];
 
         for (i, card) in board.current_cards.into_iter().enumerate() {
-            suits[i] = 3 - card.suit() as c_int;
-            ranks[i] = c_int::from(card.rank().get());
+            suits[i] = 3 - card.suit as c_int;
+            ranks[i] = c_int::from(card.rank.get());
         }
 
         Self {

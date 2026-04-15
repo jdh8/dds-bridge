@@ -221,37 +221,25 @@ impl fmt::Display for Rank {
 ///
 /// Internally packed as `(rank << 2) | suit` in a single byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Card(NonZero<u8>);
+pub struct Card {
+    /// The suit of the card
+    pub suit: Suit,
+    /// The rank of the card
+    pub rank: Rank,
+}
 
 impl Card {
     /// Create a card from suit and rank
     #[must_use]
     #[inline]
     pub const fn new(suit: Suit, rank: Rank) -> Self {
-        // SAFETY: rank is in 2..=14, so (rank << 2 | suit) is always nonzero
-        Self(unsafe { NonZero::new_unchecked(rank.get() << 2 | suit as u8) })
-    }
-
-    /// The suit of the card
-    #[must_use]
-    #[inline]
-    pub const fn suit(self) -> Suit {
-        // SAFETY: the low 2 bits are always a valid Suit (0..=3) by construction
-        unsafe { core::mem::transmute(self.0.get() & 3) }
-    }
-
-    /// The rank of the card
-    #[must_use]
-    #[inline]
-    pub const fn rank(self) -> Rank {
-        // SAFETY: the stored rank is always in 2..=14 by construction
-        unsafe { Rank(core::num::NonZero::new_unchecked(self.0.get() >> 2)) }
+        Self { suit, rank }
     }
 }
 
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.suit(), self.rank())
+        write!(f, "{}{}", self.suit, self.rank)
     }
 }
 
@@ -820,31 +808,31 @@ impl Hand {
     #[must_use]
     #[inline]
     pub fn contains(self, card: Card) -> bool {
-        self[card.suit()].contains(card.rank())
+        self[card.suit].contains(card.rank)
     }
 
     /// Insert a card into the hand, returning whether it was newly inserted
     #[inline]
     pub fn insert(&mut self, card: Card) -> bool {
-        self[card.suit()].insert(card.rank())
+        self[card.suit].insert(card.rank)
     }
 
     /// Remove a card from the hand, returning whether it was present
     #[inline]
     pub fn remove(&mut self, card: Card) -> bool {
-        self[card.suit()].remove(card.rank())
+        self[card.suit].remove(card.rank)
     }
 
     /// Toggle a card in the hand, returning whether it is now present
     #[inline]
     pub fn toggle(&mut self, card: Card) -> bool {
-        self[card.suit()].toggle(card.rank())
+        self[card.suit].toggle(card.rank)
     }
 
     /// Conditionally insert/remove a card from the hand
     #[inline]
     pub fn set(&mut self, card: Card, condition: bool) {
-        self[card.suit()].set(card.rank(), condition);
+        self[card.suit].set(card.rank, condition);
     }
 
     /// Iterate over the cards in the hand
