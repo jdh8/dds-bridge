@@ -205,6 +205,11 @@ impl TryFrom<Strain> for Suit {
     }
 }
 
+/// Unicode variation selectors that may appear after suit emojis
+///
+/// We want to ignore these suffixes when parsing suits.
+const EMOJI_SELECTORS: [char; 2] = ['\u{FE0F}', '\u{FE0E}'];
+
 /// Error returned when parsing a [`Suit`] fails
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 #[error("Invalid suit: expected one of C, D, H, S, ♣, ♦, ♥, ♠, ♧, ♢, ♡, ♤")]
@@ -213,7 +218,11 @@ pub struct ParseSuitError;
 impl FromStr for Suit {
     type Err = ParseSuitError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_ascii_uppercase().as_str() {
+        match s
+            .to_ascii_uppercase()
+            .as_str()
+            .trim_end_matches(EMOJI_SELECTORS)
+        {
             "C" | "♣" | "♧" => Ok(Self::Clubs),
             "D" | "♦" | "♢" => Ok(Self::Diamonds),
             "H" | "♥" | "♡" => Ok(Self::Hearts),
@@ -231,7 +240,11 @@ pub struct ParseStrainError;
 impl FromStr for Strain {
     type Err = ParseStrainError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_ascii_uppercase().as_str() {
+        match s
+            .to_ascii_uppercase()
+            .as_str()
+            .trim_end_matches(EMOJI_SELECTORS)
+        {
             "C" | "♣" | "♧" => Ok(Self::Clubs),
             "D" | "♦" | "♢" => Ok(Self::Diamonds),
             "H" | "♥" | "♡" => Ok(Self::Hearts),
