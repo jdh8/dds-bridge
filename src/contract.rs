@@ -1,6 +1,7 @@
 use crate::Strain;
 use core::fmt::{self, Write as _};
 use core::num::NonZero;
+use core::str::FromStr;
 use thiserror::Error;
 
 /// Error indicating an invalid level
@@ -54,6 +55,24 @@ impl Level {
     }
 }
 
+/// Error returned when parsing a [`Level`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid level: expected 1-7")]
+pub struct ParseLevelError;
+
+impl FromStr for Level {
+    type Err = ParseLevelError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.as_bytes();
+
+        match (s.len(), s.first()) {
+            (1, Some(b'1'..=b'7')) => Ok(Self::new(s[0] - b'0')),
+            _ => Err(ParseLevelError),
+        }
+    }
+}
+
 /// A call that proposes a contract
 ///
 /// The order of the fields ensures natural ordering by deriving [`PartialOrd`]
@@ -62,7 +81,6 @@ impl Level {
 pub struct Bid {
     /// The level of the contract
     pub level: Level,
-
     /// The strain of the contract
     pub strain: Strain,
 }
@@ -70,6 +88,26 @@ pub struct Bid {
 impl fmt::Display for Bid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.level.get(), self.strain)
+    }
+}
+
+/// Error returned when parsing a [`Bid`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid bid: expected <level><strain>, e.g. 1N, 3♠, 7NT")]
+pub struct ParseBidError;
+
+impl FromStr for Bid {
+    type Err = ParseBidError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() < 2 {
+            return Err(ParseBidError);
+        }
+        // Level is always 1 char, strain is the rest
+        let (level, strain) = s.split_at(1);
+        let level: Level = level.parse().map_err(|_| ParseBidError)?;
+        let strain: Strain = strain.parse().map_err(|_| ParseBidError)?;
+        Ok(Self { level, strain })
     }
 }
 
