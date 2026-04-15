@@ -1,10 +1,7 @@
 use dds_bridge::{Bid, Contract, Penalty, Strain};
 
 const fn bid(level: u8, strain: Strain) -> Bid {
-    Bid {
-        level: dds_bridge::Level::new(level),
-        strain,
-    }
+    Bid::new(dds_bridge::Level::new(level), strain)
 }
 
 const fn contract(level: u8, strain: Strain, penalty: Penalty) -> Contract {

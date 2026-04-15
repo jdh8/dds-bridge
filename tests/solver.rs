@@ -18,10 +18,7 @@ fn solve_four_13_card_straight_flushes() {
         TricksRow::new(0, 0, 0, 0),
     ]);
     const CONTRACT: Contract = Contract {
-        bid: Bid {
-            level: dds_bridge::Level::new(7),
-            strain: Strain::Spades,
-        },
+        bid: Bid::new(dds_bridge::Level::new(7), Strain::Spades),
         penalty: Penalty::Undoubled,
     };
     const CONTRACTS: [ParContract; 2] = [
@@ -98,10 +95,7 @@ fn solve_everyone_makes_1nt() {
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract {
-        bid: Bid {
-            level: dds_bridge::Level::new(1),
-            strain: Strain::Notrump,
-        },
+        bid: Bid::new(dds_bridge::Level::new(1), Strain::Notrump),
         penalty: Penalty::Undoubled,
     };
     assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);

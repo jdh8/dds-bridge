@@ -501,10 +501,7 @@ impl From<sys::parResultsMaster> for Par {
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
                 let contract = Contract {
-                    bid: Bid {
-                        level: Level::new(contract.level.try_into().unwrap()),
-                        strain,
-                    },
+                    bid: Bid::new(Level::new(contract.level.try_into().unwrap()), strain),
                     penalty,
                 };
 

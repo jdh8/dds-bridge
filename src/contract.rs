@@ -91,6 +91,21 @@ pub struct Bid {
     pub strain: Strain,
 }
 
+impl Bid {
+    /// Create a bid from a level and a strain
+    ///
+    /// This constructor seems redundant because all fields are public.
+    /// However, the struct instantiation syntax is sometimes too verbose.
+    /// [`Bid`] is used in many places, so this constructor helps reduce
+    /// boilerplate.  A notable example is
+    /// [`num::Complex::new`](https://docs.rs/num/0.4.3/num/struct.Complex.html#method.new)
+    #[must_use]
+    #[inline]
+    pub const fn new(level: Level, strain: Strain) -> Self {
+        Self { level, strain }
+    }
+}
+
 impl fmt::Display for Bid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.level, self.strain)

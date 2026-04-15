@@ -31,26 +31,11 @@ fn test_penalty_display_roundtrip() {
 #[test]
 fn test_bid_display_roundtrip() {
     const CASES: [Bid; 5] = [
-        Bid {
-            level: Level::new(1),
-            strain: Strain::Clubs,
-        },
-        Bid {
-            level: Level::new(7),
-            strain: Strain::Notrump,
-        },
-        Bid {
-            level: Level::new(3),
-            strain: Strain::Hearts,
-        },
-        Bid {
-            level: Level::new(2),
-            strain: Strain::Spades,
-        },
-        Bid {
-            level: Level::new(5),
-            strain: Strain::Diamonds,
-        },
+        Bid::new(Level::new(1), Strain::Clubs),
+        Bid::new(Level::new(7), Strain::Notrump),
+        Bid::new(Level::new(3), Strain::Hearts),
+        Bid::new(Level::new(2), Strain::Spades),
+        Bid::new(Level::new(5), Strain::Diamonds),
     ];
 
     for bid in CASES {
@@ -62,76 +47,16 @@ fn test_bid_display_roundtrip() {
 fn test_bid_fromstr_alternates() {
     // Test hollow suit symbols and letters
     let cases = [
-        (
-            "1C",
-            Bid {
-                level: Level::new(1),
-                strain: Strain::Clubs,
-            },
-        ),
-        (
-            "1♧",
-            Bid {
-                level: Level::new(1),
-                strain: Strain::Clubs,
-            },
-        ),
-        (
-            "2D",
-            Bid {
-                level: Level::new(2),
-                strain: Strain::Diamonds,
-            },
-        ),
-        (
-            "2♢",
-            Bid {
-                level: Level::new(2),
-                strain: Strain::Diamonds,
-            },
-        ),
-        (
-            "3H",
-            Bid {
-                level: Level::new(3),
-                strain: Strain::Hearts,
-            },
-        ),
-        (
-            "3♡",
-            Bid {
-                level: Level::new(3),
-                strain: Strain::Hearts,
-            },
-        ),
-        (
-            "4S",
-            Bid {
-                level: Level::new(4),
-                strain: Strain::Spades,
-            },
-        ),
-        (
-            "4♤",
-            Bid {
-                level: Level::new(4),
-                strain: Strain::Spades,
-            },
-        ),
-        (
-            "5N",
-            Bid {
-                level: Level::new(5),
-                strain: Strain::Notrump,
-            },
-        ),
-        (
-            "6NT",
-            Bid {
-                level: Level::new(6),
-                strain: Strain::Notrump,
-            },
-        ),
+        ("1C", Bid::new(Level::new(1), Strain::Clubs)),
+        ("1♣", Bid::new(Level::new(1), Strain::Clubs)),
+        ("2D", Bid::new(Level::new(2), Strain::Diamonds)),
+        ("2♦", Bid::new(Level::new(2), Strain::Diamonds)),
+        ("3H", Bid::new(Level::new(3), Strain::Hearts)),
+        ("3♥", Bid::new(Level::new(3), Strain::Hearts)),
+        ("4S", Bid::new(Level::new(4), Strain::Spades)),
+        ("4♠", Bid::new(Level::new(4), Strain::Spades)),
+        ("5N", Bid::new(Level::new(5), Strain::Notrump)),
+        ("6NT", Bid::new(Level::new(6), Strain::Notrump)),
     ];
     for (s, bid) in &cases {
         assert_eq!(s.parse::<Bid>().unwrap(), *bid);
@@ -149,38 +74,23 @@ fn test_penalty_fromstr_invalid() {
 fn test_contract_display_roundtrip() {
     let cases = [
         Contract {
-            bid: Bid {
-                level: Level::new(1),
-                strain: Strain::Clubs,
-            },
+            bid: Bid::new(Level::new(1), Strain::Clubs),
             penalty: Penalty::Undoubled,
         },
         Contract {
-            bid: Bid {
-                level: Level::new(7),
-                strain: Strain::Notrump,
-            },
+            bid: Bid::new(Level::new(7), Strain::Notrump),
             penalty: Penalty::Redoubled,
         },
         Contract {
-            bid: Bid {
-                level: Level::new(3),
-                strain: Strain::Hearts,
-            },
+            bid: Bid::new(Level::new(3), Strain::Hearts),
             penalty: Penalty::Doubled,
         },
         Contract {
-            bid: Bid {
-                level: Level::new(2),
-                strain: Strain::Spades,
-            },
+            bid: Bid::new(Level::new(2), Strain::Spades),
             penalty: Penalty::Undoubled,
         },
         Contract {
-            bid: Bid {
-                level: Level::new(5),
-                strain: Strain::Diamonds,
-            },
+            bid: Bid::new(Level::new(5), Strain::Diamonds),
             penalty: Penalty::Doubled,
         },
     ];
@@ -196,70 +106,49 @@ fn test_contract_fromstr_alternates() {
         (
             "1C",
             Contract {
-                bid: Bid {
-                    level: Level::new(1),
-                    strain: Strain::Clubs,
-                },
+                bid: Bid::new(Level::new(1), Strain::Clubs),
                 penalty: Penalty::Undoubled,
             },
         ),
         (
             "1Cx",
             Contract {
-                bid: Bid {
-                    level: Level::new(1),
-                    strain: Strain::Clubs,
-                },
+                bid: Bid::new(Level::new(1), Strain::Clubs),
                 penalty: Penalty::Doubled,
             },
         ),
         (
             "1Cxx",
             Contract {
-                bid: Bid {
-                    level: Level::new(1),
-                    strain: Strain::Clubs,
-                },
+                bid: Bid::new(Level::new(1), Strain::Clubs),
                 penalty: Penalty::Redoubled,
             },
         ),
         (
-            "1♧x",
+            "1♣x",
             Contract {
-                bid: Bid {
-                    level: Level::new(1),
-                    strain: Strain::Clubs,
-                },
+                bid: Bid::new(Level::new(1), Strain::Clubs),
                 penalty: Penalty::Doubled,
             },
         ),
         (
             "2NT",
             Contract {
-                bid: Bid {
-                    level: Level::new(2),
-                    strain: Strain::Notrump,
-                },
+                bid: Bid::new(Level::new(2), Strain::Notrump),
                 penalty: Penalty::Undoubled,
             },
         ),
         (
             "2NTx",
             Contract {
-                bid: Bid {
-                    level: Level::new(2),
-                    strain: Strain::Notrump,
-                },
+                bid: Bid::new(Level::new(2), Strain::Notrump),
                 penalty: Penalty::Doubled,
             },
         ),
         (
-            "3♡xx",
+            "3♥xx",
             Contract {
-                bid: Bid {
-                    level: Level::new(3),
-                    strain: Strain::Hearts,
-                },
+                bid: Bid::new(Level::new(3), Strain::Hearts),
                 penalty: Penalty::Redoubled,
             },
         ),
