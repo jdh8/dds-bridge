@@ -27,7 +27,7 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     env:
-      RUSTDOCFLAGS: -Dwarnings
+      RUSTDOCFLAGS: -D warnings
     steps:
     - uses: actions/checkout@v6
     - name: Build docs
