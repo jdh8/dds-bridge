@@ -15,7 +15,7 @@ where
 /// Assert that `s` parses to `expected`.
 fn assert_parses<T>(s: &str, expected: T)
 where
-    T: Debug + FromStr + PartialEq,
+    T: Copy + Debug + FromStr + PartialEq,
     <T as FromStr>::Err: Debug,
 {
     assert_eq!(s.parse::<T>().unwrap(), expected);
