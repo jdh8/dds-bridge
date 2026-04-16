@@ -874,7 +874,6 @@ impl Solver {
                 target.solutions(),
                 0,
                 &raw mut result,
-                //TODO: Enable multithreading
                 0,
             )
         };
