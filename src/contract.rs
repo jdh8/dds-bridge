@@ -250,6 +250,24 @@ impl Contract {
     ///
     /// The score is positive if the declarer makes the contract, and negative
     /// if the declarer fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dds_bridge::{Contract, Penalty, Strain};
+    ///
+    /// // 4♠ making exactly, not vulnerable: 120 (contract) + 300 (game) = 420
+    /// let four_spades = Contract::new(4, Strain::Spades, Penalty::Undoubled);
+    /// assert_eq!(four_spades.score(10, false), 420);
+    ///
+    /// // 3NT with one overtrick, vulnerable: 100 + 500 (game) + 30 (overtrick) = 630
+    /// let three_nt = Contract::new(3, Strain::Notrump, Penalty::Undoubled);
+    /// assert_eq!(three_nt.score(10, true), 630);
+    ///
+    /// // 3NT doubled, down one, vulnerable: -200
+    /// let three_nt_x = Contract::new(3, Strain::Notrump, Penalty::Doubled);
+    /// assert_eq!(three_nt_x.score(8, true), -200);
+    /// ```
     #[must_use]
     #[inline]
     pub const fn score(self, tricks: u8, vulnerable: bool) -> i32 {

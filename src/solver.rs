@@ -741,6 +741,24 @@ impl Solver {
 
     /// Solve a single deal with [`sys::CalcDDtable`]
     ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use dds_bridge::{Deal, Seat, Solver, Strain};
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// // Each player holds a 13-card straight flush in one suit.
+    /// let deal: Deal = "N:AKQJT98765432... .AKQJT98765432.. \
+    ///                   ..AKQJT98765432. ...AKQJT98765432".parse()?;
+    /// let solver = Solver::lock();
+    /// let tricks = solver.solve_deal(deal)?;
+    /// // North holds all the spades, so North or South declaring spades
+    /// // draws trumps and takes every trick.
+    /// assert_eq!(tricks[Strain::Spades].get(Seat::North), 13);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
     /// # Errors
     /// A [`SystemError`] propagated from DDS
     pub fn solve_deal(&self, deal: Deal) -> Result<TricksTable, SystemError> {

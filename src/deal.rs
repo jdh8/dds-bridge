@@ -1013,6 +1013,21 @@ impl ops::SubAssign for Hand {
 }
 
 /// A deal of four hands
+///
+/// Parses the [PBN] deal format: `<dealer>:<hand> <hand> <hand> <hand>`,
+/// where each hand is four dot-separated holdings ordered spades, hearts,
+/// diamonds, clubs.  Hands are listed clockwise starting from the dealer.
+///
+/// # Examples
+///
+/// ```
+/// use dds_bridge::{Deal, Hand, Seat, Suit};
+///
+/// let deal: Deal = "N:AKQJT.AKQJT.AKQ.2 98765.98765.JT98.3 432.432.765432.4 -:T9876543.".parse().unwrap_or_default();
+/// let _ = deal[Seat::North][Suit::Spades];
+/// ```
+///
+/// [PBN]: https://www.tistis.nl/pbn/
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Deal([Hand; 4]);
 
