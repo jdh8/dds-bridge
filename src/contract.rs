@@ -93,10 +93,18 @@ pub struct Bid {
 
 impl Bid {
     /// Create a bid from a level and a strain
+    ///
+    /// # Panics
+    ///
+    /// When the level is not in `1..=7`.  In const contexts, this is a
+    /// compile-time error.
     #[must_use]
     #[inline]
-    pub const fn new(level: Level, strain: Strain) -> Self {
-        Self { level, strain }
+    pub const fn new(level: u8, strain: Strain) -> Self {
+        Self {
+            level: Level::new(level),
+            strain,
+        }
     }
 }
 
@@ -207,6 +215,21 @@ const fn compute_doubled_penalty(undertricks: i32, vulnerable: bool) -> i32 {
 }
 
 impl Contract {
+    /// Create a contract from a level, strain, and penalty
+    ///
+    /// # Panics
+    ///
+    /// When the level is not in `1..=7`.  In const contexts, this is a
+    /// compile-time error.
+    #[must_use]
+    #[inline]
+    pub const fn new(level: u8, strain: Strain, penalty: Penalty) -> Self {
+        Self {
+            bid: Bid::new(level, strain),
+            penalty,
+        }
+    }
+
     /// Base score for making this contract
     ///
     /// <https://en.wikipedia.org/wiki/Bridge_scoring#Contract_points>

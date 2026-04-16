@@ -1,16 +1,5 @@
 use dds_bridge::{Bid, Contract, Penalty, Strain};
 
-const fn bid(level: u8, strain: Strain) -> Bid {
-    Bid::new(dds_bridge::Level::new(level), strain)
-}
-
-const fn contract(level: u8, strain: Strain, penalty: Penalty) -> Contract {
-    Contract {
-        bid: bid(level, strain),
-        penalty,
-    }
-}
-
 const C: Strain = Strain::Clubs;
 const D: Strain = Strain::Diamonds;
 const H: Strain = Strain::Hearts;
@@ -21,26 +10,26 @@ const P: Penalty = Penalty::Undoubled;
 const X: Penalty = Penalty::Doubled;
 const XX: Penalty = Penalty::Redoubled;
 
-const _: () = assert!(contract(1, C, P).score(9, false) == 110);
-const _: () = assert!(contract(1, H, P).score(9, false) == 140);
-const _: () = assert!(contract(1, N, P).score(7, false) == 90);
+const _: () = assert!(Contract::new(1, C, P).score(9, false) == 110);
+const _: () = assert!(Contract::new(1, H, P).score(9, false) == 140);
+const _: () = assert!(Contract::new(1, N, P).score(7, false) == 90);
 
-const _: () = assert!(contract(3, N, P).score(9, false) == 400);
-const _: () = assert!(contract(3, N, P).score(9, true) == 600);
-const _: () = assert!(contract(4, H, P).score(10, false) == 420);
-const _: () = assert!(contract(4, S, P).score(10, true) == 620);
-const _: () = assert!(contract(5, C, P).score(11, false) == 400);
-const _: () = assert!(contract(5, D, P).score(11, true) == 600);
+const _: () = assert!(Contract::new(3, N, P).score(9, false) == 400);
+const _: () = assert!(Contract::new(3, N, P).score(9, true) == 600);
+const _: () = assert!(Contract::new(4, H, P).score(10, false) == 420);
+const _: () = assert!(Contract::new(4, S, P).score(10, true) == 620);
+const _: () = assert!(Contract::new(5, C, P).score(11, false) == 400);
+const _: () = assert!(Contract::new(5, D, P).score(11, true) == 600);
 
-const _: () = assert!(contract(6, S, P).score(12, true) == 1430);
-const _: () = assert!(contract(6, N, P).score(12, false) == 990);
+const _: () = assert!(Contract::new(6, S, P).score(12, true) == 1430);
+const _: () = assert!(Contract::new(6, N, P).score(12, false) == 990);
 
-const _: () = assert!(contract(2, C, X).score(8, false) == 180);
-const _: () = assert!(contract(2, C, X).score(9, false) == 280);
-const _: () = assert!(contract(2, C, X).score(9, true) == 380);
+const _: () = assert!(Contract::new(2, C, X).score(8, false) == 180);
+const _: () = assert!(Contract::new(2, C, X).score(9, false) == 280);
+const _: () = assert!(Contract::new(2, C, X).score(9, true) == 380);
 
-const _: () = assert!(contract(1, N, XX).score(8, true) == 1160);
-const _: () = assert!(contract(7, S, XX).score(13, false) == 2240);
+const _: () = assert!(Contract::new(1, N, XX).score(8, true) == 1160);
+const _: () = assert!(Contract::new(7, S, XX).score(13, false) == 2240);
 
 const _: () = {
     const fn test_set_contract(bid: Bid) {
@@ -88,11 +77,11 @@ const _: () = {
     let mut level = 1;
 
     while level <= 7 {
-        test_set_contract(bid(level, C));
-        test_set_contract(bid(level, D));
-        test_set_contract(bid(level, H));
-        test_set_contract(bid(level, S));
-        test_set_contract(bid(level, N));
+        test_set_contract(Bid::new(level, C));
+        test_set_contract(Bid::new(level, D));
+        test_set_contract(Bid::new(level, H));
+        test_set_contract(Bid::new(level, S));
+        test_set_contract(Bid::new(level, N));
         level += 1;
     }
 };

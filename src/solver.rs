@@ -1,4 +1,4 @@
-use crate::contract::{Bid, Contract, Level, Penalty};
+use crate::contract::{Contract, Penalty};
 use crate::deal::{Card, Deal, Holding, Rank, Seat};
 use crate::{Strain, Suit};
 use arrayvec::ArrayVec;
@@ -500,10 +500,7 @@ impl From<sys::parResultsMaster> for Par {
                 assert_eq!(contract.level, contract.level & 7);
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
-                let contract = Contract {
-                    bid: Bid::new(Level::new(contract.level.try_into().unwrap()), strain),
-                    penalty,
-                };
+                let contract = Contract::new(contract.level.try_into().unwrap(), strain, penalty);
 
                 core::iter::once(ParContract {
                     contract,
