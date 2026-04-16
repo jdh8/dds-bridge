@@ -13,14 +13,14 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Check formatting
       run: cargo fmt --check
 
   clippy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -29,7 +29,7 @@ jobs:
     env:
       RUSTDOCFLAGS: -Dwarnings
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Build docs
       run: cargo doc --no-deps --all-features
 
@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Install Rust ${{ matrix.rust }}
       run: rustup toolchain install ${{ matrix.rust }} --profile minimal && rustup default ${{ matrix.rust }}
     - name: Build
