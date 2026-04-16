@@ -1036,10 +1036,14 @@ impl ops::SubAssign for Hand {
 /// # Examples
 ///
 /// ```
-/// use dds_bridge::{Deal, Hand, Seat, Suit};
+/// use dds_bridge::{Deal, Rank, Seat, Suit};
 ///
-/// let deal: Deal = "N:AKQJT.AKQJT.AKQ.2 98765.98765.JT98.3 432.432.765432.4 -:T9876543.".parse().unwrap_or_default();
-/// let _ = deal[Seat::North][Suit::Spades];
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let deal: Deal = "N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 \
+///                   J973.J98742.3.K4 KQT2.AT.J6542.85".parse()?;
+/// assert!(deal[Seat::East][Suit::Spades].contains(Rank::A));
+/// # Ok(())
+/// # }
 /// ```
 ///
 /// [PBN]: https://www.tistis.nl/pbn/
