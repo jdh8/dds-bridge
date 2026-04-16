@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.15.0-dev"
+version = "0.15.0"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 rust-version = "1.85"
@@ -17,12 +17,12 @@ keywords = ["bridge", "double-dummy"]
 serde = ["dep:serde", "arrayvec/serde", "bitflags/serde"]
 
 [dependencies]
-arrayvec = "0.7.6"
-bitflags = "2.11.1"
-dds-bridge-sys = "2.0.4"
-parking_lot = "0.12.0"
+arrayvec = "0.7"
+bitflags = "2.3"
+dds-bridge-sys = "2.0"
+parking_lot = "0.12"
 serde = { version = "1", features = ["derive"], optional = true }
-thiserror = "2.0.18"
+thiserror = "2"
 
 [dev-dependencies]
 proptest = "1"
