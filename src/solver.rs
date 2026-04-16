@@ -515,7 +515,8 @@ impl From<sys::parResultsMaster> for Par {
                     _ => Seat::West,
                 };
                 let is_pair = contract.seats >= 4;
-                let contract = Contract::new(contract.level.try_into().unwrap(), strain, penalty);
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let contract = Contract::new(contract.level as u8, strain, penalty);
 
                 core::iter::once(ParContract {
                     contract,
