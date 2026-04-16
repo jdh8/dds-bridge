@@ -1,7 +1,7 @@
 dds-bridge
 ==========
 
-[![Build Status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)](https://github.com/jdh8/dds-bridge)
+[![Build Status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml)
 [![Crates.io](https://img.shields.io/crates/v/dds-bridge.svg)](https://crates.io/crates/dds-bridge)
 [![Docs.rs](https://docs.rs/dds-bridge/badge.svg)](https://docs.rs/dds-bridge)
 
@@ -56,8 +56,11 @@ Features
 
 - `serde` *(optional)* — `Serialize`/`Deserialize` for all public types.
   Human-readable formats (JSON, YAML, TOML) round-trip through the
-  [`Display`]/[`FromStr`] text form; binary formats use a compact derived
-  representation.
+  [`Display`][Display]/[`FromStr`][FromStr] text form; binary formats use a
+  compact derived representation.
+
+[Display]: https://doc.rust-lang.org/std/fmt/trait.Display.html
+[FromStr]: https://doc.rust-lang.org/std/str/trait.FromStr.html
 
 Minimum supported Rust version
 ------------------------------
@@ -67,4 +70,6 @@ Rust **1.85** (the first release supporting Rust 2024 edition).
 License
 -------
 
-Licensed under the [Apache License, Version 2.0](LICENSE).
+Licensed under the [Apache License, Version 2.0][license].
+
+[license]: https://github.com/jdh8/dds-bridge/blob/main/LICENSE
