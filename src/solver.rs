@@ -167,6 +167,7 @@ impl SystemError {
 bitflags::bitflags! {
     /// Flags for the solver to solve for a strain
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct StrainFlags : u8 {
         /// Solve for clubs ([`Strain::Clubs`])
         const CLUBS = 0x01;
@@ -183,6 +184,8 @@ bitflags::bitflags! {
 
 /// Tricks that each seat can take as declarer for a strain
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct TricksRow(u16);
 
 impl TricksRow {
@@ -228,6 +231,8 @@ impl TricksRow {
 
 /// Tricks that each seat can take as declarer for all strains
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct TricksTable(pub [TricksRow; 5]);
 
 impl core::ops::Index<Strain> for TricksTable {
@@ -341,6 +346,7 @@ impl From<Deal> for sys::ddTableDeal {
 bitflags::bitflags! {
     /// Vulnerability of pairs
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct Vulnerability: u8 {
         /// North-South are vulnerable
         const NS = 1;
@@ -421,6 +427,7 @@ const _: () = {
 
 /// Par contract
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ParContract {
     /// The contract
     pub contract: Contract,
@@ -434,6 +441,7 @@ pub struct ParContract {
 
 /// Par score and contracts
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Par {
     /// The par score
     pub score: i32,

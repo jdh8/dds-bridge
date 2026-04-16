@@ -8,6 +8,7 @@ use thiserror::Error;
 
 /// Position at the table
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Seat {
     /// Dealer of Board 1, partner of [`Seat::South`]
     North,
@@ -102,6 +103,7 @@ impl FromStr for Seat {
 bitflags::bitflags! {
     /// A set of seats
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct SeatFlags: u8 {
         /// The set containing [`Seat::North`]
         const NORTH = 0b0001;
@@ -150,6 +152,8 @@ pub struct InvalidRank(u8);
 /// The rank of a card, from 2 to 14, where J, Q, K, A are internally denoted as
 /// 11, 12, 13, 14 respectively.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Rank(NonZero<u8>);
 
 impl Rank {
@@ -1143,5 +1147,71 @@ impl FromStr for Deal {
         );
         deal.0.rotate_right(dealer as usize);
         Ok(deal)
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde_string {
+    use super::{Card, Deal, Hand, Holding, Seat};
+    use core::fmt::Display;
+    use core::str::FromStr;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+    fn serialize<T: Display, S: Serializer>(value: &T, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(value)
+    }
+
+    fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    where
+        T: FromStr,
+        T::Err: Display,
+        D: Deserializer<'de>,
+    {
+        let s = <&str>::deserialize(deserializer)?;
+        s.parse().map_err(de::Error::custom)
+    }
+
+    impl Serialize for Card {
+        fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+            serialize(self, s)
+        }
+    }
+    impl<'de> Deserialize<'de> for Card {
+        fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            deserialize(d)
+        }
+    }
+
+    impl Serialize for Holding {
+        fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+            serialize(self, s)
+        }
+    }
+    impl<'de> Deserialize<'de> for Holding {
+        fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            deserialize(d)
+        }
+    }
+
+    impl Serialize for Hand {
+        fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+            serialize(self, s)
+        }
+    }
+    impl<'de> Deserialize<'de> for Hand {
+        fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            deserialize(d)
+        }
+    }
+
+    impl Serialize for Deal {
+        fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+            s.collect_str(&self.display(Seat::North))
+        }
+    }
+    impl<'de> Deserialize<'de> for Deal {
+        fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            deserialize(d)
+        }
     }
 }

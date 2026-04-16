@@ -26,6 +26,7 @@ use thiserror::Error;
 ///
 /// [dds]: https://github.com/dds-bridge/dds
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum Strain {
     /// ♣
@@ -132,6 +133,7 @@ impl Strain {
 ///
 /// Suits are convertible to [`Strain`]s since suits form a subset of strains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum Suit {
     /// ♣, convertible to [`Strain::Clubs`]
