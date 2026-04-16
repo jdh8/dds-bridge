@@ -20,5 +20,8 @@ dds-bridge-sys = "2.0.4"
 parking_lot = "0.12.0"
 thiserror = "2.0.18"
 
+[dev-dependencies]
+proptest = "1"
+
 [profile.dev]
 opt-level = 2

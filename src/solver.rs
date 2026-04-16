@@ -490,14 +490,14 @@ impl From<sys::parResultsMaster> for Par {
                 ][contract.denom as usize];
 
                 let (penalty, overtricks) = if contract.underTricks > 0 {
-                    assert!(contract.underTricks <= 13);
+                    debug_assert!(contract.underTricks <= 13);
                     (Penalty::Doubled, -((contract.underTricks & 0xFF) as i8))
                 } else {
-                    assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
+                    debug_assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
                     (Penalty::Undoubled, (contract.overTricks & 0xFF) as i8)
                 };
 
-                assert_eq!(contract.level, contract.level & 7);
+                debug_assert_eq!(contract.level, contract.level & 7);
                 let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
                 let is_pair = contract.seats >= 4;
                 let contract = Contract::new(contract.level.try_into().unwrap(), strain, penalty);

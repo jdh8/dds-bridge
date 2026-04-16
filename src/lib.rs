@@ -254,30 +254,3 @@ impl FromStr for Strain {
         }
     }
 }
-
-/// Error returned when parsing a [`Rank`] fails
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
-#[error("Invalid rank: expected 2-10, T, J, Q, K, A")]
-pub struct ParseRankError;
-
-impl FromStr for Rank {
-    type Err = ParseRankError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_ascii_uppercase().as_str() {
-            "A" => Ok(Self::A),
-            "K" => Ok(Self::K),
-            "Q" => Ok(Self::Q),
-            "J" => Ok(Self::J),
-            "T" | "10" => Ok(Self::T),
-            "9" => Ok(Self::new(9)),
-            "8" => Ok(Self::new(8)),
-            "7" => Ok(Self::new(7)),
-            "6" => Ok(Self::new(6)),
-            "5" => Ok(Self::new(5)),
-            "4" => Ok(Self::new(4)),
-            "3" => Ok(Self::new(3)),
-            "2" => Ok(Self::new(2)),
-            _ => Err(ParseRankError),
-        }
-    }
-}

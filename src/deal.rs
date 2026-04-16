@@ -217,6 +217,33 @@ impl fmt::Display for Rank {
     }
 }
 
+/// Error returned when parsing a [`Rank`] fails
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("Invalid rank: expected 2-10, T, J, Q, K, A")]
+pub struct ParseRankError;
+
+impl FromStr for Rank {
+    type Err = ParseRankError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "A" => Ok(Self::A),
+            "K" => Ok(Self::K),
+            "Q" => Ok(Self::Q),
+            "J" => Ok(Self::J),
+            "T" | "10" => Ok(Self::T),
+            "9" => Ok(Self::new(9)),
+            "8" => Ok(Self::new(8)),
+            "7" => Ok(Self::new(7)),
+            "6" => Ok(Self::new(6)),
+            "5" => Ok(Self::new(5)),
+            "4" => Ok(Self::new(4)),
+            "3" => Ok(Self::new(3)),
+            "2" => Ok(Self::new(2)),
+            _ => Err(ParseRankError),
+        }
+    }
+}
+
 /// A playing card
 ///
 /// Internally packed as `(rank << 2) | suit` in a single byte.
@@ -248,7 +275,12 @@ pub enum ParseCardError {
 impl FromStr for Card {
     type Err = ParseCardError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let border = s.find(|c: char| c.is_ascii_digit()).unwrap_or(s.len());
+        let rank_len = if s.ends_with("10") {
+            2
+        } else {
+            s.chars().next_back().map_or(0, char::len_utf8)
+        };
+        let border = s.len().saturating_sub(rank_len);
         let (suit, rank) = s.split_at(border);
         let suit: Suit = suit.parse().map_err(|_| ParseCardError::Suit)?;
         let rank: Rank = rank.parse().map_err(|_| ParseCardError::Rank)?;
