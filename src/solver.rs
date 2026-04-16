@@ -186,6 +186,7 @@ bitflags::bitflags! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
 pub struct TricksRow(u16);
 
 impl TricksRow {
@@ -233,6 +234,7 @@ impl TricksRow {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
 pub struct TricksTable(pub [TricksRow; 5]);
 
 impl core::ops::Index<Strain> for TricksTable {
@@ -506,7 +508,12 @@ impl From<sys::parResultsMaster> for Par {
                 };
 
                 debug_assert_eq!(contract.level, contract.level & 7);
-                let seat: Seat = unsafe { core::mem::transmute((contract.seats & 3) as u8) };
+                let seat = match contract.seats & 3 {
+                    0 => Seat::North,
+                    1 => Seat::East,
+                    2 => Seat::South,
+                    _ => Seat::West,
+                };
                 let is_pair = contract.seats >= 4;
                 let contract = Contract::new(contract.level.try_into().unwrap(), strain, penalty);
 
@@ -807,18 +814,19 @@ impl Solver {
             .enumerate()
             .for_each(|(i, &deal)| pack.deals[i] = deal.into());
 
+        let mut filter = [
+            c_int::from(!flags.contains(StrainFlags::SPADES)),
+            c_int::from(!flags.contains(StrainFlags::HEARTS)),
+            c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
+            c_int::from(!flags.contains(StrainFlags::CLUBS)),
+            c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
+        ];
         let mut res = sys::ddTablesRes::default();
         let status = unsafe {
             sys::CalcAllTables(
                 &raw mut pack,
                 -1,
-                &mut [
-                    c_int::from(!flags.contains(StrainFlags::SPADES)),
-                    c_int::from(!flags.contains(StrainFlags::HEARTS)),
-                    c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
-                    c_int::from(!flags.contains(StrainFlags::CLUBS)),
-                    c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
-                ][0],
+                filter.as_mut_ptr(),
                 &raw mut res,
                 &mut sys::allParResults::default(),
             )

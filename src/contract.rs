@@ -18,6 +18,7 @@ pub struct InvalidLevel(u8);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
 pub struct Level(NonZero<u8>);
 
 impl Level {

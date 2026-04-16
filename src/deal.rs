@@ -154,6 +154,7 @@ pub struct InvalidRank(u8);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
 pub struct Rank(NonZero<u8>);
 
 impl Rank {
@@ -294,6 +295,7 @@ impl FromStr for Card {
 
 /// A set of cards of the same suit
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Holding(u16);
 
 /// Iterator over the ranks in a [`Holding`], yielding [`Rank`]s in descending order
