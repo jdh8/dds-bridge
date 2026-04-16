@@ -1,0 +1,78 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<!-- markdownlint-disable no-duplicate-heading -->
+
+## [0.15.0] - 2026-04-16
+
+### Added
+
+- Optional `serde` feature with bridge-friendly string forms for bids, contracts, and suits.
+- Parsers for bids, contracts, and graphical suit emojis, plus assorted string-form parsers.
+- `Contract::new` constructor and restored `Bid::new`.
+- `Display` impl for `Level`.
+- PBN-solving example.
+- Expanded README and doctests on the main entry points.
+
+### Changed
+
+- Hardened FFI boundaries and demoted internal sanity checks from `assert!` to debug-only.
+- Hardened string parsing against malformed input.
+- Polished `Holding` with a `const` set constructor and inlined bit operations.
+- Trust DDS to return a valid par-contract level instead of re-validating.
+- Loosened dependency version requirements to be friendlier to downstream crates.
+- Polished crate metadata and modernized CI.
+- Simplified internal representation of `Card`.
+
+### Removed
+
+- `Card::new` (construct via the checked APIs or parsers instead).
+
+### Fixed
+
+- Broken `Deal` doctest.
+- Broken links in README.
+- Misleading multithreading TODO in `solve_board`.
+
+## [0.14.0] - 2026-04-14
+
+### Added
+
+- Type-safe `Rank` with `new`/`try_new` constructor pair.
+- Iteration over `Holding` (including reverse iteration and extra `HoldingIter` traits) and over `Hand`.
+- `FromIterator<Card>` for `Hand`.
+- Fallible `try_new` constructor pairs across the public types, including a checked `Card::new`, `Level::new`, and safer `Deal`/`Hand` constructors.
+- Explicit thread-safety model for solvers.
+- Iterator-based `fill_deals`, with a documented warning that `fill_n_filtered_deals` may loop indefinitely.
+- `Deck::drain` (Rustier rename).
+
+### Changed
+
+- Large internal refactor and resolved API inconsistencies.
+- Replaced the `regex` dependency with a plain parser.
+- Hoisted tightly coupled `Suit` and `Strain` to the crate root and curated re-exports.
+- `Seat` arithmetic is now safe and `const`, with `Seat::letter` aligned to the other type conventions.
+- `ParContract` made self-documenting; `None` doubling state renamed to `Undoubled` to avoid shadowing.
+- Replaced `[Option<T>; N]` storage with `arrayvec`.
+- Fallible conversions now use `TryFrom` instead of ad-hoc constructors.
+- `Solver::try_lock` is now non-blocking.
+
+### Removed
+
+- Unsafe solvers from the public API.
+- Arbitrary `Seat` arithmetic.
+- `SystemError::Success` (paradoxical) and reuse of the reserved `SystemError` name.
+- `Call` type and the heavy `deck` module (moved to `pons`).
+- Internal `Strain::SYS`, thin `SmallSet` methods, obsolete compile-time checks, and unnecessary `#[inline]` hints.
+- Non-structural `PartialEq` impls.
+
+### Fixed
+
+- Documentation fixes.
+
+[0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0
+[0.14.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.14.0
