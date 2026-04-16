@@ -692,10 +692,10 @@ impl From<sys::futureTricks> for FoundPlays {
             let score = (future.score[i] & 0xFF) as i8;
 
             plays.push(Play {
-                card: Card::new(
-                    Suit::DESC[future.suit[i] as usize],
-                    Rank::new((future.rank[i] & 0xFF) as u8),
-                ),
+                card: Card {
+                    suit: Suit::DESC[future.suit[i] as usize],
+                    rank: Rank::new((future.rank[i] & 0xFF) as u8),
+                },
                 equals,
                 score,
             });

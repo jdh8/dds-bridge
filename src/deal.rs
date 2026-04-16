@@ -228,15 +228,6 @@ pub struct Card {
     pub rank: Rank,
 }
 
-impl Card {
-    /// Create a card from suit and rank
-    #[must_use]
-    #[inline]
-    pub const fn new(suit: Suit, rank: Rank) -> Self {
-        Self { suit, rank }
-    }
-}
-
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.suit, self.rank)
@@ -261,7 +252,7 @@ impl FromStr for Card {
         let (suit, rank) = s.split_at(border);
         let suit: Suit = suit.parse().map_err(|_| ParseCardError::Suit)?;
         let rank: Rank = rank.parse().map_err(|_| ParseCardError::Rank)?;
-        Ok(Self::new(suit, rank))
+        Ok(Self { suit, rank })
     }
 }
 
@@ -669,7 +660,7 @@ impl Iterator for HandIter {
             }
             let suit = Suit::ASC[self.fwd as usize];
             if let Some(rank) = self.suits[self.fwd as usize].next() {
-                return Some(Card::new(suit, rank));
+                return Some(Card { suit, rank });
             }
             if self.fwd == self.bwd {
                 self.fwd = 4;
@@ -697,7 +688,7 @@ impl DoubleEndedIterator for HandIter {
             }
             let suit = Suit::ASC[self.bwd as usize];
             if let Some(rank) = self.suits[self.bwd as usize].next_back() {
-                return Some(Card::new(suit, rank));
+                return Some(Card { suit, rank });
             }
             if self.fwd == self.bwd {
                 self.fwd = 4;
