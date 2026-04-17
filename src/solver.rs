@@ -669,6 +669,15 @@ impl From<Board> for sys::deal {
     }
 }
 
+/// A board and its solving target
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Objective {
+    /// The board to solve
+    pub board: Board,
+    /// The target tricks and number of solutions to find
+    pub target: Target,
+}
+
 /// A play and its consequences
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Play {
@@ -860,18 +869,15 @@ impl Solver {
 
     /// Solve a single board with [`sys::SolveBoard`]
     ///
-    /// - `board`: The board to solve
-    /// - `target`: The target tricks and number of solutions to find
-    ///
     /// # Errors
     /// A [`SystemError`] propagated from DDS
-    pub fn solve_board(&self, board: Board, target: Target) -> Result<FoundPlays, SystemError> {
+    pub fn solve_board(&self, objective: Objective) -> Result<FoundPlays, SystemError> {
         let mut result = sys::futureTricks::default();
         let status = unsafe {
             sys::SolveBoard(
-                board.into(),
-                target.target(),
-                target.solutions(),
+                objective.board.into(),
+                objective.target.target(),
+                objective.target.solutions(),
                 0,
                 &raw mut result,
                 0,
@@ -882,7 +888,7 @@ impl Solver {
 
     /// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
     ///
-    /// - `args`: A slice of boards and their targets to solve
+    /// - `args`: A slice of objectives to solve
     ///
     /// # Safety
     ///
@@ -895,17 +901,17 @@ impl Solver {
     /// # Errors
     /// A [`SystemError`] propagated from DDS
     unsafe fn solve_board_segment(
-        args: &[(Board, Target)],
+        args: &[Objective],
     ) -> Result<sys::solvedBoards, SystemError> {
         debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
             noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
             ..Default::default()
         };
-        args.iter().enumerate().for_each(|(i, (board, target))| {
-            pack.deals[i] = board.clone().into();
-            pack.target[i] = target.target();
-            pack.solutions[i] = target.solutions();
+        args.iter().enumerate().for_each(|(i, obj)| {
+            pack.deals[i] = obj.board.clone().into();
+            pack.target[i] = obj.target.target();
+            pack.solutions[i] = obj.target.solutions();
         });
         let mut res = sys::solvedBoards::default();
         let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
@@ -918,7 +924,7 @@ impl Solver {
     ///
     /// # Errors
     /// A [`SystemError`] propagated from DDS
-    pub fn solve_boards(&self, args: &[(Board, Target)]) -> Result<Vec<FoundPlays>, SystemError> {
+    pub fn solve_boards(&self, args: &[Objective]) -> Result<Vec<FoundPlays>, SystemError> {
         let mut solutions = Vec::new();
         for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
             solutions.extend(
