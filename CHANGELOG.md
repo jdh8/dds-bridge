@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [0.16.0] - Unreleased
+
+### Changed
+
+- **Breaking:** `Solver::solve_board`, `Solver::solve_board_segment`, and `Solver::solve_boards` now accept `Objective` instead of separate `Board` and `Target` arguments. `Objective` bundles a board position with its solving query, eliminating redundant paired parameters.
+
 ## [0.15.0] - 2026-04-16
 
 ### Added
