@@ -48,8 +48,22 @@ fn penalty_display_and_parse() {
 }
 
 #[test]
+fn penalty_parse_is_case_insensitive() {
+    for (s, expected) in [
+        ("x", Penalty::Doubled),
+        ("X", Penalty::Doubled),
+        ("xx", Penalty::Redoubled),
+        ("XX", Penalty::Redoubled),
+        ("Xx", Penalty::Redoubled),
+        ("xX", Penalty::Redoubled),
+    ] {
+        assert_parses(s, expected);
+    }
+}
+
+#[test]
 fn penalty_parse_rejects_garbage() {
-    for s in ["xxx", "X", "Xx", "xX", "XxX", " ", "y"] {
+    for s in ["xxx", "XxX", " ", "y"] {
         assert!(s.parse::<Penalty>().is_err());
     }
 }

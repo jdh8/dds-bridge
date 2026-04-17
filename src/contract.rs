@@ -162,14 +162,14 @@ impl fmt::Display for Penalty {
 
 /// Error returned when parsing [`Penalty`] fails
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
-#[error("Invalid penalty: expected '', 'x', or 'xx'")]
+#[error("Invalid penalty: expected '', 'x'/'X', or 'xx'/'XX'")]
 pub struct ParsePenaltyError;
 
 impl FromStr for Penalty {
     type Err = ParsePenaltyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
+        match s.to_ascii_lowercase().as_str() {
             "" => Ok(Self::Undoubled),
             "x" => Ok(Self::Doubled),
             "xx" => Ok(Self::Redoubled),
