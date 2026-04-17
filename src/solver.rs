@@ -900,12 +900,11 @@ impl Solver {
     ///
     /// # Errors
     /// A [`SystemError`] propagated from DDS
-    unsafe fn solve_board_segment(
-        args: &[Objective],
-    ) -> Result<sys::solvedBoards, SystemError> {
+    unsafe fn solve_board_segment(args: &[Objective]) -> Result<sys::solvedBoards, SystemError> {
         debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
-            noOfBoards: c_int::try_from(args.len()).unwrap_or(c_int::MAX),
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            noOfBoards: args.len() as c_int,
             ..Default::default()
         };
         args.iter().enumerate().for_each(|(i, obj)| {
