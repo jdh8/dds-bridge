@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
-## [0.16.0] - Unreleased
+## [0.16.0] - 2026-04-19
 
 ### Changed
 
-- **Breaking:** `Solver::solve_board`, `Solver::solve_board_segment`, and `Solver::solve_boards` now accept `Objective` instead of separate `Board` and `Target` arguments. `Objective` bundles a board position with its solving query, eliminating redundant paired parameters.
+- **Breaking:** `Solver::solve_board` and `Solver::solve_boards` now accept `Objective` instead of separate `Board` and `Target` arguments. `Objective` bundles a board position with its solving query, eliminating redundant paired parameters.
 - `Penalty::from_str` is now case-insensitive, accepting `X`/`XX` in addition to `x`/`xx`, matching `Contract::from_str`.
 
 ## [0.15.0] - 2026-04-16
@@ -81,5 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation fixes.
 
+[0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
 [0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0
 [0.14.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.14.0
