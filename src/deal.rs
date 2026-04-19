@@ -271,10 +271,10 @@ impl fmt::Display for Card {
 #[non_exhaustive]
 pub enum ParseCardError {
     /// Invalid suit in card
-    #[error("Invalid suit in card: expected <suit><rank>, e.g. S7, ♥A, ♢10")]
+    #[error("Invalid suit in card: expected one of C, D, H, S, ♣, ♦, ♥, ♠, ♧, ♢, ♡, ♤")]
     Suit,
     /// Invalid rank in card
-    #[error("Invalid rank in card: expected <suit><rank>, e.g. S7, ♥A, ♢10")]
+    #[error("Invalid rank in card: expected 2-10, T, J, Q, K, A")]
     Rank,
 }
 
