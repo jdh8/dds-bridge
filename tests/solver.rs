@@ -160,6 +160,8 @@ fn solve_deals_crosses_chunk_boundary() {
 
     let deals = [DEAL; 41];
     let tables = solver.solve_deals(&deals, StrainFlags::all()).unwrap();
+    core::mem::drop(solver);
+
     assert_eq!(tables.len(), deals.len());
     assert!(tables.iter().all(|&t| t == expected));
 }
