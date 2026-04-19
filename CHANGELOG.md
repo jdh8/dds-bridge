@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [1.0.0-dev]
+
+### Changed
+
+- **Breaking:** `SystemError`, `ParseCardError`, `ParseHoldingError`, `ParseHandError`, and `ParseDealError` are now `#[non_exhaustive]` so future variants can be added without a major bump. Downstream exhaustive matches must add a `_ =>` arm.
+- `TricksRow::hex` and `TricksTable::hex` now return named `TricksRowHex` / `TricksTableHex<T>` wrapper types instead of opaque `impl UpperHex`, making the return type storable and referable in rustdoc. Both constructors are `const`. The `UpperHex` contract is unchanged.
+- `ParseCardError::Suit` and `ParseCardError::Rank` now carry distinct hint messages listing valid suit characters and rank characters respectively.
+- `Solver::solve_deal` doctest now runs (no longer `no_run`), guarding the canonical entry point against silent API drift.
+
+### Added
+
+- Regression tests covering an invalid-deal error path and `solve_deals` chunking across the internal `MAXNOOFBOARDS` boundary.
+
 ## [0.16.0] - 2026-04-19
 
 ### Changed
@@ -81,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation fixes.
 
+[1.0.0-dev]: https://github.com/jdh8/dds-bridge/compare/0.16.0...main
 [0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
 [0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0
 [0.14.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.14.0
