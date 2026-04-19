@@ -210,24 +210,32 @@ impl TricksRow {
 
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
-    pub fn hex(self, seat: Seat) -> impl fmt::UpperHex {
-        struct Hex {
-            deal: TricksRow,
-            seat: Seat,
-        }
-        impl fmt::UpperHex for Hex {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(
-                    f,
-                    "{:X}{:X}{:X}{:X}",
-                    self.deal.get(self.seat),
-                    self.deal.get(self.seat.lho()),
-                    self.deal.get(self.seat.partner()),
-                    self.deal.get(self.seat.rho()),
-                )
-            }
-        }
-        Hex { deal: self, seat }
+    pub const fn hex(self, seat: Seat) -> TricksRowHex {
+        TricksRowHex { row: self, seat }
+    }
+}
+
+/// Hexadecimal view of a [`TricksRow`] from a seat's perspective
+///
+/// Returned by [`TricksRow::hex`]. Formats as four hex digits — the tricks
+/// taken by the seat, its LHO, its partner, and its RHO — via the
+/// [`UpperHex`](fmt::UpperHex) impl.
+#[derive(Debug, Clone, Copy)]
+pub struct TricksRowHex {
+    row: TricksRow,
+    seat: Seat,
+}
+
+impl fmt::UpperHex for TricksRowHex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:X}{:X}{:X}{:X}",
+            self.row.get(self.seat),
+            self.row.get(self.seat.lho()),
+            self.row.get(self.seat.partner()),
+            self.row.get(self.seat.rho()),
+        )
     }
 }
 
@@ -249,25 +257,33 @@ impl core::ops::Index<Strain> for TricksTable {
 impl TricksTable {
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
-    pub fn hex(self, seat: Seat, strains: impl AsRef<[Strain]>) -> impl fmt::UpperHex {
-        struct Hex<T: AsRef<[Strain]>> {
-            deal: TricksTable,
-            seat: Seat,
-            strains: T,
-        }
-        impl<T: AsRef<[Strain]>> fmt::UpperHex for Hex<T> {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                for &strain in self.strains.as_ref() {
-                    self.deal[strain].hex(self.seat).fmt(f)?;
-                }
-                Ok(())
-            }
-        }
-        Hex {
-            deal: self,
+    pub const fn hex<T: AsRef<[Strain]>>(self, seat: Seat, strains: T) -> TricksTableHex<T> {
+        TricksTableHex {
+            table: self,
             seat,
             strains,
         }
+    }
+}
+
+/// Hexadecimal view of a [`TricksTable`] from a seat's perspective
+///
+/// Returned by [`TricksTable::hex`]. Formats as one [`TricksRowHex`] per
+/// strain in the supplied slice, concatenated, via the
+/// [`UpperHex`](fmt::UpperHex) impl.
+#[derive(Debug, Clone, Copy)]
+pub struct TricksTableHex<T: AsRef<[Strain]>> {
+    table: TricksTable,
+    seat: Seat,
+    strains: T,
+}
+
+impl<T: AsRef<[Strain]>> fmt::UpperHex for TricksTableHex<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for &strain in self.strains.as_ref() {
+            self.table[strain].hex(self.seat).fmt(f)?;
+        }
+        Ok(())
     }
 }
 
