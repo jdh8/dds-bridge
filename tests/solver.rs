@@ -3,7 +3,7 @@ use dds_bridge::{Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
-fn solve_four_13_card_straight_flushes() {
+fn solve_four_13_card_straight_flushes() -> Result<(), SystemError> {
     const DEAL: Deal = Deal::new(
         Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
@@ -40,9 +40,10 @@ fn solve_four_13_card_straight_flushes() {
     };
     assert_eq!(Solver::lock().solve_deal(DEAL), Ok(SOLUTION));
 
-    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    let pars = calculate_pars(SOLUTION, Vulnerability::all())?;
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
+    Ok(())
 }
 
 /// Defenders can cash 8 tricks in every strain.
@@ -50,7 +51,7 @@ fn solve_four_13_card_straight_flushes() {
 /// This example is taken from
 /// <http://bridge.thomasoandrews.com/deals/parzero/>.
 #[test]
-fn solve_par_5_tricks() {
+fn solve_par_5_tricks() -> Result<(), SystemError> {
     const AKQJ: Holding = Holding::from_bits_truncate(0xF << 11);
     const T987: Holding = Holding::from_bits_truncate(0xF << 7);
     const XXXX: Holding = Holding::from_bits_truncate(0xF << 3);
@@ -68,9 +69,10 @@ fn solve_par_5_tricks() {
     };
     assert_eq!(Solver::lock().solve_deal(DEAL), Ok(SOLUTION));
 
-    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    let pars = calculate_pars(SOLUTION, Vulnerability::all())?;
     assert!(pars[0].equivalent(&PAR));
     assert!(pars[1].equivalent(&PAR));
+    Ok(())
 }
 
 /// A symmetric deal where everyone makes 1NT but no suit contract
@@ -79,7 +81,7 @@ fn solve_par_5_tricks() {
 /// <http://www.rpbridge.net/7a23.htm#2>.
 #[test]
 #[allow(clippy::unusual_byte_groupings)]
-fn solve_everyone_makes_1nt() {
+fn solve_everyone_makes_1nt() -> Result<(), SystemError> {
     const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
     const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
     const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
@@ -126,9 +128,10 @@ fn solve_everyone_makes_1nt() {
             },
         ],
     };
-    let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
+    let pars = calculate_pars(SOLUTION, Vulnerability::all())?;
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
+    Ok(())
 }
 
 /// An invalid deal (every seat holds every card) must surface a [`SystemError`]
@@ -153,7 +156,7 @@ fn solve_deal_rejects_invalid_deal() {
 /// deals, so 41 identical deals force a second chunk; every result must equal
 /// the single-deal answer.
 #[test]
-fn solve_deals_crosses_chunk_boundary() {
+fn solve_deals_crosses_chunk_boundary() -> Result<(), SystemError> {
     const DEAL: Deal = Deal::new(
         Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
@@ -161,12 +164,13 @@ fn solve_deals_crosses_chunk_boundary() {
         Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
     );
     let solver = Solver::lock();
-    let expected = solver.solve_deal(DEAL).unwrap();
+    let expected = solver.solve_deal(DEAL)?;
 
     let deals = [DEAL; 41];
-    let tables = solver.solve_deals(&deals, StrainFlags::all()).unwrap();
+    let tables = solver.solve_deals(&deals, StrainFlags::all())?;
     core::mem::drop(solver);
 
     assert_eq!(tables.len(), deals.len());
     assert!(tables.iter().all(|&t| t == expected));
+    Ok(())
 }
