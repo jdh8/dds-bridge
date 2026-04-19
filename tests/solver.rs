@@ -137,7 +137,6 @@ fn solve_everyone_makes_1nt() -> Result<(), SystemError> {
 /// An invalid deal (every seat holds every card) must surface a [`SystemError`]
 /// from DDS rather than panicking or returning a bogus table.
 #[test]
-#[ignore = "Test if GitHub Actions pass"]
 fn solve_deal_rejects_invalid_deal() {
     const DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
     let solution = Solver::lock().solve_deal(DEAL);
