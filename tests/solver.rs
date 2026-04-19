@@ -136,13 +136,14 @@ fn solve_everyone_makes_1nt() {
 #[test]
 fn solve_deal_rejects_invalid_deal() {
     const DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
-    let err = Solver::lock().solve_deal(DEAL).unwrap_err();
+    let solution = Solver::lock().solve_deal(DEAL);
+
     assert!(
         matches!(
-            err,
-            SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount
+            solution,
+            Err(SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount)
         ),
-        "expected a user-error variant, got {err:?}",
+        "expected a user-error variant, got {solution:?}",
     );
 }
 
