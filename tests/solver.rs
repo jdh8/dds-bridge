@@ -127,3 +127,18 @@ fn solve_everyone_makes_1nt() {
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
 }
+
+/// An invalid deal (every seat holds every card) must surface a [`SystemError`]
+/// from DDS rather than panicking or returning a bogus table.
+#[test]
+fn solve_deal_rejects_invalid_deal() {
+    const DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
+    let err = Solver::lock().solve_deal(DEAL).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount
+        ),
+        "expected a user-error variant, got {err:?}",
+    );
+}
