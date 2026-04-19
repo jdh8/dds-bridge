@@ -7,18 +7,18 @@ use dds_bridge::{Bid, Contract, Level, Penalty, Strain};
 fn assert_roundtrip<T>(value: T)
 where
     T: Copy + Debug + Display + FromStr + PartialEq,
-    <T as FromStr>::Err: Debug,
+    <T as FromStr>::Err: Debug + PartialEq,
 {
-    assert_eq!(value.to_string().parse::<T>().unwrap(), value);
+    assert_eq!(value.to_string().parse::<T>(), Ok(value));
 }
 
 /// Assert that `s` parses to `expected`.
 fn assert_parses<T>(s: &str, expected: T)
 where
     T: Copy + Debug + FromStr + PartialEq,
-    <T as FromStr>::Err: Debug,
+    <T as FromStr>::Err: Debug + PartialEq,
 {
-    assert_eq!(s.parse::<T>().unwrap(), expected);
+    assert_eq!(s.parse::<T>(), Ok(expected));
 }
 
 #[test]

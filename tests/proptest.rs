@@ -66,51 +66,51 @@ proptest! {
 
     #[test]
     fn rank_roundtrip(r in rank()) {
-        prop_assert_eq!(r.to_string().parse::<Rank>().unwrap(), r);
+        prop_assert_eq!(r.to_string().parse::<Rank>(), Ok(r));
     }
 
     #[test]
     fn level_roundtrip(l in level()) {
-        prop_assert_eq!(l.to_string().parse::<Level>().unwrap(), l);
+        prop_assert_eq!(l.to_string().parse::<Level>(), Ok(l));
     }
 
     #[test]
     fn strain_roundtrip(s in strain()) {
-        prop_assert_eq!(s.to_string().parse::<Strain>().unwrap(), s);
+        prop_assert_eq!(s.to_string().parse::<Strain>(), Ok(s));
     }
 
     #[test]
     fn penalty_roundtrip(p in penalty()) {
-        prop_assert_eq!(p.to_string().parse::<Penalty>().unwrap(), p);
+        prop_assert_eq!(p.to_string().parse::<Penalty>(), Ok(p));
     }
 
     #[test]
     fn card_roundtrip(c in card()) {
-        prop_assert_eq!(c.to_string().parse::<Card>().unwrap(), c);
+        prop_assert_eq!(c.to_string().parse::<Card>(), Ok(c));
     }
 
     #[test]
     fn bid_roundtrip(b in bid()) {
-        prop_assert_eq!(b.to_string().parse::<Bid>().unwrap(), b);
+        prop_assert_eq!(b.to_string().parse::<Bid>(), Ok(b));
     }
 
     #[test]
     fn contract_roundtrip(c in contract()) {
-        prop_assert_eq!(c.to_string().parse::<Contract>().unwrap(), c);
+        prop_assert_eq!(c.to_string().parse::<Contract>(), Ok(c));
     }
 
     #[test]
     fn holding_roundtrip(h in holding()) {
-        prop_assert_eq!(h.to_string().parse::<Holding>().unwrap(), h);
+        prop_assert_eq!(h.to_string().parse::<Holding>(), Ok(h));
     }
 
     #[test]
     fn hand_roundtrip(h in hand()) {
-        prop_assert_eq!(h.to_string().parse::<Hand>().unwrap(), h);
+        prop_assert_eq!(h.to_string().parse::<Hand>(), Ok(h));
     }
 
     #[test]
     fn deal_roundtrip(d in deal(), s in seat()) {
-        prop_assert_eq!(d.display(s).to_string().parse::<Deal>().unwrap(), d);
+        prop_assert_eq!(d.display(s).to_string().parse::<Deal>(), Ok(d));
     }
 }
