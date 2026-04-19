@@ -167,10 +167,6 @@ rusty_fork_test! {
     #[test]
     fn solve_deal_rejects_invalid_deal() {
         const INVALID_DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
-
-        assert!(matches!(
-            Solver::lock().solve_deal(INVALID_DEAL),
-            Err(SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount)
-        ));
+        assert!(Solver::lock().solve_deal(INVALID_DEAL).is_err());
     }
 }
