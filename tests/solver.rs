@@ -1,5 +1,6 @@
 use dds_bridge::solver::*;
 use dds_bridge::{Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
+use rusty_fork::rusty_fork_test;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
@@ -134,22 +135,6 @@ fn solve_everyone_makes_1nt() -> Result<(), SystemError> {
     Ok(())
 }
 
-/// An invalid deal (every seat holds every card) must surface a [`SystemError`]
-/// from DDS rather than panicking or returning a bogus table.
-#[test]
-fn solve_deal_rejects_invalid_deal() {
-    const DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
-    let solution = Solver::lock().solve_deal(DEAL);
-
-    assert!(
-        matches!(
-            solution,
-            Err(SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount)
-        ),
-        "expected a user-error variant, got {solution:?}",
-    );
-}
-
 /// `solve_deals` must chunk transparently across the internal `MAXNOOFBOARDS`
 /// boundary.  With 5 strains and `MAXNOOFBOARDS == 200`, each chunk holds 40
 /// deals, so 41 identical deals force a second chunk; every result must equal
@@ -172,4 +157,20 @@ fn solve_deals_crosses_chunk_boundary() -> Result<(), SystemError> {
     assert_eq!(tables.len(), deals.len());
     assert!(tables.iter().all(|&t| t == expected));
     Ok(())
+}
+
+rusty_fork_test! {
+    /// An invalid deal (every seat holds every card) must surface a [`SystemError`]
+    /// from DDS rather than panicking or returning a bogus table.  Run in a forked
+    /// subprocess because DDS leaves global state corrupted on error and has no
+    /// reset API.
+    #[test]
+    fn solve_deal_rejects_invalid_deal() {
+        const INVALID_DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
+
+        assert!(matches!(
+            Solver::lock().solve_deal(INVALID_DEAL),
+            Err(SystemError::TooManyCards | SystemError::DuplicateCards | SystemError::CardCount)
+        ));
+    }
 }
