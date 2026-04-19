@@ -14,6 +14,7 @@ use thiserror::Error;
 /// Errors that occurred in [`dds_bridge_sys`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
+#[non_exhaustive]
 pub enum SystemError {
     /// A general or unknown error
     #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_UNKNOWN_FAULT) })]

@@ -268,6 +268,7 @@ impl fmt::Display for Card {
 
 /// Error returned when parsing a [`Card`] fails
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ParseCardError {
     /// Invalid suit in card
     #[error("Invalid suit in card: expected <suit><rank>, e.g. S7, ♥A, ♢10")]
@@ -579,6 +580,7 @@ impl fmt::Display for Holding {
 
 /// An error which can be returned when parsing a [`Holding`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum ParseHoldingError {
     /// Ranks are not all valid or in descending order
     #[error("Ranks are not all valid or in descending order")]
@@ -595,6 +597,7 @@ pub enum ParseHoldingError {
 
 /// An error which can be returned when parsing a [`Hand`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum ParseHandError {
     /// Error in a holding
     #[error(transparent)]
@@ -607,6 +610,7 @@ pub enum ParseHandError {
 
 /// An error which can be returned when parsing a [`Deal`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum ParseDealError {
     /// Invalid dealer tag
     #[error("Invalid dealer tag for a deal")]
