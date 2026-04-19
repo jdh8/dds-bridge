@@ -142,3 +142,24 @@ fn solve_deal_rejects_invalid_deal() {
         "expected a user-error variant, got {err:?}",
     );
 }
+
+/// `solve_deals` must chunk transparently across the internal `MAXNOOFBOARDS`
+/// boundary.  With 5 strains and `MAXNOOFBOARDS == 200`, each chunk holds 40
+/// deals, so 41 identical deals force a second chunk; every result must equal
+/// the single-deal answer.
+#[test]
+fn solve_deals_crosses_chunk_boundary() {
+    const DEAL: Deal = Deal::new(
+        Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
+    );
+    let solver = Solver::lock();
+    let expected = solver.solve_deal(DEAL).unwrap();
+
+    let deals = [DEAL; 41];
+    let tables = solver.solve_deals(&deals, StrainFlags::all()).unwrap();
+    assert_eq!(tables.len(), deals.len());
+    assert!(tables.iter().all(|&t| t == expected));
+}
