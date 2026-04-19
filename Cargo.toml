@@ -18,8 +18,8 @@ serde = ["dep:serde", "arrayvec/serde", "bitflags/serde"]
 
 [dependencies]
 arrayvec = "0.7"
-bitflags = "2.3"
-dds-bridge-sys = "2.0"
+bitflags = "2"
+dds-bridge-sys = "2"
 parking_lot = "0.12"
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "2"
