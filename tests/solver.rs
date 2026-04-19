@@ -38,7 +38,8 @@ fn solve_four_13_card_straight_flushes() {
         score: 2210,
         contracts: CONTRACTS.to_vec(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
+    assert_eq!(Solver::lock().solve_deal(DEAL), Ok(SOLUTION));
+
     let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
@@ -65,7 +66,8 @@ fn solve_par_5_tricks() {
         score: 0,
         contracts: Vec::new(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
+    assert_eq!(Solver::lock().solve_deal(DEAL), Ok(SOLUTION));
+
     let pars = calculate_pars(SOLUTION, Vulnerability::all()).unwrap();
     assert!(pars[0].equivalent(&PAR));
     assert!(pars[1].equivalent(&PAR));
@@ -92,7 +94,8 @@ fn solve_everyone_makes_1nt() {
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::Undoubled);
-    assert_eq!(Solver::lock().solve_deal(DEAL).unwrap(), SOLUTION);
+    assert_eq!(Solver::lock().solve_deal(DEAL), Ok(SOLUTION));
+
     let ns = Par {
         score: 90,
         contracts: vec![
