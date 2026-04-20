@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use dds_bridge::solver::*;
 use dds_bridge::{Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
 
@@ -142,10 +143,10 @@ fn solve_everyone_makes_1nt() {
 #[test]
 fn solve_board_score_matches_dd_table() {
     // Same deal as `solve_everyone_makes_1nt`
-    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
-    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
-    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
-    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
+    const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+    const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+    const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+    const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
     const DEAL: Deal = Deal::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
@@ -158,25 +159,26 @@ fn solve_board_score_matches_dd_table() {
         board: Board {
             trump: Strain::Notrump,
             lead: Seat::North,
-            current_cards: Default::default(),
+            current_cards: ArrayVec::new(),
             remaining: DEAL,
         },
         target: Target::Any(-1),
     });
+    core::mem::drop(solver);
     // solve_board reports tricks for the leading side (NS as defenders here).
     // The declarer is North's RHO (West).  Defenders take 13 - declarer's tricks.
     let expected = 13 - tricks[Strain::Notrump].get(Seat::North.rho());
     assert!(!found.plays.is_empty());
-    assert_eq!(found.plays[0].score as u8, expected);
+    assert_eq!(i32::from(found.plays[0].score), i32::from(expected));
 }
 
 /// `solve_boards` returns the same results as individual `solve_board` calls.
 #[test]
 fn solve_boards_matches_solve_board() {
-    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
-    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
-    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
-    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
+    const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+    const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+    const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+    const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
     const DEAL: Deal = Deal::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
@@ -188,13 +190,14 @@ fn solve_boards_matches_solve_board() {
         board: Board {
             trump: Strain::Notrump,
             lead: Seat::North,
-            current_cards: Default::default(),
+            current_cards: ArrayVec::new(),
             remaining: DEAL,
         },
         target: Target::Any(-1),
     };
     let single = solver.solve_board(obj.clone());
     let batch = solver.solve_boards(&[obj]);
+    core::mem::drop(solver);
     assert_eq!(batch.len(), 1);
     // Node counts differ between single and batch solvers; compare only the plays.
     assert_eq!(batch[0].plays, single.plays);
