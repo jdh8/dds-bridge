@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [Unreleased]
+
+### Added
+
+- `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.
+
 ## [0.17.0]
 
 ### Removed
@@ -100,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation fixes.
 
+[Unreleased]: https://github.com/jdh8/dds-bridge/compare/v0.17.0...HEAD
 [0.17.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.17.0
 [0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
 [0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0

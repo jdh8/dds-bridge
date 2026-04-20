@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
 use dds_bridge::solver::*;
-use dds_bridge::{Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
+use dds_bridge::{Card, Contract, Deal, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
@@ -224,4 +224,109 @@ fn solve_deals_crosses_chunk_boundary() {
 
     assert_eq!(tables.len(), deals.len());
     assert!(tables.iter().all(|&t| t == expected));
+}
+
+/// `analyse_play` with an empty trace returns just the starting DD value.
+///
+/// DDS reports tricks from declarer's viewpoint — declarer is the RHO of the
+/// opening leader — whereas `solve_board` reports tricks for the leading
+/// side, so the two values must sum to 13.
+#[test]
+fn analyse_play_empty_trace_complements_solve_board() {
+    const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+    const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+    const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+    const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
+    const DEAL: Deal = Deal::new(
+        Hand::new(A54, QJ32, K976, T8),
+        Hand::new(T8, A54, QJ32, K976),
+        Hand::new(K976, T8, A54, QJ32),
+        Hand::new(QJ32, K976, T8, A54),
+    );
+    let board = Board {
+        trump: Strain::Notrump,
+        lead: Seat::North,
+        current_cards: ArrayVec::new(),
+        remaining: DEAL,
+    };
+    let solver = Solver::lock();
+    let found = solver.solve_board(Objective {
+        board: board.clone(),
+        target: Target::Any(-1),
+    });
+    let analysis = solver.analyse_play(PlayTrace {
+        board,
+        cards: ArrayVec::new(),
+    });
+    core::mem::drop(solver);
+    assert_eq!(analysis.tricks.len(), 1);
+    assert_eq!(
+        i32::from(analysis.tricks[0]) + i32::from(found.plays[0].score),
+        13,
+    );
+}
+
+/// Playing a card that `solve_board` ranks first must preserve the
+/// declarer-side DD value across the card.
+#[test]
+fn analyse_play_optimal_card_preserves_dd_value() {
+    const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+    const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+    const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+    const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
+    const DEAL: Deal = Deal::new(
+        Hand::new(A54, QJ32, K976, T8),
+        Hand::new(T8, A54, QJ32, K976),
+        Hand::new(K976, T8, A54, QJ32),
+        Hand::new(QJ32, K976, T8, A54),
+    );
+    let board = Board {
+        trump: Strain::Notrump,
+        lead: Seat::North,
+        current_cards: ArrayVec::new(),
+        remaining: DEAL,
+    };
+    let solver = Solver::lock();
+    let found = solver.solve_board(Objective {
+        board: board.clone(),
+        target: Target::Any(-1),
+    });
+    let best = found.plays[0];
+    let mut cards = ArrayVec::new();
+    cards.push(best.card);
+    let analysis = solver.analyse_play(PlayTrace { board, cards });
+    core::mem::drop(solver);
+    assert_eq!(analysis.tricks.len(), 2);
+    assert_eq!(analysis.tricks[0], analysis.tricks[1]);
+    assert_eq!(i32::from(analysis.tricks[0]) + i32::from(best.score), 13,);
+}
+
+/// Straight-flush deal, NT contract: `Hand::new` orders suits C, D, H, S, so
+/// North holds all clubs, East all diamonds, South all hearts, West all
+/// spades.  North on lead runs every club trick, leaving declarer (North's
+/// RHO, West) with zero — which must hold across the opening lead.
+#[test]
+fn analyse_play_straight_flush_declarer_takes_zero() {
+    const DEAL: Deal = Deal::new(
+        Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
+        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
+    );
+    let mut cards = ArrayVec::<Card, 52>::new();
+    cards.push(Card {
+        suit: Suit::Clubs,
+        rank: Rank::A,
+    });
+    let analysis = Solver::lock().analyse_play(PlayTrace {
+        board: Board {
+            trump: Strain::Notrump,
+            lead: Seat::North,
+            current_cards: ArrayVec::new(),
+            remaining: DEAL,
+        },
+        cards,
+    });
+    assert_eq!(analysis.tricks.len(), 2);
+    assert!(analysis.tricks.iter().all(|&t| t == 0));
 }
