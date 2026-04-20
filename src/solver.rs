@@ -947,4 +947,57 @@ impl Solver {
         check(status);
         PlayAnalysis::from(result)
     }
+
+    /// Analyse play traces with a single call of [`sys::AnalyseAllPlaysBin`]
+    ///
+    /// # Safety
+    ///
+    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
+    ///    calling any DDS function while this function is running.  This is
+    ///    automatically guaranteed if the caller acquires a `Solver` before
+    ///    calling this function.
+    /// 2. `traces.len()` must not exceed [`sys::MAXNOOFBOARDS`].
+    ///
+    unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::solvedPlays {
+        debug_assert!(traces.len() <= sys::MAXNOOFBOARDS as usize);
+        let mut pack = sys::boards {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            noOfBoards: traces.len() as c_int,
+            ..Default::default()
+        };
+        let mut plays = sys::playTracesBin {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            noOfBoards: traces.len() as c_int,
+            ..Default::default()
+        };
+        traces.iter().enumerate().for_each(|(i, trace)| {
+            pack.deals[i] = trace.board.clone().into();
+            plays.plays[i] = PlayTraceBin::from(trace.cards.as_slice()).0;
+        });
+        let mut res = sys::solvedPlays::default();
+        let status =
+            unsafe { sys::AnalyseAllPlaysBin(&raw mut pack, &raw mut plays, &raw mut res, 0) };
+        check(status);
+        res
+    }
+
+    /// Trace DD trick counts in parallel with [`sys::AnalyseAllPlaysBin`]
+    ///
+    /// # Panics
+    ///
+    /// Panics if DDS returns an error status, which includes any trace
+    /// containing an invalid card (not held by the player on turn) or a
+    /// disallowed revoke.
+    #[must_use]
+    pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
+        let mut results = Vec::new();
+        for chunk in traces.chunks(sys::MAXNOOFBOARDS as usize) {
+            results.extend(
+                unsafe { Self::analyse_play_segment(chunk) }.solved[..chunk.len()]
+                    .iter()
+                    .map(|&x| PlayAnalysis::from(x)),
+            );
+        }
+        results
+    }
 }
