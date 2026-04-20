@@ -443,6 +443,10 @@ impl From<sys::parResultsMaster> for Par {
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
 /// - `dealer`: The dealer of the deal
+///
+/// # Panics
+///
+/// Panics if DDS returns an error status.
 pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
     let status = unsafe {
@@ -461,6 +465,10 @@ pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> P
 ///
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
+///
+/// # Panics
+///
+/// Panics if DDS returns an error status.
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
@@ -654,6 +662,10 @@ impl Solver {
 
     /// Solve a single deal with [`sys::CalcDDtable`]
     ///
+    /// # Panics
+    ///
+    /// Panics if DDS returns an error status.
+    ///
     /// # Examples
     ///
     /// ```
@@ -729,6 +741,10 @@ impl Solver {
     ///
     /// - `deals`: A slice of deals to solve
     /// - `flags`: Flags of strains to solve for
+    ///
+    /// # Panics
+    ///
+    /// Panics if DDS returns an error status.
     pub fn solve_deals(&self, deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
         for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
@@ -742,6 +758,10 @@ impl Solver {
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
+    ///
+    /// # Panics
+    ///
+    /// Panics if DDS returns an error status.
     pub fn solve_board(&self, objective: Objective) -> FoundPlays {
         let mut result = sys::futureTricks::default();
         let status = unsafe {
@@ -791,6 +811,10 @@ impl Solver {
     /// Solve boards in parallel
     ///
     /// - `args`: A slice of boards and their targets to solve
+    ///
+    /// # Panics
+    ///
+    /// Panics if DDS returns an error status.
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
         for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
