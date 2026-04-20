@@ -1,6 +1,7 @@
 use arrayvec::ArrayVec;
 use dds_bridge::solver::*;
 use dds_bridge::{Card, Contract, Deal, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
+use semver::Version;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
@@ -329,4 +330,77 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
     });
     assert_eq!(analysis.tricks.len(), 2);
     assert!(analysis.tricks.iter().all(|&t| t == 0));
+}
+
+#[test]
+fn system_info_version_is_2_9_0() {
+    let info = Solver::lock().system_info();
+    assert_eq!(info.version(), Version::new(2, 9, 0));
+}
+
+#[test]
+fn system_info_platform_matches_os() {
+    let platform = match () {
+        () if cfg!(target_os = "linux") => Platform::Linux,
+        () if cfg!(target_os = "macos") => Platform::Apple,
+        () if cfg!(target_os = "cygwin") => Platform::Cygwin,
+        () if cfg!(target_os = "windows") => Platform::Windows,
+        () => return, // Skip test on unknown platforms
+    };
+    let info = Solver::lock().system_info();
+    assert_eq!(info.platform(), platform);
+}
+
+#[test]
+fn system_info_num_bits_matches_target() {
+    let num_bits: u32 = match () {
+        () if cfg!(target_pointer_width = "64") => 64,
+        () if cfg!(target_pointer_width = "32") => 32,
+        () if cfg!(target_pointer_width = "16") => 16,
+        () => return, // Skip test on unknown pointer widths
+    };
+    let info = Solver::lock().system_info();
+    assert_eq!(info.num_bits(), num_bits);
+}
+
+#[test]
+fn system_info_compiler_is_known() {
+    let info = Solver::lock().system_info();
+    assert!(!matches!(info.compiler(), Compiler::Unknown(_)));
+}
+
+#[test]
+fn system_info_threading_is_stl() {
+    let info = Solver::lock().system_info();
+    assert_eq!(info.threading(), Threading::STL);
+}
+
+#[test]
+fn system_info_num_cores_is_positive() {
+    let info = Solver::lock().system_info();
+    assert!(info.num_cores() > 0);
+}
+
+#[test]
+fn system_info_num_threads_is_positive() {
+    let info = Solver::lock().system_info();
+    assert!(info.num_threads() > 0);
+}
+
+#[test]
+fn system_info_thread_sizes_is_nonempty() {
+    let info = Solver::lock().system_info();
+    assert!(!info.thread_sizes().is_empty());
+}
+
+#[test]
+fn system_info_system_string_is_nonempty() {
+    let info = Solver::lock().system_info();
+    assert!(!info.system_string().is_empty());
+}
+
+#[test]
+fn system_info_display_matches_system_string() {
+    let info = Solver::lock().system_info();
+    assert_eq!(info.to_string(), info.system_string());
 }

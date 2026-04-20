@@ -817,7 +817,7 @@ impl SystemInfo {
     #[must_use]
     pub const fn num_bits(&self) -> u32 {
         #[allow(clippy::cast_sign_loss)]
-        { self.0.numBits as u32 }
+        return self.0.numBits as u32;
     }
 
     /// C++ compiler DDS was built with
@@ -856,26 +856,28 @@ impl SystemInfo {
     #[must_use]
     pub const fn num_cores(&self) -> usize {
         #[allow(clippy::cast_sign_loss)]
-        { self.0.numCores as usize }
+        return self.0.numCores as usize;
     }
 
     /// Number of threads configured in the DDS thread pool
     #[must_use]
     pub const fn num_threads(&self) -> usize {
         #[allow(clippy::cast_sign_loss)]
-        { self.0.noOfThreads as usize }
+        return self.0.noOfThreads as usize;
     }
 
     /// Memory-size description for each thread slot
     ///
-    /// A string such as `"LLLSSS"` where `L` denotes a large transposition
+    /// A string such as `"0 S, 16 L"` where `L` denotes a large transposition
     /// table and `S` a small one.
     #[must_use]
     pub fn thread_sizes(&self) -> &str {
         let bytes = &self.0.threadSizes;
         let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
         // SAFETY: DDS fills this field with ASCII data.
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end)) }
+        unsafe {
+            core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end))
+        }
     }
 
     /// Human-readable summary of the full DDS system configuration
@@ -884,7 +886,9 @@ impl SystemInfo {
         let bytes = &self.0.systemString;
         let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
         // SAFETY: DDS fills this field with ASCII data.
-        unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end)) }
+        unsafe {
+            core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end))
+        }
     }
 }
 
