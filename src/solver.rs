@@ -8,7 +8,7 @@ use parking_lot::Mutex;
 use semver::Version;
 use thiserror::Error;
 
-use core::ffi::c_int;
+use core::ffi::{CStr, c_char, c_int};
 use core::fmt;
 use core::mem::MaybeUninit;
 use core::ops::BitOr as _;
@@ -871,25 +871,21 @@ impl SystemInfo {
     /// A string such as `"0 S, 16 L"` where `L` denotes a large transposition
     /// table and `S` a small one.
     #[must_use]
-    pub fn thread_sizes(&self) -> &str {
-        let bytes = &self.0.threadSizes;
-        let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
-        // SAFETY: DDS fills this field with ASCII data.
-        unsafe {
-            core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end))
-        }
+    pub const fn thread_sizes(&self) -> &str {
+        // SAFETY: DDS fills `threadSizes` with a null-terminated ASCII string.
+        unsafe { c_chars_to_str(&self.0.threadSizes) }
     }
 
     /// Human-readable summary of the full DDS system configuration
     #[must_use]
-    pub fn system_string(&self) -> &str {
-        let bytes = &self.0.systemString;
-        let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
-        // SAFETY: DDS fills this field with ASCII data.
-        unsafe {
-            core::str::from_utf8_unchecked(core::slice::from_raw_parts(bytes.as_ptr().cast(), end))
-        }
+    pub const fn system_string(&self) -> &str {
+        // SAFETY: DDS fills `systemString` with a null-terminated ASCII string.
+        unsafe { c_chars_to_str(&self.0.systemString) }
     }
+}
+
+const unsafe fn c_chars_to_str(bytes: &[c_char]) -> &str {
+    unsafe { core::str::from_utf8_unchecked(CStr::from_ptr(bytes.as_ptr()).to_bytes()) }
 }
 
 impl fmt::Display for SystemInfo {
