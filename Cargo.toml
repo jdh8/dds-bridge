@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "1.0.0-dev"
+version = "0.17.0-dev"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 rust-version = "1.85"
