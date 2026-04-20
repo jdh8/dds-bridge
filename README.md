@@ -28,7 +28,7 @@ MSVC.
 Parse a [PBN-formatted][pbn] deal, solve it for all strains and seats,
 and score a specific contract:
 
-```rs
+```rust
 use dds_bridge::{Contract, Deal, Penalty, Solver, Strain, Seat};
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
