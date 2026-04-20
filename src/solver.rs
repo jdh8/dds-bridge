@@ -11,6 +11,10 @@ use parking_lot::Mutex;
 use std::sync::LazyLock;
 use thiserror::Error;
 
+/// # Panics
+/// 
+/// Panics if `status` is negative, which indicates an error in DDS.  The panic
+/// message is a human-readable description of the error code returned by DDS.
 const fn check(status: i32) {
     let msg: &[u8] = match status {
         0.. => return,
@@ -41,6 +45,7 @@ const fn check(status: i32) {
         sys::RETURN_CHUNK_SIZE => sys::TEXT_CHUNK_SIZE,
         _ => sys::TEXT_UNKNOWN_FAULT,
     };
+    // SAFETY: Error messages are ASCII literals in the C++ code of DDS.
     panic!("{}", unsafe { core::str::from_utf8_unchecked(msg) });
 }
 
