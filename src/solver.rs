@@ -12,7 +12,7 @@ use std::sync::LazyLock;
 use thiserror::Error;
 
 /// # Panics
-/// 
+///
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
 /// message is a human-readable description of the error code returned by DDS.
 const fn check(status: i32) {
@@ -312,6 +312,18 @@ impl FromStr for Vulnerability {
     }
 }
 
+impl fmt::Display for Vulnerability {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Self::NONE => "none",
+            Self::NS => "ns",
+            Self::EW => "ew",
+            Self::ALL => "both",
+            _ => unreachable!(),
+        })
+    }
+}
+
 /// Exhaustively check correctness of [`Vulnerability::rotate`] at compile time
 const _: () = {
     const ALL: Vulnerability = Vulnerability::all();
@@ -452,7 +464,7 @@ impl From<sys::parResultsMaster> for Par {
 /// # Panics
 ///
 /// Panics if DDS returns an error status.
-#[must_use] 
+#[must_use]
 pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
     let status = unsafe {
@@ -475,6 +487,7 @@ pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> P
 /// # Panics
 ///
 /// Panics if DDS returns an error status.
+#[must_use]
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
@@ -688,7 +701,7 @@ impl Solver {
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use] 
+    #[must_use]
     pub fn solve_deal(&self, deal: Deal) -> TricksTable {
         let mut result = sys::ddTableResults::default();
         let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
@@ -751,8 +764,9 @@ impl Solver {
     ///
     /// # Panics
     ///
-    /// Panics if DDS returns an error status.
-    #[must_use] 
+    /// - Panics if `flags` is empty.
+    /// - Panics if DDS returns an error status.
+    #[must_use]
     pub fn solve_deals(&self, deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
         for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
@@ -770,7 +784,7 @@ impl Solver {
     /// # Panics
     ///
     /// Panics if DDS returns an error status.
-    #[must_use] 
+    #[must_use]
     pub fn solve_board(&self, objective: Objective) -> FoundPlays {
         let mut result = sys::futureTricks::default();
         let status = unsafe {
@@ -824,7 +838,7 @@ impl Solver {
     /// # Panics
     ///
     /// Panics if DDS returns an error status.
-    #[must_use] 
+    #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
         for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {

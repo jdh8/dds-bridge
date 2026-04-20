@@ -131,6 +131,75 @@ fn solve_everyone_makes_1nt() {
     assert!(pars[1].equivalent(&ew));
 }
 
+/// `solve_board` scores agree with the double-dummy table for the same deal.
+///
+/// This uses the symmetric 1NT deal from `solve_everyone_makes_1nt`, where
+/// every seat makes exactly 7 NT tricks as declarer.  With multiple legal moves
+/// available, DDS computes actual scores.
+///
+/// When North leads, West is North's natural declarer (the player to North's
+/// right).  West makes 7 tricks, so NS as the leading/defending side makes 6.
+#[test]
+fn solve_board_score_matches_dd_table() {
+    // Same deal as `solve_everyone_makes_1nt`
+    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
+    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
+    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
+    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
+    const DEAL: Deal = Deal::new(
+        Hand::new(A54, QJ32, K976, T8),
+        Hand::new(T8, A54, QJ32, K976),
+        Hand::new(K976, T8, A54, QJ32),
+        Hand::new(QJ32, K976, T8, A54),
+    );
+    let solver = Solver::lock();
+    let tricks = solver.solve_deal(DEAL);
+    let found = solver.solve_board(Objective {
+        board: Board {
+            trump: Strain::Notrump,
+            lead: Seat::North,
+            current_cards: Default::default(),
+            remaining: DEAL,
+        },
+        target: Target::Any(-1),
+    });
+    // solve_board reports tricks for the leading side (NS as defenders here).
+    // The declarer is North's RHO (West).  Defenders take 13 - declarer's tricks.
+    let expected = 13 - tricks[Strain::Notrump].get(Seat::North.rho());
+    assert!(!found.plays.is_empty());
+    assert_eq!(found.plays[0].score as u8, expected);
+}
+
+/// `solve_boards` returns the same results as individual `solve_board` calls.
+#[test]
+fn solve_boards_matches_solve_board() {
+    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
+    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
+    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
+    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
+    const DEAL: Deal = Deal::new(
+        Hand::new(A54, QJ32, K976, T8),
+        Hand::new(T8, A54, QJ32, K976),
+        Hand::new(K976, T8, A54, QJ32),
+        Hand::new(QJ32, K976, T8, A54),
+    );
+    let solver = Solver::lock();
+    let obj = Objective {
+        board: Board {
+            trump: Strain::Notrump,
+            lead: Seat::North,
+            current_cards: Default::default(),
+            remaining: DEAL,
+        },
+        target: Target::Any(-1),
+    };
+    let single = solver.solve_board(obj.clone());
+    let batch = solver.solve_boards(&[obj]);
+    assert_eq!(batch.len(), 1);
+    // Node counts differ between single and batch solvers; compare only the plays.
+    assert_eq!(batch[0].plays, single.plays);
+}
+
 /// `solve_deals` must chunk transparently across the internal `MAXNOOFBOARDS`
 /// boundary.  With 5 strains and `MAXNOOFBOARDS == 200`, each chunk holds 40
 /// deals, so 41 identical deals force a second chunk; every result must equal
