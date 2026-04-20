@@ -1,15 +1,17 @@
 use crate::contract::{Contract, Penalty};
 use crate::deal::{Card, Deal, Holding, Rank, Seat};
 use crate::{Strain, Suit};
+
 use arrayvec::ArrayVec;
+use dds_bridge_sys as sys;
+use parking_lot::Mutex;
+use thiserror::Error;
+
 use core::ffi::c_int;
 use core::fmt;
 use core::ops::BitOr as _;
 use core::str::FromStr;
-use dds_bridge_sys as sys;
-use parking_lot::Mutex;
 use std::sync::LazyLock;
-use thiserror::Error;
 
 /// # Panics
 ///
