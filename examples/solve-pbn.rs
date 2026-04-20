@@ -76,13 +76,6 @@ fn main() -> ExitCode {
     }
 
     let tables = Solver::lock().solve_deals(&deals, StrainFlags::all());
-    let tables = match tables {
-        Ok(t) => t,
-        Err(e) => {
-            eprintln!("solver error: {e}");
-            return ExitCode::FAILURE;
-        }
-    };
 
     for (i, (deal, table)) in raw.iter().zip(&tables).enumerate() {
         println!("Deal {}: {deal}", i + 1);

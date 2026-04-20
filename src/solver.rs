@@ -11,158 +11,37 @@ use parking_lot::Mutex;
 use std::sync::LazyLock;
 use thiserror::Error;
 
-/// Errors that occurred in [`dds_bridge_sys`]
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-#[repr(i32)]
-#[non_exhaustive]
-pub enum SystemError {
-    /// A general or unknown error
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_UNKNOWN_FAULT) })]
-    UnknownFault = sys::RETURN_UNKNOWN_FAULT,
-
-    /// Zero cards
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_ZERO_CARDS) })]
-    ZeroCards = sys::RETURN_ZERO_CARDS,
-
-    /// Target exceeds number of tricks
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_TOO_HIGH) })]
-    TargetTooHigh = sys::RETURN_TARGET_TOO_HIGH,
-
-    /// Duplicate cards
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_DUPLICATE_CARDS) })]
-    DuplicateCards = sys::RETURN_DUPLICATE_CARDS,
-
-    /// Target tricks < 0
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_WRONG_LO) })]
-    NegativeTarget = sys::RETURN_TARGET_WRONG_LO,
-
-    /// Target tricks > 13
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TARGET_WRONG_HI) })]
-    InvalidTarget = sys::RETURN_TARGET_WRONG_HI,
-
-    /// Solving parameter < 1
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SOLNS_WRONG_LO) })]
-    LowSolvingParameter = sys::RETURN_SOLNS_WRONG_LO,
-
-    /// Solving parameter > 3
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SOLNS_WRONG_HI) })]
-    HighSolvingParameter = sys::RETURN_SOLNS_WRONG_HI,
-
-    /// Too many cards
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_CARDS) })]
-    TooManyCards = sys::RETURN_TOO_MANY_CARDS,
-
-    /// Wrong current suit or rank
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_SUIT_OR_RANK) })]
-    CurrentSuitOrRank = sys::RETURN_SUIT_OR_RANK,
-
-    /// Wrong played card
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PLAYED_CARD) })]
-    PlayedCard = sys::RETURN_PLAYED_CARD,
-
-    /// Wrong card count
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_CARD_COUNT) })]
-    CardCount = sys::RETURN_CARD_COUNT,
-
-    /// Wrong thread index
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_INDEX) })]
-    ThreadIndex = sys::RETURN_THREAD_INDEX,
-
-    /// Mode parameter < 0
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_MODE_WRONG_LO) })]
-    NegativeModeParameter = sys::RETURN_MODE_WRONG_LO,
-
-    /// Mode parameter > 2
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_MODE_WRONG_HI) })]
-    HighModeParameter = sys::RETURN_MODE_WRONG_HI,
-
-    /// Wrong trump suit
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TRUMP_WRONG) })]
-    Trump = sys::RETURN_TRUMP_WRONG,
-
-    /// Wrong "first"
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_FIRST_WRONG) })]
-    First = sys::RETURN_FIRST_WRONG,
-
-    /// `AnalysePlay*()` family of functions.
-    /// (a) Less than 0 or more than 52 cards supplied.
-    /// (b) Invalid suit or rank supplied.
-    /// (c) A played card is not held by the right player.
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PLAY_FAULT) })]
-    AnalysePlay = sys::RETURN_PLAY_FAULT,
-
-    /// Invalid PBN
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_PBN_FAULT) })]
-    PBN = sys::RETURN_PBN_FAULT,
-
-    /// Too many boards
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_BOARDS) })]
-    TooManyBoards = sys::RETURN_TOO_MANY_BOARDS,
-
-    /// Cannot create a new thread
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_CREATE) })]
-    ThreadCreate = sys::RETURN_THREAD_CREATE,
-
-    /// Failed to wait for a thread
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_WAIT) })]
-    ThreadWait = sys::RETURN_THREAD_WAIT,
-
-    /// Missing threading system
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_THREAD_MISSING) })]
-    ThreadMissing = sys::RETURN_THREAD_MISSING,
-
-    /// No suit to solve
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_NO_SUIT) })]
-    NoSuit = sys::RETURN_NO_SUIT,
-
-    /// Too many tables
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_TOO_MANY_TABLES) })]
-    TooManyTables = sys::RETURN_TOO_MANY_TABLES,
-
-    /// Invalid chunk size
-    #[error("{}", unsafe { core::str::from_utf8_unchecked(sys::TEXT_CHUNK_SIZE) })]
-    ChunkSize = sys::RETURN_CHUNK_SIZE,
-}
-
-impl SystemError {
-    /// Propagate a status code to an error
-    ///
-    /// - `x`: Arbitrary data to return if `status` is non-negative (success)
-    /// - `status`: The status code from a DDS function
-    ///
-    /// # Errors
-    /// A [`SystemError`] specified by `status`
-    pub const fn propagate<T: Copy>(x: T, status: i32) -> Result<T, Self> {
-        match status {
-            0.. => Ok(x),
-            sys::RETURN_ZERO_CARDS => Err(Self::ZeroCards),
-            sys::RETURN_TARGET_TOO_HIGH => Err(Self::TargetTooHigh),
-            sys::RETURN_DUPLICATE_CARDS => Err(Self::DuplicateCards),
-            sys::RETURN_TARGET_WRONG_LO => Err(Self::NegativeTarget),
-            sys::RETURN_TARGET_WRONG_HI => Err(Self::InvalidTarget),
-            sys::RETURN_SOLNS_WRONG_LO => Err(Self::LowSolvingParameter),
-            sys::RETURN_SOLNS_WRONG_HI => Err(Self::HighSolvingParameter),
-            sys::RETURN_TOO_MANY_CARDS => Err(Self::TooManyCards),
-            sys::RETURN_SUIT_OR_RANK => Err(Self::CurrentSuitOrRank),
-            sys::RETURN_PLAYED_CARD => Err(Self::PlayedCard),
-            sys::RETURN_CARD_COUNT => Err(Self::CardCount),
-            sys::RETURN_THREAD_INDEX => Err(Self::ThreadIndex),
-            sys::RETURN_MODE_WRONG_LO => Err(Self::NegativeModeParameter),
-            sys::RETURN_MODE_WRONG_HI => Err(Self::HighModeParameter),
-            sys::RETURN_TRUMP_WRONG => Err(Self::Trump),
-            sys::RETURN_FIRST_WRONG => Err(Self::First),
-            sys::RETURN_PLAY_FAULT => Err(Self::AnalysePlay),
-            sys::RETURN_PBN_FAULT => Err(Self::PBN),
-            sys::RETURN_TOO_MANY_BOARDS => Err(Self::TooManyBoards),
-            sys::RETURN_THREAD_CREATE => Err(Self::ThreadCreate),
-            sys::RETURN_THREAD_WAIT => Err(Self::ThreadWait),
-            sys::RETURN_THREAD_MISSING => Err(Self::ThreadMissing),
-            sys::RETURN_NO_SUIT => Err(Self::NoSuit),
-            sys::RETURN_TOO_MANY_TABLES => Err(Self::TooManyTables),
-            sys::RETURN_CHUNK_SIZE => Err(Self::ChunkSize),
-            _ => Err(Self::UnknownFault),
-        }
-    }
+const fn check(status: i32) {
+    let msg: &[u8] = match status {
+        0.. => return,
+        sys::RETURN_ZERO_CARDS => sys::TEXT_ZERO_CARDS,
+        sys::RETURN_TARGET_TOO_HIGH => sys::TEXT_TARGET_TOO_HIGH,
+        sys::RETURN_DUPLICATE_CARDS => sys::TEXT_DUPLICATE_CARDS,
+        sys::RETURN_TARGET_WRONG_LO => sys::TEXT_TARGET_WRONG_LO,
+        sys::RETURN_TARGET_WRONG_HI => sys::TEXT_TARGET_WRONG_HI,
+        sys::RETURN_SOLNS_WRONG_LO => sys::TEXT_SOLNS_WRONG_LO,
+        sys::RETURN_SOLNS_WRONG_HI => sys::TEXT_SOLNS_WRONG_HI,
+        sys::RETURN_TOO_MANY_CARDS => sys::TEXT_TOO_MANY_CARDS,
+        sys::RETURN_SUIT_OR_RANK => sys::TEXT_SUIT_OR_RANK,
+        sys::RETURN_PLAYED_CARD => sys::TEXT_PLAYED_CARD,
+        sys::RETURN_CARD_COUNT => sys::TEXT_CARD_COUNT,
+        sys::RETURN_THREAD_INDEX => sys::TEXT_THREAD_INDEX,
+        sys::RETURN_MODE_WRONG_LO => sys::TEXT_MODE_WRONG_LO,
+        sys::RETURN_MODE_WRONG_HI => sys::TEXT_MODE_WRONG_HI,
+        sys::RETURN_TRUMP_WRONG => sys::TEXT_TRUMP_WRONG,
+        sys::RETURN_FIRST_WRONG => sys::TEXT_FIRST_WRONG,
+        sys::RETURN_PLAY_FAULT => sys::TEXT_PLAY_FAULT,
+        sys::RETURN_PBN_FAULT => sys::TEXT_PBN_FAULT,
+        sys::RETURN_TOO_MANY_BOARDS => sys::TEXT_TOO_MANY_BOARDS,
+        sys::RETURN_THREAD_CREATE => sys::TEXT_THREAD_CREATE,
+        sys::RETURN_THREAD_WAIT => sys::TEXT_THREAD_WAIT,
+        sys::RETURN_THREAD_MISSING => sys::TEXT_THREAD_MISSING,
+        sys::RETURN_NO_SUIT => sys::TEXT_NO_SUIT,
+        sys::RETURN_TOO_MANY_TABLES => sys::TEXT_TOO_MANY_TABLES,
+        sys::RETURN_CHUNK_SIZE => sys::TEXT_CHUNK_SIZE,
+        _ => sys::TEXT_UNKNOWN_FAULT,
+    };
+    panic!("{}", unsafe { core::str::from_utf8_unchecked(msg) });
 }
 
 bitflags::bitflags! {
@@ -564,14 +443,7 @@ impl From<sys::parResultsMaster> for Par {
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
 /// - `dealer`: The dealer of the deal
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS
-pub fn calculate_par(
-    tricks: TricksTable,
-    vul: Vulnerability,
-    dealer: Seat,
-) -> Result<Par, SystemError> {
+pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
     let status = unsafe {
         sys::DealerParBin(
@@ -581,21 +453,20 @@ pub fn calculate_par(
             dealer as c_int,
         )
     };
-    Ok(SystemError::propagate(par, status)?.into())
+    check(status);
+    par.into()
 }
 
 /// Calculate par scores for both pairs
 ///
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
-///
-/// # Errors
-/// A [`SystemError`] propagated from DDS
-pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> Result<[Par; 2], SystemError> {
+pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
     let status = unsafe { sys::SidesParBin(&mut tricks.into(), &raw mut pars[0], vul.to_sys()) };
-    Ok(SystemError::propagate(pars, status)?.map(Into::into))
+    check(status);
+    pars.map(Into::into)
 }
 
 /// Target tricks and number of solutions to find
@@ -792,20 +663,18 @@ impl Solver {
     /// // Each player holds a 13-card straight flush in one suit.
     /// let deal: Deal = "N:AKQJT98765432... .AKQJT98765432.. \
     ///                   ..AKQJT98765432. ...AKQJT98765432".parse()?;
-    /// let tricks = Solver::lock().solve_deal(deal)?;
+    /// let tricks = Solver::lock().solve_deal(deal);
     /// // North holds all the spades, so North or South declaring spades
     /// // draws trumps and takes every trick.
     /// assert_eq!(tricks[Strain::Spades].get(Seat::North), 13);
     /// # Ok(())
     /// # }
     /// ```
-    ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
-    pub fn solve_deal(&self, deal: Deal) -> Result<TricksTable, SystemError> {
+    pub fn solve_deal(&self, deal: Deal) -> TricksTable {
         let mut result = sys::ddTableResults::default();
         let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
-        SystemError::propagate(result.into(), status)
+        check(status);
+        result.into()
     }
 
     /// Solve deals with a single call of [`sys::CalcAllTables`]
@@ -822,12 +691,10 @@ impl Solver {
     /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
     ///    [`sys::MAXNOOFBOARDS`].
     ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
     unsafe fn solve_deal_segment(
         deals: &[Deal],
         flags: StrainFlags,
-    ) -> Result<sys::ddTablesRes, SystemError> {
+    ) -> sys::ddTablesRes {
         debug_assert!(
             deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
         );
@@ -857,37 +724,28 @@ impl Solver {
                 &mut sys::allParResults::default(),
             )
         };
-        SystemError::propagate(res, status)
+        check(status);
+        res
     }
 
     /// Solve deals in parallel for given strains
     ///
     /// - `deals`: A slice of deals to solve
     /// - `flags`: Flags of strains to solve for
-    ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
-    pub fn solve_deals(
-        &self,
-        deals: &[Deal],
-        flags: StrainFlags,
-    ) -> Result<Vec<TricksTable>, SystemError> {
+    pub fn solve_deals(&self, deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
         for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
             tables.extend(
-                unsafe { Self::solve_deal_segment(chunk, flags) }?.results[..chunk.len()]
+                unsafe { Self::solve_deal_segment(chunk, flags) }.results[..chunk.len()]
                     .iter()
                     .map(|&x| TricksTable::from(x)),
             );
         }
-        Ok(tables)
+        tables
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
-    ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
-    pub fn solve_board(&self, objective: Objective) -> Result<FoundPlays, SystemError> {
+    pub fn solve_board(&self, objective: Objective) -> FoundPlays {
         let mut result = sys::futureTricks::default();
         let status = unsafe {
             sys::SolveBoard(
@@ -899,7 +757,8 @@ impl Solver {
                 0,
             )
         };
-        SystemError::propagate(result, status).map(FoundPlays::from)
+        check(status);
+        FoundPlays::from(result)
     }
 
     /// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
@@ -914,9 +773,7 @@ impl Solver {
     ///    calling this function.
     /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
-    unsafe fn solve_board_segment(args: &[Objective]) -> Result<sys::solvedBoards, SystemError> {
+    unsafe fn solve_board_segment(args: &[Objective]) -> sys::solvedBoards {
         debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
@@ -930,24 +787,22 @@ impl Solver {
         });
         let mut res = sys::solvedBoards::default();
         let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
-        SystemError::propagate(res, status)
+        check(status);
+        res
     }
 
     /// Solve boards in parallel
     ///
     /// - `args`: A slice of boards and their targets to solve
-    ///
-    /// # Errors
-    /// A [`SystemError`] propagated from DDS
-    pub fn solve_boards(&self, args: &[Objective]) -> Result<Vec<FoundPlays>, SystemError> {
+    pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
         for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
             solutions.extend(
-                unsafe { Self::solve_board_segment(chunk) }?.solvedBoard[..chunk.len()]
+                unsafe { Self::solve_board_segment(chunk) }.solvedBoard[..chunk.len()]
                     .iter()
                     .map(|&x| FoundPlays::from(x)),
             );
         }
-        Ok(solutions)
+        solutions
     }
 }
