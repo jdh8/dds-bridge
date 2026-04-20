@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
-## [0.17.0-dev]
+## [0.17.0]
 
 ### Changed
 
@@ -96,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation fixes.
 
-[0.17.0-dev]: https://github.com/jdh8/dds-bridge/compare/0.16.0...HEAD
+[0.17.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.17.0
 [0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
 [0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0
 [0.14.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.14.0
