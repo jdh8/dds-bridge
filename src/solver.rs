@@ -691,10 +691,7 @@ impl Solver {
     /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
     ///    [`sys::MAXNOOFBOARDS`].
     ///
-    unsafe fn solve_deal_segment(
-        deals: &[Deal],
-        flags: StrainFlags,
-    ) -> sys::ddTablesRes {
+    unsafe fn solve_deal_segment(deals: &[Deal], flags: StrainFlags) -> sys::ddTablesRes {
         debug_assert!(
             deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
         );
