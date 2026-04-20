@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Display` for `Vulnerability`, completing the `Display` ↔ `FromStr` round-trip. Formats as `none`, `ns`, `ew`, or `both`.
 - Regression tests covering an invalid-deal error path and `solve_deals` chunking across the internal `MAXNOOFBOARDS` boundary.
 
 ## [0.16.0] - 2026-04-19

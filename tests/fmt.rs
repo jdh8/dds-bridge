@@ -1,6 +1,7 @@
 use core::fmt::{Debug, Display};
 use core::str::FromStr;
 
+use dds_bridge::solver::Vulnerability;
 use dds_bridge::{Bid, Contract, Level, Penalty, Strain};
 
 /// Assert that `value` survives a `Display` → `FromStr` round-trip.
@@ -19,6 +20,18 @@ where
     <T as FromStr>::Err: Debug + PartialEq,
 {
     assert_eq!(s.parse::<T>(), Ok(expected));
+}
+
+#[test]
+fn vulnerability_roundtrip() {
+    for vul in [
+        Vulnerability::NONE,
+        Vulnerability::NS,
+        Vulnerability::EW,
+        Vulnerability::ALL,
+    ] {
+        assert_roundtrip(vul);
+    }
 }
 
 #[test]
