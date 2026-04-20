@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.17.0]
 
+### Removed
+
+- **Breaking:** `SystemError` is removed. DDS solver functions now panic on irrecoverable DDS errors instead of returning `Err(SystemError)`.
+
 ### Changed
 
-- **Breaking:** `SystemError`, `ParseCardError`, `ParseHoldingError`, `ParseHandError`, and `ParseDealError` are now `#[non_exhaustive]` so future variants can be added without a major bump. Downstream exhaustive matches must add a `_ =>` arm.
+- **Breaking:** `ParseCardError`, `ParseHoldingError`, `ParseHandError`, and `ParseDealError` are now `#[non_exhaustive]` so future variants can be added without a major bump. Downstream exhaustive matches must add a `_ =>` arm.
 - `TricksRow::hex` and `TricksTable::hex` now return named `TricksRowHex` / `TricksTableHex<T>` wrapper types instead of opaque `impl UpperHex`, making the return type storable and referable in rustdoc. Both constructors are `const`. The `UpperHex` contract is unchanged.
 - `ParseCardError::Suit` and `ParseCardError::Rank` now carry distinct hint messages listing valid suit characters and rank characters respectively.
 - `Solver::solve_deal` doctest now runs (no longer `no_run`), guarding the canonical entry point against silent API drift.
