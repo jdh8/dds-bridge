@@ -1,4 +1,5 @@
-use dds_bridge::deal::{ParseDealError, ParseHandError, ParseHoldingError};
+use dds_bridge::deal::ParseDealError;
+use dds_bridge::hand::{ParseHandError, ParseHoldingError};
 use dds_bridge::*;
 
 const _: () = {

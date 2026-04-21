@@ -1,5 +1,6 @@
 use crate::contract::{Contract, Penalty};
-use crate::deal::{Builder, Card, FullDeal, Hand, Holding, Rank, Seat, Subset};
+use crate::deal::{Builder, FullDeal, Seat, Subset};
+use crate::hand::{Card, Hand, Holding, Rank};
 use crate::{Strain, Suit};
 
 use arrayvec::ArrayVec;

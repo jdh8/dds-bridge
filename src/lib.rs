@@ -3,13 +3,16 @@
 
 /// Bidding and scoring
 pub mod contract;
-/// Deals and hands
+/// Deal types (seats and the four-hand containers)
 pub mod deal;
+/// Card primitives: ranks, cards, holdings, and hands
+pub mod hand;
 /// Solver functions for double dummy problems
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Builder, Card, FullDeal, Hand, Holding, Rank, Seat, SeatFlags, Subset};
+pub use deal::{Builder, FullDeal, Seat, SeatFlags, Subset};
+pub use hand::{Card, Hand, Holding, Rank};
 pub use solver::Solver;
 
 use core::fmt::{self, Write as _};
