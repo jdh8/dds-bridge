@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** `TricksRow::new(n, e, s, w)` now panics (compile-time error in const contexts) when any value exceeds 13, instead of silently truncating to a 4-bit field. Use `TricksRow::try_new` to handle the error.
 - **Breaking:** `Deal` is replaced by a type hierarchy with stricter invariants:
   - `Builder` — unvalidated `[Hand; 4]` with `IndexMut<Seat>`; the only mutable deal type. Direct successor of today's `Deal` for incremental construction.
   - `Subset` — newtype over `Builder` with the invariant that each hand has ≤13 cards and the hands are pairwise disjoint. Read-only (`Index<Seat>` only). `FromStr` accepts PBN with partial holdings or `x` spots.
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `TricksRow::try_new(n, e, s, w)` returns `Result<Self, InvalidTricks>`, rejecting any per-seat value outside `0..=13`, mirroring `Level::try_new`.
 - `NonEmptyStrainFlags` — a guaranteed-non-empty wrapper around `StrainFlags`, analogous to `NonZero<T>`. Constructable via `NonEmptyStrainFlags::new(flags)` (returns `Option`); the inner value is recovered with `.get()` or `StrainFlags::from(…)`. `Solver::solve_deals` now takes `NonEmptyStrainFlags` instead of `StrainFlags`, encoding the non-empty requirement in the type.
 - `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.
 - `Solver::analyse_plays` wraps `AnalyseAllPlaysBin` to analyse multiple play traces in parallel.

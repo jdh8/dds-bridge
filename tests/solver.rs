@@ -439,3 +439,13 @@ fn system_info_display_matches_system_string() {
     let info = Solver::lock().system_info();
     assert_eq!(info.to_string(), info.system_string());
 }
+
+#[test]
+fn tricks_row_try_new_rejects_out_of_range() {
+    assert_eq!(TricksRow::try_new(14, 0, 0, 0), Err(InvalidTricks));
+    assert_eq!(TricksRow::try_new(0, 14, 0, 0), Err(InvalidTricks));
+    assert_eq!(TricksRow::try_new(0, 0, 14, 0), Err(InvalidTricks));
+    assert_eq!(TricksRow::try_new(0, 0, 0, 14), Err(InvalidTricks));
+    assert!(TricksRow::try_new(13, 13, 13, 13).is_ok());
+    assert!(TricksRow::try_new(0, 0, 0, 0).is_ok());
+}

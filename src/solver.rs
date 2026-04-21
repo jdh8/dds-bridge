@@ -106,6 +106,11 @@ impl From<NonEmptyStrainFlags> for StrainFlags {
     }
 }
 
+/// Error returned when a [`TricksRow`] field is outside `0..=13`
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[error("each seat's tricks must be in 0..=13")]
+pub struct InvalidTricks;
+
 /// Tricks that each seat can take as declarer for a strain
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -115,14 +120,36 @@ pub struct TricksRow(u16);
 
 impl TricksRow {
     /// Create a new row from the number of tricks each seat can take
+    ///
+    /// # Panics
+    ///
+    /// When any value is outside `0..=13`.  In const contexts, this is a
+    /// compile-time error.
     #[must_use]
+    #[inline]
     pub const fn new(n: u8, e: u8, s: u8, w: u8) -> Self {
-        Self(
+        match Self::try_new(n, e, s, w) {
+            Ok(row) => row,
+            Err(_) => panic!("each seat's tricks must be in 0..=13"),
+        }
+    }
+
+    /// Try to create a new row from the number of tricks each seat can take
+    ///
+    /// # Errors
+    ///
+    /// When any value is outside `0..=13`.
+    #[inline]
+    pub const fn try_new(n: u8, e: u8, s: u8, w: u8) -> Result<Self, InvalidTricks> {
+        if n > 13 || e > 13 || s > 13 || w > 13 {
+            return Err(InvalidTricks);
+        }
+        Ok(Self(
             (n as u16) << (4 * Seat::North as u8)
                 | (e as u16) << (4 * Seat::East as u8)
                 | (s as u16) << (4 * Seat::South as u8)
                 | (w as u16) << (4 * Seat::West as u8),
-        )
+        ))
     }
 
     /// Get the number of tricks a seat can take as declarer
@@ -227,12 +254,16 @@ impl Strain {
 impl From<sys::ddTableResults> for TricksTable {
     fn from(table: sys::ddTableResults) -> Self {
         const fn make_row(row: [c_int; 4]) -> TricksRow {
+            debug_assert!(row[0] >= 0 && row[0] <= 13);
+            debug_assert!(row[1] >= 0 && row[1] <= 13);
+            debug_assert!(row[2] >= 0 && row[2] <= 13);
+            debug_assert!(row[3] >= 0 && row[3] <= 13);
             #[allow(clippy::cast_sign_loss)]
             TricksRow::new(
-                (row[0] & 0xFF) as u8,
-                (row[1] & 0xFF) as u8,
-                (row[2] & 0xFF) as u8,
-                (row[3] & 0xFF) as u8,
+                (row[0] & 0xF) as u8,
+                (row[1] & 0xF) as u8,
+                (row[2] & 0xF) as u8,
+                (row[3] & 0xF) as u8,
             )
         }
 
