@@ -167,6 +167,11 @@ rusty_fork_test! {
     #[test]
     fn solve_deal_rejects_invalid_deal() {
         const INVALID_DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
-        assert!(Solver::lock().solve_deal(INVALID_DEAL).is_err());
+        let solver = Solver::lock();
+        assert!(solver.solve_deal(INVALID_DEAL).is_err());
+
+        // Reset global state so the next test doesn't fail
+        unsafe { dds_bridge_sys::SetMaxThreads(0) }; 
+        core::mem::drop(solver);
     }
 }
