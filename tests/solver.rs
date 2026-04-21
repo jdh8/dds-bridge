@@ -6,12 +6,11 @@ use semver::Version;
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
 fn solve_four_13_card_straight_flushes() {
-    const DEAL: Builder = Builder::new(
-        Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
+        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
+        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
+        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
     const SOLUTION: TricksTable = TricksTable([
         TricksRow::new(13, 0, 13, 0),
         TricksRow::new(0, 13, 0, 13),
@@ -60,12 +59,11 @@ fn solve_par_5_tricks() {
     const T987: Holding = Holding::from_bits_truncate(0xF << 7);
     const XXXX: Holding = Holding::from_bits_truncate(0xF << 3);
     const X: Holding = Holding::from_bits_truncate(1 << 2);
-    const DEAL: Builder = Builder::new(
-        Hand::new(T987, XXXX, X, AKQJ),
-        Hand::new(X, AKQJ, T987, XXXX),
-        Hand::new(XXXX, T987, AKQJ, X),
-        Hand::new(AKQJ, X, XXXX, T987),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(T987, XXXX, X, AKQJ))
+        .east(Hand::new(X, AKQJ, T987, XXXX))
+        .south(Hand::new(XXXX, T987, AKQJ, X))
+        .west(Hand::new(AKQJ, X, XXXX, T987));
     const SOLUTION: TricksTable = TricksTable([TricksRow::new(5, 5, 5, 5); 5]);
     const PAR: Par = Par {
         score: 0,
@@ -92,12 +90,11 @@ fn solve_everyone_makes_1nt() {
     const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
     const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
     const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
-    const DEAL: Builder = Builder::new(
-        Hand::new(A54, QJ32, K976, T8),
-        Hand::new(T8, A54, QJ32, K976),
-        Hand::new(K976, T8, A54, QJ32),
-        Hand::new(QJ32, K976, T8, A54),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(A54, QJ32, K976, T8))
+        .east(Hand::new(T8, A54, QJ32, K976))
+        .south(Hand::new(K976, T8, A54, QJ32))
+        .west(Hand::new(QJ32, K976, T8, A54));
     const SUIT: TricksRow = TricksRow::new(6, 6, 6, 6);
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
@@ -157,12 +154,11 @@ fn solve_board_score_matches_dd_table() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Builder = Builder::new(
-        Hand::new(A54, QJ32, K976, T8),
-        Hand::new(T8, A54, QJ32, K976),
-        Hand::new(K976, T8, A54, QJ32),
-        Hand::new(QJ32, K976, T8, A54),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(A54, QJ32, K976, T8))
+        .east(Hand::new(T8, A54, QJ32, K976))
+        .south(Hand::new(K976, T8, A54, QJ32))
+        .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
@@ -184,12 +180,11 @@ fn solve_boards_matches_solve_board() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Builder = Builder::new(
-        Hand::new(A54, QJ32, K976, T8),
-        Hand::new(T8, A54, QJ32, K976),
-        Hand::new(K976, T8, A54, QJ32),
-        Hand::new(QJ32, K976, T8, A54),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(A54, QJ32, K976, T8))
+        .east(Hand::new(T8, A54, QJ32, K976))
+        .south(Hand::new(K976, T8, A54, QJ32))
+        .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let obj = Objective {
         board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
@@ -209,12 +204,11 @@ fn solve_boards_matches_solve_board() {
 /// the single-deal answer.
 #[test]
 fn solve_deals_crosses_chunk_boundary() {
-    const DEAL: Builder = Builder::new(
-        Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
+        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
+        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
+        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
     let solver = Solver::lock();
     let expected = solver.solve_deal(DEAL.build_full().unwrap());
 
@@ -237,12 +231,11 @@ fn analyse_play_empty_trace_complements_solve_board() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Builder = Builder::new(
-        Hand::new(A54, QJ32, K976, T8),
-        Hand::new(T8, A54, QJ32, K976),
-        Hand::new(K976, T8, A54, QJ32),
-        Hand::new(QJ32, K976, T8, A54),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(A54, QJ32, K976, T8))
+        .east(Hand::new(T8, A54, QJ32, K976))
+        .south(Hand::new(K976, T8, A54, QJ32))
+        .west(Hand::new(QJ32, K976, T8, A54));
     let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
@@ -269,12 +262,11 @@ fn analyse_play_optimal_card_preserves_dd_value() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Builder = Builder::new(
-        Hand::new(A54, QJ32, K976, T8),
-        Hand::new(T8, A54, QJ32, K976),
-        Hand::new(K976, T8, A54, QJ32),
-        Hand::new(QJ32, K976, T8, A54),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(A54, QJ32, K976, T8))
+        .east(Hand::new(T8, A54, QJ32, K976))
+        .south(Hand::new(K976, T8, A54, QJ32))
+        .west(Hand::new(QJ32, K976, T8, A54));
     let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
@@ -297,12 +289,11 @@ fn analyse_play_optimal_card_preserves_dd_value() {
 /// RHO, West) with zero — which must hold across the opening lead.
 #[test]
 fn analyse_play_straight_flush_declarer_takes_zero() {
-    const DEAL: Builder = Builder::new(
-        Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
-        Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
-    );
+    const DEAL: Builder = Builder::new()
+        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
+        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
+        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
+        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
     let mut cards = ArrayVec::<Card, 52>::new();
     cards.push(Card {
         suit: Suit::Clubs,

@@ -208,13 +208,38 @@ impl ops::IndexMut<Seat> for Builder {
 }
 
 impl Builder {
-    /// Empty builder — all four hands empty
-    pub const EMPTY: Self = Self([Hand::EMPTY; 4]);
-
-    /// Construct a builder from four hands in seat order
+    /// Construct an empty builder — all four hands empty
     #[must_use]
-    pub const fn new(north: Hand, east: Hand, south: Hand, west: Hand) -> Self {
-        Self([north, east, south, west])
+    pub const fn new() -> Self {
+        Self([Hand::EMPTY; 4])
+    }
+
+    /// Set the hand at [`Seat::North`]
+    #[must_use]
+    pub const fn north(mut self, hand: Hand) -> Self {
+        self.0[Seat::North as usize] = hand;
+        self
+    }
+
+    /// Set the hand at [`Seat::East`]
+    #[must_use]
+    pub const fn east(mut self, hand: Hand) -> Self {
+        self.0[Seat::East as usize] = hand;
+        self
+    }
+
+    /// Set the hand at [`Seat::South`]
+    #[must_use]
+    pub const fn south(mut self, hand: Hand) -> Self {
+        self.0[Seat::South as usize] = hand;
+        self
+    }
+
+    /// Set the hand at [`Seat::West`]
+    #[must_use]
+    pub const fn west(mut self, hand: Hand) -> Self {
+        self.0[Seat::West as usize] = hand;
+        self
     }
 
     /// Try to convert this builder into a [`Subset`], validating that each
@@ -282,7 +307,7 @@ impl ops::Index<Seat> for Subset {
 
 impl Subset {
     /// Empty subset — all four hands empty
-    pub const EMPTY: Self = Self(Builder::EMPTY);
+    pub const EMPTY: Self = Self(Builder::new());
 
     /// Collect all cards in the subset into a single hand
     #[must_use]

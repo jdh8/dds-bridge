@@ -79,14 +79,13 @@ fn full_deal() -> impl Strategy<Value = FullDeal> {
             deck.swap(i, j);
         }
         let collect_hand = |slice: &[Card]| slice.iter().copied().collect::<Hand>();
-        Builder::new(
-            collect_hand(&deck[0..13]),
-            collect_hand(&deck[13..26]),
-            collect_hand(&deck[26..39]),
-            collect_hand(&deck[39..52]),
-        )
-        .build_full()
-        .unwrap()
+        Builder::new()
+            .north(collect_hand(&deck[0..13]))
+            .east(collect_hand(&deck[13..26]))
+            .south(collect_hand(&deck[26..39]))
+            .west(collect_hand(&deck[39..52]))
+            .build_full()
+            .unwrap()
     })
 }
 
@@ -102,7 +101,11 @@ fn subset() -> impl Strategy<Value = Subset> {
                 hands[bucket].insert(card);
             }
         }
-        Builder::new(hands[0], hands[1], hands[2], hands[3])
+        Builder::new()
+            .north(hands[0])
+            .east(hands[1])
+            .south(hands[2])
+            .west(hands[3])
             .build_subset()
             .unwrap()
     })
