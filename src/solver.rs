@@ -440,15 +440,11 @@ impl From<sys::parResultsMaster> for Par {
                     declarer: seat,
                     overtricks,
                 })
-                .chain(if is_pair {
-                    Some(ParContract {
-                        contract,
-                        declarer: seat.partner(),
-                        overtricks,
-                    })
-                } else {
-                    None
-                })
+                .chain(is_pair.then_some(ParContract {
+                    contract,
+                    declarer: seat.partner(),
+                    overtricks,
+                }))
             })
             .collect();
 
