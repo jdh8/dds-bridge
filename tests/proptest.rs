@@ -1,6 +1,9 @@
 //! Round-trip property tests for `Display` / `FromStr` on the public types.
 
-use dds_bridge::{Bid, Card, Contract, Deal, Hand, Holding, Level, Penalty, Rank, Seat, Strain};
+use dds_bridge::{
+    Bid, Builder, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, Strain,
+    Subset,
+};
 use proptest::prelude::*;
 
 fn rank() -> impl Strategy<Value = Rank> {
@@ -57,8 +60,52 @@ fn hand() -> impl Strategy<Value = Hand> {
     })
 }
 
-fn deal() -> impl Strategy<Value = Deal> {
-    [hand(), hand(), hand(), hand()].prop_map(|[n, e, s, w]| Deal::new(n, e, s, w))
+fn all_cards() -> impl Iterator<Item = Card> {
+    dds_bridge::Suit::ASC.into_iter().flat_map(|suit| {
+        (2u8..=14).map(move |rank| Card {
+            suit,
+            rank: Rank::new(rank),
+        })
+    })
+}
+
+/// Shuffle the 52-card deck deterministically from a seed, deal the first
+/// 13 cards to North, the next 13 to East, and so on.
+fn full_deal() -> impl Strategy<Value = FullDeal> {
+    any::<[u8; 52]>().prop_map(|seed| {
+        let mut deck: Vec<Card> = all_cards().collect();
+        for i in (1..52).rev() {
+            let j = (seed[i - 1] as usize) % (i + 1);
+            deck.swap(i, j);
+        }
+        let collect_hand = |slice: &[Card]| slice.iter().copied().collect::<Hand>();
+        Builder::new(
+            collect_hand(&deck[0..13]),
+            collect_hand(&deck[13..26]),
+            collect_hand(&deck[26..39]),
+            collect_hand(&deck[39..52]),
+        )
+        .build_full()
+        .unwrap()
+    })
+}
+
+/// Assign each of the 52 cards to one of 5 buckets: North, East, South, West,
+/// or "not dealt".  A card is dropped if its target hand already holds 13
+/// cards, so the subset invariant holds (≤13 per hand, pairwise disjoint).
+fn subset() -> impl Strategy<Value = Subset> {
+    any::<[u8; 52]>().prop_map(|seed| {
+        let mut hands = [Hand::EMPTY; 4];
+        for (i, card) in all_cards().enumerate() {
+            let bucket = (seed[i] as usize) % 5;
+            if bucket < 4 && hands[bucket].len() < 13 {
+                hands[bucket].insert(card);
+            }
+        }
+        Builder::new(hands[0], hands[1], hands[2], hands[3])
+            .build_subset()
+            .unwrap()
+    })
 }
 
 proptest! {
@@ -110,7 +157,12 @@ proptest! {
     }
 
     #[test]
-    fn deal_roundtrip(d in deal(), s in seat()) {
-        prop_assert_eq!(d.display(s).to_string().parse::<Deal>(), Ok(d));
+    fn full_deal_roundtrip(d in full_deal(), s in seat()) {
+        prop_assert_eq!(d.display(s).to_string().parse::<FullDeal>(), Ok(d));
+    }
+
+    #[test]
+    fn subset_roundtrip(d in subset(), s in seat()) {
+        prop_assert_eq!(d.display(s).to_string().parse::<Subset>(), Ok(d));
     }
 }

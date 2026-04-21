@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `Deal` is replaced by a type hierarchy with stricter invariants:
+  - `Builder` — unvalidated `[Hand; 4]` with `IndexMut<Seat>`; the only mutable deal type. Direct successor of today's `Deal` for incremental construction.
+  - `Subset` — newtype over `Builder` with the invariant that each hand has ≤13 cards and the hands are pairwise disjoint. Read-only (`Index<Seat>` only). `FromStr` accepts PBN with partial holdings or `x` spots.
+  - `FullDeal` — newtype over `Builder` with the invariant that each hand has exactly 13 cards. Read-only. `FromStr` is strict PBN.
+  Convert between them via `Builder::build_subset` / `Builder::build_full`, the matching `TryFrom` impls (errors return the input unchanged), or infallible widenings (`From<FullDeal> for Subset`, etc.). `Subset::collected` replaces the old `Deal::validate_and_collect` as an infallible `Hand` accessor.
+- **Breaking:** `Board` fields are now private. Construct via `Board::new(trump, lead, remaining)` (start-of-trick) or `Board::with_trick(trump, lead, remaining, played)` (general case). New accessors `trump()`, `lead()`, `current_cards()`, `remaining()`. The `remaining` field is now a `Subset` rather than a `Deal`. New `BoardError` enum covers invariant violations.
+- **Breaking:** `Solver::solve_deal` and `Solver::solve_deals` take `FullDeal` / `&[FullDeal]` instead of `Deal` / `&[Deal]`. The FFI converter `From<FullDeal> for sys::ddTableDeal` (plus `From<&Subset> for sys::ddTableDeal`) replaces `From<Deal>`.
+- **Breaking:** `ParseDealError` gains two variants, `InvalidSubset` and `NotFullDeal`, emitted by the strict parsers.
+
 ### Added
 
 - `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.

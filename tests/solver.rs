@@ -1,12 +1,12 @@
 use arrayvec::ArrayVec;
 use dds_bridge::solver::*;
-use dds_bridge::{Card, Contract, Deal, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
+use dds_bridge::{Builder, Card, Contract, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
 use semver::Version;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
 fn solve_four_13_card_straight_flushes() {
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
@@ -40,7 +40,10 @@ fn solve_four_13_card_straight_flushes() {
         score: 2210,
         contracts: CONTRACTS.to_vec(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL), SOLUTION);
+    assert_eq!(
+        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
+        SOLUTION
+    );
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&ns));
@@ -57,7 +60,7 @@ fn solve_par_5_tricks() {
     const T987: Holding = Holding::from_bits_truncate(0xF << 7);
     const XXXX: Holding = Holding::from_bits_truncate(0xF << 3);
     const X: Holding = Holding::from_bits_truncate(1 << 2);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(T987, XXXX, X, AKQJ),
         Hand::new(X, AKQJ, T987, XXXX),
         Hand::new(XXXX, T987, AKQJ, X),
@@ -68,7 +71,10 @@ fn solve_par_5_tricks() {
         score: 0,
         contracts: Vec::new(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL), SOLUTION);
+    assert_eq!(
+        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
+        SOLUTION
+    );
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&PAR));
@@ -86,7 +92,7 @@ fn solve_everyone_makes_1nt() {
     const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
     const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
     const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
         Hand::new(K976, T8, A54, QJ32),
@@ -96,7 +102,10 @@ fn solve_everyone_makes_1nt() {
     const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
     const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::Undoubled);
-    assert_eq!(Solver::lock().solve_deal(DEAL), SOLUTION);
+    assert_eq!(
+        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
+        SOLUTION
+    );
 
     let ns = Par {
         score: 90,
@@ -148,21 +157,16 @@ fn solve_board_score_matches_dd_table() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
         Hand::new(K976, T8, A54, QJ32),
         Hand::new(QJ32, K976, T8, A54),
     );
     let solver = Solver::lock();
-    let tricks = solver.solve_deal(DEAL);
+    let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
-        board: Board {
-            trump: Strain::Notrump,
-            lead: Seat::North,
-            current_cards: ArrayVec::new(),
-            remaining: DEAL,
-        },
+        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
         target: Target::Any(-1),
     });
     core::mem::drop(solver);
@@ -180,7 +184,7 @@ fn solve_boards_matches_solve_board() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
         Hand::new(K976, T8, A54, QJ32),
@@ -188,12 +192,7 @@ fn solve_boards_matches_solve_board() {
     );
     let solver = Solver::lock();
     let obj = Objective {
-        board: Board {
-            trump: Strain::Notrump,
-            lead: Seat::North,
-            current_cards: ArrayVec::new(),
-            remaining: DEAL,
-        },
+        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
         target: Target::Any(-1),
     };
     let single = solver.solve_board(obj.clone());
@@ -210,16 +209,16 @@ fn solve_boards_matches_solve_board() {
 /// the single-deal answer.
 #[test]
 fn solve_deals_crosses_chunk_boundary() {
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL),
     );
     let solver = Solver::lock();
-    let expected = solver.solve_deal(DEAL);
+    let expected = solver.solve_deal(DEAL.build_full().unwrap());
 
-    let deals = [DEAL; 41];
+    let deals = [DEAL.build_full().unwrap(); 41];
     let tables = solver.solve_deals(&deals, StrainFlags::all());
     core::mem::drop(solver);
 
@@ -238,18 +237,13 @@ fn analyse_play_empty_trace_complements_solve_board() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
         Hand::new(K976, T8, A54, QJ32),
         Hand::new(QJ32, K976, T8, A54),
     );
-    let board = Board {
-        trump: Strain::Notrump,
-        lead: Seat::North,
-        current_cards: ArrayVec::new(),
-        remaining: DEAL,
-    };
+    let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -275,18 +269,13 @@ fn analyse_play_optimal_card_preserves_dd_value() {
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
     const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(A54, QJ32, K976, T8),
         Hand::new(T8, A54, QJ32, K976),
         Hand::new(K976, T8, A54, QJ32),
         Hand::new(QJ32, K976, T8, A54),
     );
-    let board = Board {
-        trump: Strain::Notrump,
-        lead: Seat::North,
-        current_cards: ArrayVec::new(),
-        remaining: DEAL,
-    };
+    let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -308,7 +297,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
 /// RHO, West) with zero — which must hold across the opening lead.
 #[test]
 fn analyse_play_straight_flush_declarer_takes_zero() {
-    const DEAL: Deal = Deal::new(
+    const DEAL: Builder = Builder::new(
         Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY),
         Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY),
@@ -320,12 +309,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         rank: Rank::A,
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board {
-            trump: Strain::Notrump,
-            lead: Seat::North,
-            current_cards: ArrayVec::new(),
-            remaining: DEAL,
-        },
+        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
         cards,
     });
     assert_eq!(analysis.tricks.len(), 2);

@@ -1,5 +1,5 @@
 use crate::contract::{Contract, Penalty};
-use crate::deal::{Card, Deal, Holding, Rank, Seat};
+use crate::deal::{Builder, Card, FullDeal, Hand, Holding, Rank, Seat, Subset};
 use crate::{Strain, Suit};
 
 use arrayvec::ArrayVec;
@@ -234,11 +234,13 @@ impl From<TricksTable> for sys::ddTableResults {
     }
 }
 
-impl From<Deal> for sys::ddTableDeal {
-    fn from(deal: Deal) -> Self {
+/// FFI converter for a [`Builder`].  Used internally by [`FullDeal`] and
+/// [`Subset`] converters; `Builder` itself is unvalidated so prefer those.
+impl From<Builder> for sys::ddTableDeal {
+    fn from(builder: Builder) -> Self {
         Self {
             cards: Seat::ALL.map(|seat| {
-                let hand = deal[seat];
+                let hand = builder[seat];
                 [
                     hand[Suit::Spades].to_bits().into(),
                     hand[Suit::Hearts].to_bits().into(),
@@ -247,6 +249,20 @@ impl From<Deal> for sys::ddTableDeal {
                 ]
             }),
         }
+    }
+}
+
+impl From<FullDeal> for sys::ddTableDeal {
+    #[inline]
+    fn from(deal: FullDeal) -> Self {
+        Builder::from(deal).into()
+    }
+}
+
+impl From<&Subset> for sys::ddTableDeal {
+    #[inline]
+    fn from(subset: &Subset) -> Self {
+        Builder::from(*subset).into()
     }
 }
 
@@ -545,17 +561,147 @@ impl Target {
     }
 }
 
+/// Error returned when constructing a [`Board`] with invalid invariants
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum BoardError {
+    /// More than three cards are on the table
+    #[error("A trick can hold at most 3 cards on the table before it completes")]
+    TooManyPlayed,
+    /// The same card appears twice among the played cards
+    #[error("Duplicate card in the played cards on the table")]
+    DuplicatePlayedCard,
+    /// A card on the table is still present in one of the remaining hands
+    #[error("A played card is also present in a remaining hand")]
+    PlayedCardInHand,
+    /// The remaining hand sizes do not match the number of played cards
+    ///
+    /// With `k` cards on the table, exactly the `k` seats starting from
+    /// `lead` (in playing order) must have one fewer card than the other
+    /// seats; all other seats must share a common size.
+    #[error(
+        "Remaining hand sizes do not match the played-count pattern \
+         (the k seats from lead must have size m-1; others m)"
+    )]
+    InconsistentHandSizes,
+}
+
 /// A snapshot of a board
+///
+/// Construct via [`Board::new`] (start-of-trick, no cards on the table) or
+/// [`Board::with_trick`] (general case with 0–3 played cards).  The
+/// invariants below are enforced by the constructors.
+///
+/// # Invariants
+///
+/// 1. `remaining` is a valid [`Subset`] (≤13 cards per hand, pairwise
+///    disjoint).
+/// 2. Each card in `current_cards` is absent from every remaining hand (the
+///    "already played" invariant).
+/// 3. **Uniform-size-after-restoration**: putting the
+///    `k = current_cards.len()` table cards back into their players' hands
+///    yields a subset where all four hands share a common size `m`.
+///    Equivalently, the `k` seats starting at `lead` (in playing order:
+///    `lead`, `lead.lho()`, …) have size `m − 1` and the remaining `4 − k`
+///    seats have size `m`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
-    /// The strain of the contract
-    pub trump: Strain,
-    /// The player leading the trick
-    pub lead: Seat,
-    /// The played cards in the current trick
-    pub current_cards: ArrayVec<Card, 3>,
-    /// The remaining cards in the deal
-    pub remaining: Deal,
+    trump: Strain,
+    lead: Seat,
+    current_cards: ArrayVec<Card, 3>,
+    remaining: Subset,
+}
+
+impl Board {
+    /// Construct a start-of-trick board — no cards on the table.
+    ///
+    /// Returns `None` if the four hands in `remaining` do not share a common
+    /// size (which is required at the start of a trick).
+    #[must_use]
+    pub fn new(trump: Strain, lead: Seat, remaining: Subset) -> Option<Self> {
+        Self::with_trick(trump, lead, remaining, &[]).ok()
+    }
+
+    /// Construct a mid-trick board with 0–3 cards already played.
+    ///
+    /// The played cards are interpreted as being played by the seats starting
+    /// at `lead` in playing order: `played[0]` by `lead`, `played[1]` by
+    /// `lead.lho()`, and so on.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`BoardError`] if the invariants documented on [`Board`] do
+    /// not hold.
+    pub fn with_trick(
+        trump: Strain,
+        lead: Seat,
+        remaining: Subset,
+        played: &[Card],
+    ) -> Result<Self, BoardError> {
+        if played.len() > 3 {
+            return Err(BoardError::TooManyPlayed);
+        }
+
+        let mut current_cards = ArrayVec::<Card, 3>::new();
+        let mut seen_played = Hand::EMPTY;
+        let remaining_cards = remaining.collected();
+        for &card in played {
+            if !seen_played.insert(card) {
+                return Err(BoardError::DuplicatePlayedCard);
+            }
+            if remaining_cards.contains(card) {
+                return Err(BoardError::PlayedCardInHand);
+            }
+            current_cards.push(card);
+        }
+
+        let order = [lead, lead.lho(), lead.partner(), lead.rho()];
+        let k = played.len();
+        // `order[k]` is always a seat that has not yet played this trick, so
+        // its hand size is the common "full" size `m` we expect.
+        let m = remaining[order[k]].len();
+        for (j, &seat) in order.iter().enumerate() {
+            let expected = if j < k { m - 1 } else { m };
+            if remaining[seat].len() != expected {
+                return Err(BoardError::InconsistentHandSizes);
+            }
+        }
+
+        Ok(Self {
+            trump,
+            lead,
+            current_cards,
+            remaining,
+        })
+    }
+
+    /// Strain of the contract
+    #[must_use]
+    #[inline]
+    pub const fn trump(&self) -> Strain {
+        self.trump
+    }
+
+    /// Seat leading the current trick
+    #[must_use]
+    #[inline]
+    pub const fn lead(&self) -> Seat {
+        self.lead
+    }
+
+    /// Cards already played to the current trick, in playing order
+    #[must_use]
+    #[inline]
+    pub fn current_cards(&self) -> &[Card] {
+        &self.current_cards
+    }
+
+    /// Remaining cards in each hand
+    #[must_use]
+    #[inline]
+    pub const fn remaining(&self) -> &Subset {
+        &self.remaining
+    }
 }
 
 impl From<Board> for sys::deal {
@@ -579,7 +725,7 @@ impl From<Board> for sys::deal {
             first: board.lead as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
-            remainCards: sys::ddTableDeal::from(board.remaining).cards,
+            remainCards: sys::ddTableDeal::from(&board.remaining).cards,
         }
     }
 }
@@ -938,12 +1084,12 @@ impl Solver {
     /// # Examples
     ///
     /// ```
-    /// use dds_bridge::{Deal, Seat, Solver, Strain};
+    /// use dds_bridge::{FullDeal, Seat, Solver, Strain};
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// // Each player holds a 13-card straight flush in one suit.
-    /// let deal: Deal = "N:AKQJT98765432... .AKQJT98765432.. \
-    ///                   ..AKQJT98765432. ...AKQJT98765432".parse()?;
+    /// let deal: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. \
+    ///                       ..AKQJT98765432. ...AKQJT98765432".parse()?;
     /// let tricks = Solver::lock().solve_deal(deal);
     /// // North holds all the spades, so North or South declaring spades
     /// // draws trumps and takes every trick.
@@ -952,7 +1098,7 @@ impl Solver {
     /// # }
     /// ```
     #[must_use]
-    pub fn solve_deal(&self, deal: Deal) -> TricksTable {
+    pub fn solve_deal(&self, deal: FullDeal) -> TricksTable {
         let mut result = sys::ddTableResults::default();
         let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
         check(status);
@@ -973,7 +1119,7 @@ impl Solver {
     /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
     ///    [`sys::MAXNOOFBOARDS`].
     ///
-    unsafe fn solve_deal_segment(deals: &[Deal], flags: StrainFlags) -> sys::ddTablesRes {
+    unsafe fn solve_deal_segment(deals: &[FullDeal], flags: StrainFlags) -> sys::ddTablesRes {
         debug_assert!(
             deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
         );
@@ -1017,7 +1163,7 @@ impl Solver {
     /// - Panics if `flags` is empty.
     /// - Panics if DDS returns an error status.
     #[must_use]
-    pub fn solve_deals(&self, deals: &[Deal], flags: StrainFlags) -> Vec<TricksTable> {
+    pub fn solve_deals(&self, deals: &[FullDeal], flags: StrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
         for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
             tables.extend(

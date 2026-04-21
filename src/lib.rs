@@ -9,7 +9,7 @@ pub mod deal;
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Card, Deal, Hand, Holding, Rank, Seat, SeatFlags};
+pub use deal::{Builder, Card, FullDeal, Hand, Holding, Rank, Seat, SeatFlags, Subset};
 pub use solver::Solver;
 
 use core::fmt::{self, Write as _};

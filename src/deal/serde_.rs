@@ -1,4 +1,4 @@
-use super::{Card, Deal, Hand, Holding, Seat};
+use super::{Card, FullDeal, Hand, Holding, Seat, Subset};
 use core::fmt::Display;
 use core::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -50,12 +50,23 @@ impl<'de> Deserialize<'de> for Hand {
     }
 }
 
-impl Serialize for Deal {
+impl Serialize for Subset {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         s.collect_str(&self.display(Seat::North))
     }
 }
-impl<'de> Deserialize<'de> for Deal {
+impl<'de> Deserialize<'de> for Subset {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        deserialize(d)
+    }
+}
+
+impl Serialize for FullDeal {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(&self.display(Seat::North))
+    }
+}
+impl<'de> Deserialize<'de> for FullDeal {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         deserialize(d)
     }

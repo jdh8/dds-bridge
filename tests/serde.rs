@@ -4,7 +4,7 @@
 
 use dds_bridge::deal::SeatFlags;
 use dds_bridge::{
-    Bid, Card, Contract, Deal, Hand, Holding, Level, Penalty, Rank, Seat, Strain, Suit,
+    Bid, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, Strain, Suit,
 };
 
 fn roundtrip<T>(value: &T) -> serde_json::Result<()>
@@ -108,9 +108,9 @@ fn hand_json_is_string() {
 }
 
 #[test]
-fn deal_json_is_pbn_string() {
+fn full_deal_json_is_pbn_string() {
     // Each player holds a 13-card straight flush in one suit.
-    let d: Deal = "N:AKQJT98765432... .AKQJT98765432.. ..AKQJT98765432. ...AKQJT98765432"
+    let d: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. ..AKQJT98765432. ...AKQJT98765432"
         .parse()
         .unwrap();
     let json = serde_json::to_string(&d).unwrap();

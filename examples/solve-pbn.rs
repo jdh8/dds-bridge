@@ -8,7 +8,7 @@
 //! is tried as a single deal (e.g. `N:AKQJT98765432... ...`).
 
 use dds_bridge::solver::StrainFlags;
-use dds_bridge::{Deal, Seat, Solver, Strain};
+use dds_bridge::{FullDeal, Seat, Solver, Strain};
 use std::io::{self, Read};
 use std::process::ExitCode;
 
@@ -66,7 +66,7 @@ fn main() -> ExitCode {
 
     let mut deals = Vec::with_capacity(raw.len());
     for (i, s) in raw.iter().enumerate() {
-        match s.parse::<Deal>() {
+        match s.parse::<FullDeal>() {
             Ok(d) => deals.push(d),
             Err(e) => {
                 eprintln!("deal {}: parse error: {e}", i + 1);

@@ -198,19 +198,41 @@ fn test_hand_parser() -> Result<(), ParseHandError> {
 }
 
 #[test]
-fn test_deal_parser() -> Result<(), ParseDealError> {
+fn test_subset_parser() -> Result<(), ParseDealError> {
     let west: Hand = "KQT2.AT.J6542.85".parse()?;
     let east: Hand = "A8654.KQ5.T.QJT6".parse()?;
 
+    let expected = Builder::new(Hand::EMPTY, east, Hand::EMPTY, west)
+        .build_subset()
+        .unwrap();
     assert_eq!(
-        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse(),
-        Ok(Deal::new(Hand::EMPTY, east, Hand::EMPTY, west)),
+        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<Subset>(),
+        Ok(expected),
     );
 
     assert_eq!(
-        "N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85".parse::<Deal>()?,
+        "N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85"
+            .parse::<FullDeal>()?,
         "E:A8654.KQ5.T.QJT6 J973.J98742.3.K4 KQT2.AT.J6542.85 .63.AKQ987.A9732".parse()?,
     );
 
     Ok(())
+}
+
+#[test]
+fn test_full_deal_rejects_non_full() {
+    // Only two hands are non-empty, so this is a subset but not a full deal.
+    assert!(matches!(
+        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<FullDeal>(),
+        Err(ParseDealError::NotFullDeal)
+    ));
+}
+
+#[test]
+fn test_subset_rejects_duplicates() {
+    // Both North and East claim the ace of spades.
+    assert!(matches!(
+        "N:A... A... ... ...".parse::<Subset>(),
+        Err(ParseDealError::InvalidSubset)
+    ));
 }
