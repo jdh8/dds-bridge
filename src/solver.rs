@@ -542,10 +542,6 @@ impl From<sys::parResultsMaster> for Par {
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
 /// - `dealer`: The dealer of the deal
-///
-/// # Panics
-///
-/// Panics if DDS returns an error status.
 #[must_use]
 pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
@@ -565,10 +561,6 @@ pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> P
 ///
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
-///
-/// # Panics
-///
-/// Panics if DDS returns an error status.
 #[must_use]
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
