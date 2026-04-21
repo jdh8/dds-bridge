@@ -217,23 +217,6 @@ impl Builder {
         Self([north, east, south, west])
     }
 
-    /// If the builder is a valid bridge-deal subset, collect all the cards
-    /// into a single hand.  Otherwise, return `None`.
-    ///
-    /// A builder is a valid subset if each hand has at most 13 cards and the
-    /// hands are pairwise disjoint.
-    #[must_use]
-    pub fn validate_and_collect(self) -> Option<Hand> {
-        let mut seen = Hand::EMPTY;
-        for hand in self.0 {
-            if hand.len() > 13 || hand & seen != Hand::EMPTY {
-                return None;
-            }
-            seen |= hand;
-        }
-        Some(seen)
-    }
-
     /// Try to convert this builder into a [`Subset`], validating that each
     /// hand has at most 13 cards and the hands are pairwise disjoint.  On
     /// failure the input is returned unchanged as the error.
@@ -242,11 +225,14 @@ impl Builder {
     ///
     /// Returns `self` unchanged if the builder is not a valid subset.
     pub fn build_subset(self) -> Result<Subset, Self> {
-        if self.validate_and_collect().is_some() {
-            Ok(Subset(self))
-        } else {
-            Err(self)
+        let mut seen = Hand::EMPTY;
+        for hand in self.0 {
+            if hand.len() > 13 || hand & seen != Hand::EMPTY {
+                return Err(self);
+            }
+            seen |= hand;
         }
+        Ok(Subset(self))
     }
 
     /// Try to convert this builder into a [`FullDeal`], validating that each
@@ -257,9 +243,10 @@ impl Builder {
     ///
     /// Returns `self` unchanged if the builder is not a valid full deal.
     pub fn build_full(self) -> Result<FullDeal, Self> {
-        match self.validate_and_collect() {
-            Some(seen) if seen.len() == 52 => Ok(FullDeal(self)),
-            _ => Err(self),
+        match self.build_subset() {
+            Ok(subset) if subset.len() == 52 => Ok(FullDeal(subset.0)),
+            Ok(subset) => Err(subset.0),
+            Err(builder) => Err(builder),
         }
     }
 }
@@ -300,8 +287,7 @@ impl Subset {
     /// Collect all cards in the subset into a single hand
     #[must_use]
     pub fn collected(&self) -> Hand {
-        // SAFETY: `Subset` invariants guarantee `validate_and_collect` succeeds.
-        self.0.validate_and_collect().unwrap_or(Hand::EMPTY)
+        self.0.into_iter().fold(Hand::EMPTY, |a, h| a | h)
     }
 
     /// Total number of cards across the four hands
