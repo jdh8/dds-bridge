@@ -260,10 +260,10 @@ impl From<FullDeal> for sys::ddTableDeal {
     }
 }
 
-impl From<&Subset> for sys::ddTableDeal {
+impl From<Subset> for sys::ddTableDeal {
     #[inline]
-    fn from(subset: &Subset) -> Self {
-        Builder::from(*subset).into()
+    fn from(subset: Subset) -> Self {
+        Builder::from(subset).into()
     }
 }
 
@@ -726,7 +726,7 @@ impl From<Board> for sys::deal {
             first: board.lead as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
-            remainCards: sys::ddTableDeal::from(&board.remaining).cards,
+            remainCards: sys::ddTableDeal::from(board.remaining).cards,
         }
     }
 }
