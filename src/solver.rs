@@ -16,8 +16,6 @@ use core::ops::BitOr as _;
 use core::str::FromStr;
 use std::sync::LazyLock;
 
-/// # Panics
-///
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
 /// message is a human-readable description of the error code returned by DDS.
 const fn check(status: i32) {
@@ -1078,10 +1076,6 @@ impl Solver {
 
     /// Solve a single deal with [`sys::CalcDDtable`]
     ///
-    /// # Panics
-    ///
-    /// Panics if DDS returns an error status.
-    ///
     /// # Examples
     ///
     /// ```
@@ -1162,7 +1156,6 @@ impl Solver {
     /// # Panics
     ///
     /// - Panics if `flags` is empty.
-    /// - Panics if DDS returns an error status.
     #[must_use]
     pub fn solve_deals(&self, deals: &[FullDeal], flags: StrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
@@ -1177,10 +1170,6 @@ impl Solver {
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
-    ///
-    /// # Panics
-    ///
-    /// Panics if DDS returns an error status.
     #[must_use]
     pub fn solve_board(&self, objective: Objective) -> FoundPlays {
         let mut result = sys::futureTricks::default();
@@ -1231,10 +1220,6 @@ impl Solver {
     /// Solve boards in parallel
     ///
     /// - `args`: A slice of boards and their targets to solve
-    ///
-    /// # Panics
-    ///
-    /// Panics if DDS returns an error status.
     #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
