@@ -79,6 +79,9 @@ bitflags::bitflags! {
 pub struct NonEmptyStrainFlags(StrainFlags);
 
 impl NonEmptyStrainFlags {
+    /// All strains
+    pub const ALL: Self = Self(StrainFlags::all());
+
     /// Wrap `flags` if non-empty, otherwise return `None`
     #[must_use]
     pub const fn new(flags: StrainFlags) -> Option<Self> {

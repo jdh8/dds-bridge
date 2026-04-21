@@ -253,7 +253,7 @@ fn solve_deals_crosses_chunk_boundary() {
     let expected = solver.solve_deal(DEAL.build_full().unwrap());
 
     let deals = [DEAL.build_full().unwrap(); 41];
-    let tables = solver.solve_deals(&deals, StrainFlags::all());
+    let tables = solver.solve_deals(&deals, NonEmptyStrainFlags::ALL);
     core::mem::drop(solver);
 
     assert_eq!(tables.len(), deals.len());
