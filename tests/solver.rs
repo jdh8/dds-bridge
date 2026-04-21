@@ -7,10 +7,30 @@ use semver::Version;
 #[test]
 fn solve_four_13_card_straight_flushes() {
     const DEAL: Builder = Builder::new()
-        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
-        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
-        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
-        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
+        .north(Hand::new(
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .east(Hand::new(
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .south(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+        ))
+        .west(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+        ));
     const SOLUTION: TricksTable = TricksTable([
         TricksRow::new(13, 0, 13, 0),
         TricksRow::new(0, 13, 0, 13),
@@ -205,10 +225,30 @@ fn solve_boards_matches_solve_board() {
 #[test]
 fn solve_deals_crosses_chunk_boundary() {
     const DEAL: Builder = Builder::new()
-        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
-        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
-        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
-        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
+        .north(Hand::new(
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .east(Hand::new(
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .south(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+        ))
+        .west(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+        ));
     let solver = Solver::lock();
     let expected = solver.solve_deal(DEAL.build_full().unwrap());
 
@@ -290,10 +330,30 @@ fn analyse_play_optimal_card_preserves_dd_value() {
 #[test]
 fn analyse_play_straight_flush_declarer_takes_zero() {
     const DEAL: Builder = Builder::new()
-        .north(Hand::new(Holding::ALL, Holding::EMPTY, Holding::EMPTY, Holding::EMPTY))
-        .east(Hand::new(Holding::EMPTY, Holding::ALL, Holding::EMPTY, Holding::EMPTY))
-        .south(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::ALL, Holding::EMPTY))
-        .west(Hand::new(Holding::EMPTY, Holding::EMPTY, Holding::EMPTY, Holding::ALL));
+        .north(Hand::new(
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .east(Hand::new(
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+            Holding::EMPTY,
+        ))
+        .south(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+            Holding::EMPTY,
+        ))
+        .west(Hand::new(
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::EMPTY,
+            Holding::ALL,
+        ));
     let mut cards = ArrayVec::<Card, 52>::new();
     cards.push(Card {
         suit: Suit::Clubs,

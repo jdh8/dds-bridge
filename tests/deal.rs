@@ -203,11 +203,7 @@ fn test_subset_parser() -> Result<(), ParseDealError> {
     let west: Hand = "KQT2.AT.J6542.85".parse()?;
     let east: Hand = "A8654.KQ5.T.QJT6".parse()?;
 
-    let expected = Builder::new()
-        .east(east)
-        .west(west)
-        .build_subset()
-        .unwrap();
+    let expected = Builder::new().east(east).west(west).build_subset().unwrap();
     assert_eq!(
         "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<Subset>(),
         Ok(expected),

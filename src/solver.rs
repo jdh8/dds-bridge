@@ -70,6 +70,39 @@ bitflags::bitflags! {
     }
 }
 
+/// A guaranteed non-empty [`StrainFlags`]
+///
+/// Analogous to [`NonZero`](core::num::NonZero) — constructable only if the
+/// flags are non-empty, ensuring callers cannot accidentally pass an empty set
+/// to functions that require at least one strain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NonEmptyStrainFlags(StrainFlags);
+
+impl NonEmptyStrainFlags {
+    /// Wrap `flags` if non-empty, otherwise return `None`
+    #[must_use]
+    pub const fn new(flags: StrainFlags) -> Option<Self> {
+        if flags.is_empty() {
+            None
+        } else {
+            Some(Self(flags))
+        }
+    }
+
+    /// Extract the inner [`StrainFlags`]
+    #[must_use]
+    pub const fn get(self) -> StrainFlags {
+        self.0
+    }
+}
+
+impl From<NonEmptyStrainFlags> for StrainFlags {
+    #[inline]
+    fn from(flags: NonEmptyStrainFlags) -> Self {
+        flags.0
+    }
+}
+
 /// Tricks that each seat can take as declarer for a strain
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -1114,7 +1147,11 @@ impl Solver {
     /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
     ///    [`sys::MAXNOOFBOARDS`].
     ///
-    unsafe fn solve_deal_segment(deals: &[FullDeal], flags: StrainFlags) -> sys::ddTablesRes {
+    unsafe fn solve_deal_segment(
+        deals: &[FullDeal],
+        flags: NonEmptyStrainFlags,
+    ) -> sys::ddTablesRes {
+        let flags = flags.get();
         debug_assert!(
             deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
         );
@@ -1152,14 +1189,10 @@ impl Solver {
     ///
     /// - `deals`: A slice of deals to solve
     /// - `flags`: Flags of strains to solve for
-    ///
-    /// # Panics
-    ///
-    /// - Panics if `flags` is empty.
     #[must_use]
-    pub fn solve_deals(&self, deals: &[FullDeal], flags: StrainFlags) -> Vec<TricksTable> {
+    pub fn solve_deals(&self, deals: &[FullDeal], flags: NonEmptyStrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
-        for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.bits().count_ones()) as usize) {
+        for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.get().bits().count_ones()) as usize) {
             tables.extend(
                 unsafe { Self::solve_deal_segment(chunk, flags) }.results[..chunk.len()]
                     .iter()
