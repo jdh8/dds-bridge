@@ -26,7 +26,6 @@ thiserror = "2"
 
 [dev-dependencies]
 proptest = "1"
-rusty-fork = "0.3"
 serde_json = "1"
 
 [profile.dev]

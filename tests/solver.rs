@@ -1,6 +1,5 @@
 use dds_bridge::solver::*;
 use dds_bridge::{Contract, Deal, Hand, Holding, Penalty, Seat, Strain};
-use rusty_fork::rusty_fork_test;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
@@ -159,19 +158,20 @@ fn solve_deals_crosses_chunk_boundary() -> Result<(), SystemError> {
     Ok(())
 }
 
-rusty_fork_test! {
-    /// An invalid deal (every seat holds every card) must surface a [`SystemError`]
-    /// from DDS rather than panicking or returning a bogus table.  Run in a forked
-    /// subprocess because DDS leaves global state corrupted on error and has no
-    /// reset API.
-    #[test]
-    fn solve_deal_rejects_invalid_deal() {
-        const INVALID_DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
-        let solver = Solver::lock();
-        assert!(solver.solve_deal(INVALID_DEAL).is_err());
+/// An invalid deal (every seat holds every card) must surface a [`SystemError`]
+/// from DDS rather than panicking or returning a bogus table.  Run in a forked
+/// subprocess because DDS leaves global state corrupted on error and has no
+/// reset API.
+#[test]
+fn solve_deal_rejects_invalid_deal() {
+    const INVALID_DEAL: Deal = Deal::new(Hand::ALL, Hand::ALL, Hand::ALL, Hand::ALL);
+    let solver = Solver::lock();
+    assert!(solver.solve_deal(INVALID_DEAL).is_err());
 
-        // Reset global state so the next test doesn't fail
-        unsafe { dds_bridge_sys::SetMaxThreads(0) }; 
-        core::mem::drop(solver);
+    // Reset global state so the next test doesn't fail
+    unsafe {
+        dds_bridge_sys::FreeMemory();
+        dds_bridge_sys::SetMaxThreads(0);
     }
+    core::mem::drop(solver);
 }
