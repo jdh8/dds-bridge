@@ -804,59 +804,6 @@ impl CurrentTrick {
     pub fn led_suit(&self) -> Option<Suit> {
         self.cards.first().map(|c| c.suit)
     }
-
-    /// Index of the currently-winning card among those played (0 to `len-1`),
-    /// or `None` when the trick is empty.  Trump beats led suit beats off-suit;
-    /// ties within a category are broken by rank.
-    #[must_use]
-    pub fn winning_index(&self) -> Option<usize> {
-        let (first, rest) = self.cards.split_first()?;
-        let led = first.suit;
-        let trump = self.trump.suit();
-        let rank_of = |category: Option<Suit>, card: &Card, priority: u8| {
-            // Pack (priority, rank) so trump > led > off, ties by rank.
-            let matches_category = category.is_some_and(|s| s == card.suit);
-            let pri = if matches_category { priority } else { 0 };
-            (u16::from(pri) << 8) | u16::from(card.rank.get())
-        };
-        // Priority: 2 for trump, 1 for led, 0 for off-suit.
-        let score = |card: &Card| -> u16 {
-            if let Some(t) = trump
-                && card.suit == t
-            {
-                return rank_of(Some(t), card, 2);
-            }
-            rank_of(Some(led), card, 1)
-        };
-        let mut best_idx = 0usize;
-        let mut best = score(first);
-        for (i, card) in rest.iter().enumerate() {
-            let s = score(card);
-            if s > best {
-                best = s;
-                best_idx = i + 1;
-            }
-        }
-        Some(best_idx)
-    }
-
-    /// The currently-winning card, or `None` when the trick is empty
-    #[must_use]
-    pub fn winning_card(&self) -> Option<Card> {
-        self.winning_index().map(|i| self.cards[i])
-    }
-
-    /// Seat that played the currently-winning card, or `None` when the trick
-    /// is empty
-    #[must_use]
-    pub fn winning_seat(&self) -> Option<Seat> {
-        let i = self.winning_index()?;
-        let mut seat = self.lead;
-        for _ in 0..i {
-            seat = seat.lho();
-        }
-        Some(seat)
-    }
 }
 
 /// A snapshot of a board
