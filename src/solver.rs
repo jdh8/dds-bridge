@@ -19,7 +19,8 @@
 //! construction.
 
 use crate::contract::{Contract, Penalty};
-use crate::deal::{Builder, FullDeal, PartialDeal, Seat};
+use crate::deal::{Builder, FullDeal, PartialDeal};
+use crate::seat::Seat;
 use crate::hand::{Card, Hand, Holding, Rank};
 use crate::{Strain, Suit};
 

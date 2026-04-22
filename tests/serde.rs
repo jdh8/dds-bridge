@@ -2,9 +2,9 @@
 
 #![cfg(feature = "serde")]
 
-use dds_bridge::deal::SeatFlags;
 use dds_bridge::{
-    Bid, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, Strain, Suit,
+    Bid, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, SeatFlags, Strain,
+    Suit,
 };
 
 fn roundtrip<T>(value: &T) -> serde_json::Result<()>

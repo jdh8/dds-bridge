@@ -4,11 +4,13 @@
 pub mod contract;
 pub mod deal;
 pub mod hand;
+pub mod seat;
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Builder, FullDeal, PartialDeal, Seat, SeatFlags};
+pub use deal::{Builder, FullDeal, PartialDeal};
 pub use hand::{Card, Hand, Holding, Rank};
+pub use seat::{Seat, SeatFlags};
 pub use solver::Solver;
 
 use core::fmt::{self, Write as _};

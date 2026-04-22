@@ -1,4 +1,5 @@
-use super::{FullDeal, PartialDeal, Seat};
+use super::{FullDeal, PartialDeal};
+use crate::seat::Seat;
 use core::fmt::Display;
 use core::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
