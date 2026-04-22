@@ -655,9 +655,9 @@ pub enum BoardError {
 
 /// A snapshot of a board
 ///
-/// Construct via [`Board::new`] (start-of-trick, no cards on the table) or
-/// [`Board::with_trick`] (general case with 0–3 played cards).  The
-/// invariants below are enforced by the constructors.
+/// Construct via [`Board::with_trick`], which handles both start-of-trick
+/// (pass `&[]` for `played`) and mid-trick (0–3 played cards) cases.  The
+/// invariants below are enforced by the constructor.
 ///
 /// # Invariants
 ///
@@ -680,21 +680,6 @@ pub struct Board {
 }
 
 impl Board {
-    /// Construct a board with the given trump strain and leading seat.
-    ///
-    /// The board starts with no cards on the table and empty remaining hands.
-    /// Use [`Board::with_trick`] to construct a validated board with remaining
-    /// cards and optional in-progress trick.
-    #[must_use]
-    pub fn new(trump: Strain, lead: Seat) -> Self {
-        Self {
-            trump,
-            lead,
-            current_cards: ArrayVec::new(),
-            remaining: PartialDeal::EMPTY,
-        }
-    }
-
     /// Construct a mid-trick board with 0–3 cards already played.
     ///
     /// The played cards are interpreted as being played by the seats starting
