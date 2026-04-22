@@ -680,13 +680,19 @@ pub struct Board {
 }
 
 impl Board {
-    /// Construct a start-of-trick board — no cards on the table.
+    /// Construct a board with the given trump strain and leading seat.
     ///
-    /// Returns `None` if the four hands in `remaining` do not share a common
-    /// size (which is required at the start of a trick).
+    /// The board starts with no cards on the table and empty remaining hands.
+    /// Use [`Board::with_trick`] to construct a validated board with remaining
+    /// cards and optional in-progress trick.
     #[must_use]
-    pub fn new(trump: Strain, lead: Seat, remaining: Subset) -> Option<Self> {
-        Self::with_trick(trump, lead, remaining, &[]).ok()
+    pub fn new(trump: Strain, lead: Seat) -> Self {
+        Self {
+            trump,
+            lead,
+            current_cards: ArrayVec::new(),
+            remaining: Subset::EMPTY,
+        }
     }
 
     /// Construct a mid-trick board with 0–3 cards already played.

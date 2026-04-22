@@ -182,7 +182,7 @@ fn solve_board_score_matches_dd_table() {
     let solver = Solver::lock();
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
-        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
         target: Target::Any(-1),
     });
     core::mem::drop(solver);
@@ -207,7 +207,7 @@ fn solve_boards_matches_solve_board() {
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let obj = Objective {
-        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
         target: Target::Any(-1),
     };
     let single = solver.solve_board(obj.clone());
@@ -276,7 +276,7 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
+    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -307,7 +307,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap();
+    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -360,7 +360,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         rank: Rank::A,
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board::new(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap()).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
         cards,
     });
     assert_eq!(analysis.tricks.len(), 2);
