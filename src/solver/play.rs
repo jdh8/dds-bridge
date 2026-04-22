@@ -1,0 +1,144 @@
+//! Play-trace input and play-analysis output types
+
+use super::board::Board;
+use crate::Suit;
+use crate::hand::{Card, Holding, Rank};
+
+use arrayvec::ArrayVec;
+use dds_bridge_sys as sys;
+
+use core::ffi::c_int;
+
+/// A starting board and a sequence of cards played from it
+///
+/// Input to [`Solver::analyse_play`](super::Solver::analyse_play).  The two
+/// fields split the position and the play-trace cleanly:
+///
+/// - [`board`](Self::board) is the snapshot from which analysis begins.  It
+///   encodes the state at the start of a trick — possibly with up to three
+///   cards already on the table in [`Board::current_cards`] — and
+///   [`Board::remaining`] holds only the cards still in each hand.  Cards
+///   from **previously completed tricks are not represented individually**;
+///   they are simply absent from `remaining`.
+/// - [`cards`](Self::cards) is the play trace to replay from that snapshot,
+///   in chronological order.  The first card in `cards` is whichever card
+///   comes *after* any already in `board.current_cards` — it does **not**
+///   restart the trick or repeat prior history.  Each card must be legal
+///   (follow suit when possible and be held by the player on turn).
+///
+/// `cards` may span trick boundaries; DDS tracks trick completion and whose
+/// lead follows internally.  The trace length may be any value from `0` to
+/// `52`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PlayTrace {
+    /// Snapshot at the start of analysis: state at the start of the current
+    /// trick, plus any 0–3 cards already played to it via
+    /// [`Board::current_cards`]
+    pub board: Board,
+    /// Cards played after `board`, in chronological order; may cross tricks
+    pub cards: ArrayVec<Card, 52>,
+}
+
+/// Thin wrapper over [`sys::playTraceBin`] so we can impl `From<&[Card]>` for it
+#[repr(transparent)]
+pub(super) struct PlayTraceBin(pub(super) sys::playTraceBin);
+
+impl From<&[Card]> for PlayTraceBin {
+    fn from(cards: &[Card]) -> Self {
+        let mut play = sys::playTraceBin::default();
+        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+        {
+            play.number = cards.len() as c_int;
+        }
+        for (i, card) in cards.iter().enumerate() {
+            play.suit[i] = 3 - card.suit as c_int;
+            play.rank[i] = c_int::from(card.rank.get());
+        }
+        Self(play)
+    }
+}
+
+/// Double-dummy trick counts before and after each played card in a trace
+///
+/// Returned by [`Solver::analyse_play`](super::Solver::analyse_play).  Trick
+/// counts are from the declarer's viewpoint: declarer is the right-hand
+/// opponent of the opening leader (the side to lead the very first trick in
+/// the starting [`Board`]).
+///
+/// `tricks[0]` is the DD value before any card in the trace is played.
+/// `tricks[i]` for `i > 0` is the DD value after the i-th card.  A drop from
+/// `tricks[i - 1]` to `tricks[i]` means that card was a double-dummy mistake
+/// by the side to move at the time.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayAnalysis {
+    /// Trick counts — `cards.len() + 1` entries, starting with the position
+    /// before any card is played
+    pub tricks: ArrayVec<u8, 53>,
+}
+
+impl From<sys::solvedPlay> for PlayAnalysis {
+    #[allow(clippy::cast_sign_loss)]
+    fn from(solved: sys::solvedPlay) -> Self {
+        let mut tricks = ArrayVec::new();
+        for i in 0..solved.number as usize {
+            #[allow(clippy::cast_possible_truncation)]
+            tricks.push((solved.tricks[i] & 0xFF) as u8);
+        }
+        Self { tricks }
+    }
+}
+
+/// A play and its consequences
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Play {
+    /// The card to play, the highest in a sequence
+    ///
+    /// For example, if the solution is to play a card from ♥KQJ, this field
+    /// would be ♥K.
+    pub card: Card,
+
+    /// Lower equals in the sequence
+    ///
+    /// Playing any card in a sequence is equal in bridge and many trick-taking
+    /// games.  This field contains lower cards in the sequence as `card`.  For
+    /// example, if the solution is to play KQJ, this field would contain QJ.
+    pub equals: Holding,
+
+    /// Tricks this play would score
+    pub score: i8,
+}
+
+/// Solved plays for a board
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FoundPlays {
+    /// The plays and their consequences
+    pub plays: ArrayVec<Play, 13>,
+    /// The number of nodes searched by the solver
+    pub nodes: u32,
+}
+
+impl From<sys::futureTricks> for FoundPlays {
+    #[allow(clippy::cast_sign_loss)]
+    fn from(future: sys::futureTricks) -> Self {
+        let mut plays = ArrayVec::new();
+
+        for i in 0..future.cards as usize {
+            let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
+            let score = (future.score[i] & 0xFF) as i8;
+
+            plays.push(Play {
+                card: Card {
+                    suit: Suit::DESC[future.suit[i] as usize],
+                    rank: Rank::new((future.rank[i] & 0xFF) as u8),
+                },
+                equals,
+                score,
+            });
+        }
+
+        Self {
+            plays,
+            nodes: future.nodes as u32,
+        }
+    }
+}

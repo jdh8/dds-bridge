@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `ParseDealError` gains two variants, `InvalidSubset` and `NotFullDeal`, emitted by the strict parsers.
 - Panics from the solver entry points (`calculate_par`, `calculate_pars`, and `Solver::{solve_deal, solve_deals, solve_board, solve_boards, analyse_play, analyse_plays}`) are now considered bugs — please report them. These functions route DDS status codes through an internal helper that panics on error; reaching it means invalid input slipped past a safe constructor or DDS itself misbehaved. This policy does not cover validator panics from safe constructors (e.g. `TrickCountRow::new`), which panic by design on out-of-range inputs and have `try_*` counterparts for fallible construction.
 - **Breaking:** `Seat`, `SeatFlags`, and `ParseSeatError` have moved out of the `deal` module into a new top-level `seat` module. The crate-root re-exports `dds_bridge::Seat` and `dds_bridge::SeatFlags` are unchanged, so most consumers need no code changes. Code that imported these types through the `deal` submodule path (e.g. `use dds_bridge::deal::Seat;`) must update to `dds_bridge::seat::Seat` or the crate-root re-export.
+- The `solver` module is now a directory module: its contents are split across `strain_flags`, `tricks`, `vulnerability`, `par`, `board`, `play`, and `system_info` submodules. All items remain reachable at their original `dds_bridge::solver::*` paths through re-exports — no public API change.
 
 ### Added
 
