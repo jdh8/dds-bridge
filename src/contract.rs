@@ -1,3 +1,17 @@
+//! Bidding, penalties, and scoring in contract bridge.
+//!
+//! [`Level`] wraps a `1..=7` contract level, [`Bid`] pairs a level with a
+//! [`Strain`], and [`Contract`] adds a [`Penalty`] (undoubled, doubled,
+//! redoubled).  [`Contract::score`] returns the duplicate score for a given
+//! trick count and vulnerability.
+//!
+//! # Panic policy
+//!
+//! The safe constructors that take raw levels — [`Level::new`], [`Bid::new`],
+//! and [`Contract::new`] — panic when the level is outside `1..=7`, and have
+//! [`Level::try_new`] for fallible construction.  In const contexts the panic
+//! becomes a compile-time error.
+
 #[cfg(feature = "serde")]
 mod serde_;
 

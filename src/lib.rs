@@ -1,13 +1,9 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-/// Bidding and scoring
 pub mod contract;
-/// Deal types (seats and the four-hand containers)
 pub mod deal;
-/// Card primitives: ranks, cards, holdings, and hands
 pub mod hand;
-/// Solver functions for double dummy problems
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};

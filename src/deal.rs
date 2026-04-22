@@ -1,3 +1,30 @@
+//! Seats and the four-hand deal containers.
+//!
+//! [`Seat`] names a position at the table; [`SeatFlags`] is a bitset over
+//! seats with named constants for partnerships ([`SeatFlags::NS`],
+//! [`SeatFlags::EW`]).
+//!
+//! Deals come in three flavors, distinguished by their invariants:
+//!
+//! * [`Builder`] — a mutable four-hand scratchpad with no invariants.  The
+//!   only deal type exposing [`IndexMut`](core::ops::IndexMut).
+//! * [`PartialDeal`] — validated and read-only: each hand holds at most 13
+//!   cards and the four hands are pairwise disjoint.
+//! * [`FullDeal`] — validated and read-only: exactly 13 cards per hand, all
+//!   52 cards accounted for.
+//!
+//! Build a validated deal via [`Builder::build_partial`] or
+//! [`Builder::build_full`]; both return the original `Builder` unchanged as
+//! the error on validation failure.  To mutate an already-validated deal,
+//! widen it back to a [`Builder`] and re-validate.
+//!
+//! All three deal types parse the [PBN] deal format —
+//! `<dealer>:<hand> <hand> <hand> <hand>` — with holdings ordered spades,
+//! hearts, diamonds, clubs.  `PartialDeal` additionally accepts relaxed hand
+//! sizes and `x` for unknown ranks.
+//!
+//! [PBN]: https://www.tistis.nl/pbn/
+
 #[cfg(feature = "serde")]
 mod serde_;
 

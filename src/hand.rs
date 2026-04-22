@@ -1,3 +1,21 @@
+//! Card primitives: ranks, cards, holdings, and hands.
+//!
+//! [`Rank`] is a non-zero byte in `2..=14` (J/Q/K/A as 11/12/13/14).
+//! [`Card`] pairs a [`Rank`] with a [`Suit`] and packs into a
+//! single byte.  [`Holding`] is a 13-bit bitset of ranks within one suit,
+//! and [`Hand`] is four holdings packed into a `u64`.  Set operations on
+//! holdings and hands are exposed through the standard bitwise operators.
+//!
+//! Iteration yields cards in descending suit order (spades first) and
+//! descending rank order within each suit, matching the conventional
+//! display order.
+//!
+//! # Panic policy
+//!
+//! [`Rank::new`] panics when the input is outside `2..=14` and has
+//! [`Rank::try_new`] for fallible construction.  In const contexts the panic
+//! becomes a compile-time error.
+
 #[cfg(feature = "serde")]
 mod serde_;
 

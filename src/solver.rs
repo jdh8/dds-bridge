@@ -2,8 +2,8 @@
 //!
 //! # Panic policy
 //!
-//! The solver entry points in this module — [`calculate_par`](crate::solver::calculate_par),
-//! [`calculate_pars`](crate::solver::calculate_pars), and the [`Solver`] methods
+//! The solver entry points in this module — [`calculate_par`],
+//! [`calculate_pars`], and the [`Solver`] methods
 //! [`solve_deal`](Solver::solve_deal), [`solve_deals`](Solver::solve_deals),
 //! [`solve_board`](Solver::solve_board), [`solve_boards`](Solver::solve_boards),
 //! [`analyse_play`](Solver::analyse_play), and
