@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NonEmptyStrainFlags` — a guaranteed-non-empty wrapper around `StrainFlags`, analogous to `NonZero<T>`. Constructable via `NonEmptyStrainFlags::new(flags)` (returns `Option`); the inner value is recovered with `.get()` or `StrainFlags::from(…)`. `Solver::solve_deals` now takes `NonEmptyStrainFlags` instead of `StrainFlags`, encoding the non-empty requirement in the type.
 - `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.
 - `Solver::analyse_plays` wraps `AnalyseAllPlaysBin` to analyse multiple play traces in parallel.
+- `Board::with_trick` now detects revokes among its `played` cards and returns a new `BoardError::Revoke { index }` variant instead of deferring the check to DDS (which would panic).
 - `SystemInfo` now exposes the full set of fields from `DDSInfo`: `platform()` (OS as `Platform`), `num_bits()`, `compiler()` (as `Compiler`), `threading()` (model as `Threading`), `num_cores()`, `thread_sizes()`, and `system_string()`. `Display` delegates to `system_string()`. New enums `Platform`, `Compiler`, and `Threading` carry all variants documented in the DDS header.
 
 ## [0.17.0]

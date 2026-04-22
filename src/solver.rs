@@ -642,6 +642,15 @@ pub enum BoardError {
          (the k seats from lead must have size m-1; others m)"
     )]
     InconsistentHandSizes,
+    /// A played card does not follow suit though the player held the led suit
+    ///
+    /// `index` is the position within `played` of the offending card (always
+    /// ≥ 1, since the lead itself cannot revoke).
+    #[error("Played card at index {index} is a revoke — player held the led suit")]
+    Revoke {
+        /// Position of the revoking card within the `played` slice
+        index: u8,
+    },
 }
 
 /// A snapshot of a board
@@ -722,6 +731,17 @@ impl Board {
             let expected = if j < k { m - 1 } else { m };
             if remaining[seat].len() != expected {
                 return Err(BoardError::InconsistentHandSizes);
+            }
+        }
+
+        if let Some((&lead_card, rest)) = current_cards.split_first() {
+            let led = lead_card.suit;
+            for (j, played_card) in rest.iter().enumerate() {
+                if played_card.suit != led && !remaining[order[j + 1]][led].is_empty() {
+                    return Err(BoardError::Revoke {
+                        index: (j + 1) as u8,
+                    });
+                }
             }
         }
 

@@ -449,3 +449,100 @@ fn tricks_row_try_new_rejects_out_of_range() {
     assert!(TricksRow::try_new(13, 13, 13, 13).is_ok());
     assert!(TricksRow::try_new(0, 0, 0, 0).is_ok());
 }
+
+/// Helper: build a `Subset` from four iterables of `Card`.
+fn subset_from(
+    north: impl IntoIterator<Item = Card>,
+    east: impl IntoIterator<Item = Card>,
+    south: impl IntoIterator<Item = Card>,
+    west: impl IntoIterator<Item = Card>,
+) -> dds_bridge::Subset {
+    Builder::new()
+        .north(Hand::from_iter(north))
+        .east(Hand::from_iter(east))
+        .south(Hand::from_iter(south))
+        .west(Hand::from_iter(west))
+        .build_subset()
+        .unwrap()
+}
+
+const fn c(suit: Suit, rank: u8) -> Card {
+    Card {
+        suit,
+        rank: Rank::new(rank),
+    }
+}
+
+/// East fails to follow North's spade lead despite still holding a spade.
+#[test]
+fn board_with_trick_detects_revoke_on_second_card() {
+    // North plays ♠A; East plays ♥2 while still holding ♠K → revoke.
+    let remaining = subset_from(
+        [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
+        [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7)],
+        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+    );
+    let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
+    assert_eq!(
+        Board::with_trick(Strain::Notrump, Seat::North, remaining, &played),
+        Err(BoardError::Revoke { index: 1 })
+    );
+}
+
+/// Same shape, but East genuinely has no spades — a legal discard.
+#[test]
+fn board_with_trick_accepts_non_revoke_discard() {
+    // East has only hearts after the trick; playing ♥2 off the ♠A lead is legal.
+    let remaining = subset_from(
+        [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
+        [c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
+        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+    );
+    let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
+    assert!(Board::with_trick(Strain::Notrump, Seat::North, remaining, &played).is_ok());
+}
+
+/// Only the third played card revokes; earlier cards followed suit.
+#[test]
+fn board_with_trick_detects_revoke_on_third_card() {
+    // North ♠A, East ♠2 (follows), South ♥3 while still holding ♠Q → revoke at index 2.
+    let remaining = subset_from(
+        [c(Suit::Hearts, 4), c(Suit::Hearts, 5), c(Suit::Hearts, 6)],
+        [c(Suit::Clubs, 14), c(Suit::Clubs, 13), c(Suit::Clubs, 12)],
+        [c(Suit::Spades, 12), c(Suit::Clubs, 11), c(Suit::Clubs, 10)],
+        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+    );
+    let played = [c(Suit::Spades, 14), c(Suit::Spades, 2), c(Suit::Hearts, 3)];
+    assert_eq!(
+        Board::with_trick(Strain::Notrump, Seat::North, remaining, &played),
+        Err(BoardError::Revoke { index: 2 })
+    );
+}
+
+/// A lone lead (one card on the table) cannot revoke, nor can an empty trick.
+#[test]
+fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
+    let full = subset_from(
+        [c(Suit::Spades, 14), c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
+        [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
+        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+    );
+    assert!(Board::with_trick(Strain::Notrump, Seat::North, full, &[]).is_ok());
+
+    let after_lead = subset_from(
+        [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
+        [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
+        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+    );
+    assert!(Board::with_trick(
+        Strain::Notrump,
+        Seat::North,
+        after_lead,
+        &[c(Suit::Spades, 14)],
+    )
+    .is_ok());
+}
