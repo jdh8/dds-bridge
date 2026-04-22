@@ -182,7 +182,13 @@ fn solve_board_score_matches_dd_table() {
     let solver = Solver::lock();
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(
+            Strain::Notrump,
+            Seat::North,
+            DEAL.build_partial().unwrap(),
+            &[],
+        )
+        .unwrap(),
         target: Target::Any(-1),
     });
     core::mem::drop(solver);
@@ -207,7 +213,13 @@ fn solve_boards_matches_solve_board() {
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let obj = Objective {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(
+            Strain::Notrump,
+            Seat::North,
+            DEAL.build_partial().unwrap(),
+            &[],
+        )
+        .unwrap(),
         target: Target::Any(-1),
     };
     let single = solver.solve_board(obj.clone());
@@ -276,7 +288,13 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap();
+    let board = Board::with_trick(
+        Strain::Notrump,
+        Seat::North,
+        DEAL.build_partial().unwrap(),
+        &[],
+    )
+    .unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -307,7 +325,13 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap();
+    let board = Board::with_trick(
+        Strain::Notrump,
+        Seat::North,
+        DEAL.build_partial().unwrap(),
+        &[],
+    )
+    .unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -360,7 +384,13 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         rank: Rank::A,
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(
+            Strain::Notrump,
+            Seat::North,
+            DEAL.build_partial().unwrap(),
+            &[],
+        )
+        .unwrap(),
         cards,
     });
     assert_eq!(analysis.tricks.len(), 2);
@@ -480,8 +510,18 @@ fn board_with_trick_detects_revoke_on_second_card() {
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
         [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7)],
-        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
-        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+        [
+            c(Suit::Diamonds, 2),
+            c(Suit::Diamonds, 3),
+            c(Suit::Diamonds, 4),
+            c(Suit::Diamonds, 5),
+        ],
+        [
+            c(Suit::Clubs, 2),
+            c(Suit::Clubs, 3),
+            c(Suit::Clubs, 4),
+            c(Suit::Clubs, 5),
+        ],
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
     assert_eq!(
@@ -497,8 +537,18 @@ fn board_with_trick_accepts_non_revoke_discard() {
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
         [c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
-        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
-        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+        [
+            c(Suit::Diamonds, 2),
+            c(Suit::Diamonds, 3),
+            c(Suit::Diamonds, 4),
+            c(Suit::Diamonds, 5),
+        ],
+        [
+            c(Suit::Clubs, 2),
+            c(Suit::Clubs, 3),
+            c(Suit::Clubs, 4),
+            c(Suit::Clubs, 5),
+        ],
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
     assert!(Board::with_trick(Strain::Notrump, Seat::North, remaining, &played).is_ok());
@@ -512,7 +562,12 @@ fn board_with_trick_detects_revoke_on_third_card() {
         [c(Suit::Hearts, 4), c(Suit::Hearts, 5), c(Suit::Hearts, 6)],
         [c(Suit::Clubs, 14), c(Suit::Clubs, 13), c(Suit::Clubs, 12)],
         [c(Suit::Spades, 12), c(Suit::Clubs, 11), c(Suit::Clubs, 10)],
-        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
+        [
+            c(Suit::Diamonds, 2),
+            c(Suit::Diamonds, 3),
+            c(Suit::Diamonds, 4),
+            c(Suit::Diamonds, 5),
+        ],
     );
     let played = [c(Suit::Spades, 14), c(Suit::Spades, 2), c(Suit::Hearts, 3)];
     assert_eq!(
@@ -525,24 +580,61 @@ fn board_with_trick_detects_revoke_on_third_card() {
 #[test]
 fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
     let full = subset_from(
-        [c(Suit::Spades, 14), c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
-        [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
-        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
-        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+        [
+            c(Suit::Spades, 14),
+            c(Suit::Hearts, 3),
+            c(Suit::Hearts, 4),
+            c(Suit::Hearts, 5),
+        ],
+        [
+            c(Suit::Spades, 13),
+            c(Suit::Hearts, 6),
+            c(Suit::Hearts, 7),
+            c(Suit::Hearts, 8),
+        ],
+        [
+            c(Suit::Diamonds, 2),
+            c(Suit::Diamonds, 3),
+            c(Suit::Diamonds, 4),
+            c(Suit::Diamonds, 5),
+        ],
+        [
+            c(Suit::Clubs, 2),
+            c(Suit::Clubs, 3),
+            c(Suit::Clubs, 4),
+            c(Suit::Clubs, 5),
+        ],
     );
     assert!(Board::with_trick(Strain::Notrump, Seat::North, full, &[]).is_ok());
 
     let after_lead = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
-        [c(Suit::Spades, 13), c(Suit::Hearts, 6), c(Suit::Hearts, 7), c(Suit::Hearts, 8)],
-        [c(Suit::Diamonds, 2), c(Suit::Diamonds, 3), c(Suit::Diamonds, 4), c(Suit::Diamonds, 5)],
-        [c(Suit::Clubs, 2), c(Suit::Clubs, 3), c(Suit::Clubs, 4), c(Suit::Clubs, 5)],
+        [
+            c(Suit::Spades, 13),
+            c(Suit::Hearts, 6),
+            c(Suit::Hearts, 7),
+            c(Suit::Hearts, 8),
+        ],
+        [
+            c(Suit::Diamonds, 2),
+            c(Suit::Diamonds, 3),
+            c(Suit::Diamonds, 4),
+            c(Suit::Diamonds, 5),
+        ],
+        [
+            c(Suit::Clubs, 2),
+            c(Suit::Clubs, 3),
+            c(Suit::Clubs, 4),
+            c(Suit::Clubs, 5),
+        ],
     );
-    assert!(Board::with_trick(
-        Strain::Notrump,
-        Seat::North,
-        after_lead,
-        &[c(Suit::Spades, 14)],
-    )
-    .is_ok());
+    assert!(
+        Board::with_trick(
+            Strain::Notrump,
+            Seat::North,
+            after_lead,
+            &[c(Suit::Spades, 14)],
+        )
+        .is_ok()
+    );
 }

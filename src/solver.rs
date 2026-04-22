@@ -741,10 +741,12 @@ impl Board {
         }
 
         if let Some((&lead_card, rest)) = current_cards.split_first() {
-            let led = lead_card.suit;
+            let led_suit = lead_card.suit;
             for (j, played_card) in rest.iter().enumerate() {
-                if played_card.suit != led && !remaining[order[j + 1]][led].is_empty() {
+                if played_card.suit != led_suit && !remaining[order[j + 1]][led_suit].is_empty() {
                     return Err(BoardError::Revoke {
+                        // SAFETY: `j < 3` constrained by `ArrayVec<Card, 3>`
+                        #[allow(clippy::cast_possible_truncation)]
                         index: (j + 1) as u8,
                     });
                 }

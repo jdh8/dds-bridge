@@ -1,8 +1,8 @@
 //! Round-trip property tests for `Display` / `FromStr` on the public types.
 
 use dds_bridge::{
-    Bid, Builder, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, Strain,
-    PartialDeal,
+    Bid, Builder, Card, Contract, FullDeal, Hand, Holding, Level, PartialDeal, Penalty, Rank, Seat,
+    Strain,
 };
 use proptest::prelude::*;
 

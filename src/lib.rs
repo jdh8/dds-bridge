@@ -11,7 +11,7 @@ pub mod hand;
 pub mod solver;
 
 pub use contract::{Bid, Contract, Level, Penalty};
-pub use deal::{Builder, FullDeal, Seat, SeatFlags, PartialDeal};
+pub use deal::{Builder, FullDeal, PartialDeal, Seat, SeatFlags};
 pub use hand::{Card, Hand, Holding, Rank};
 pub use solver::Solver;
 
