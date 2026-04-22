@@ -2,7 +2,7 @@
 
 use dds_bridge::{
     Bid, Builder, Card, Contract, FullDeal, Hand, Holding, Level, Penalty, Rank, Seat, Strain,
-    SubsetDeal,
+    PartialDeal,
 };
 use proptest::prelude::*;
 
@@ -92,7 +92,7 @@ fn full_deal() -> impl Strategy<Value = FullDeal> {
 /// Assign each of the 52 cards to one of 5 buckets: North, East, South, West,
 /// or "not dealt".  A card is dropped if its target hand already holds 13
 /// cards, so the subset invariant holds (≤13 per hand, pairwise disjoint).
-fn subset() -> impl Strategy<Value = SubsetDeal> {
+fn subset() -> impl Strategy<Value = PartialDeal> {
     any::<[u8; 52]>().prop_map(|seed| {
         let mut hands = [Hand::EMPTY; 4];
         for (i, card) in all_cards().enumerate() {
@@ -106,7 +106,7 @@ fn subset() -> impl Strategy<Value = SubsetDeal> {
             .east(hands[1])
             .south(hands[2])
             .west(hands[3])
-            .build_subset()
+            .build_partial()
             .unwrap()
     })
 }
@@ -166,6 +166,6 @@ proptest! {
 
     #[test]
     fn subset_roundtrip(d in subset(), s in seat()) {
-        prop_assert_eq!(d.display(s).to_string().parse::<SubsetDeal>(), Ok(d));
+        prop_assert_eq!(d.display(s).to_string().parse::<PartialDeal>(), Ok(d));
     }
 }

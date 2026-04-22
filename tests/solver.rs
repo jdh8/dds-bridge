@@ -182,7 +182,7 @@ fn solve_board_score_matches_dd_table() {
     let solver = Solver::lock();
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
         target: Target::Any(-1),
     });
     core::mem::drop(solver);
@@ -207,7 +207,7 @@ fn solve_boards_matches_solve_board() {
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let obj = Objective {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
         target: Target::Any(-1),
     };
     let single = solver.solve_board(obj.clone());
@@ -276,7 +276,7 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap();
+    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -307,7 +307,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap();
+    let board = Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap();
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -360,7 +360,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         rank: Rank::A,
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_subset().unwrap(), &[]).unwrap(),
+        board: Board::with_trick(Strain::Notrump, Seat::North, DEAL.build_partial().unwrap(), &[]).unwrap(),
         cards,
     });
     assert_eq!(analysis.tricks.len(), 2);
@@ -450,19 +450,19 @@ fn tricks_row_try_new_rejects_out_of_range() {
     assert!(TricksRow::try_new(0, 0, 0, 0).is_ok());
 }
 
-/// Helper: build a `SubsetDeal` from four iterables of `Card`.
+/// Helper: build a `PartialDeal` from four iterables of `Card`.
 fn subset_from(
     north: impl IntoIterator<Item = Card>,
     east: impl IntoIterator<Item = Card>,
     south: impl IntoIterator<Item = Card>,
     west: impl IntoIterator<Item = Card>,
-) -> dds_bridge::SubsetDeal {
+) -> dds_bridge::PartialDeal {
     Builder::new()
         .north(Hand::from_iter(north))
         .east(Hand::from_iter(east))
         .south(Hand::from_iter(south))
         .west(Hand::from_iter(west))
-        .build_subset()
+        .build_partial()
         .unwrap()
 }
 
