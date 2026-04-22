@@ -450,13 +450,13 @@ fn tricks_row_try_new_rejects_out_of_range() {
     assert!(TricksRow::try_new(0, 0, 0, 0).is_ok());
 }
 
-/// Helper: build a `Subset` from four iterables of `Card`.
+/// Helper: build a `SubsetDeal` from four iterables of `Card`.
 fn subset_from(
     north: impl IntoIterator<Item = Card>,
     east: impl IntoIterator<Item = Card>,
     south: impl IntoIterator<Item = Card>,
     west: impl IntoIterator<Item = Card>,
-) -> dds_bridge::Subset {
+) -> dds_bridge::SubsetDeal {
     Builder::new()
         .north(Hand::from_iter(north))
         .east(Hand::from_iter(east))

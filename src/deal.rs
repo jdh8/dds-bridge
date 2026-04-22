@@ -142,7 +142,7 @@ impl From<Seat> for SeatFlags {
     }
 }
 
-/// An error which can be returned when parsing a [`Subset`] or [`FullDeal`]
+/// An error which can be returned when parsing a [`SubsetDeal`] or [`FullDeal`]
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ParseDealError {
@@ -158,10 +158,10 @@ pub enum ParseDealError {
     #[error("The deal does not contain 4 hands")]
     NotFourHands,
 
-    /// The deal is not a valid [`Subset`]: some hand has more than 13 cards or
+    /// The deal is not a valid [`SubsetDeal`]: some hand has more than 13 cards or
     /// two hands share a card
     #[error("The deal is not a valid subset (>13 cards per hand or overlapping hands)")]
-    InvalidSubset,
+    InvalidSubsetDeal,
 
     /// The deal is not a [`FullDeal`]: some hand does not have exactly 13 cards
     #[error("The deal is not a full deal (each hand must have exactly 13 cards)")]
@@ -171,7 +171,7 @@ pub enum ParseDealError {
 /// A loose deal builder — any combination of four hands, no invariants
 ///
 /// Use `Builder` to construct a deal incrementally.  Convert it into a
-/// [`Subset`] or [`FullDeal`] (via the inherent [`build_subset`] /
+/// [`SubsetDeal`] or [`FullDeal`] (via the inherent [`build_subset`] /
 /// [`build_full`] methods, or via [`TryFrom`]) once the hands are finalized.
 /// `Builder` is the only deal type that exposes [`IndexMut`](ops::IndexMut)
 /// for in-place mutation.
@@ -242,14 +242,14 @@ impl Builder {
         self
     }
 
-    /// Try to convert this builder into a [`Subset`], validating that each
+    /// Try to convert this builder into a [`SubsetDeal`], validating that each
     /// hand has at most 13 cards and the hands are pairwise disjoint.  On
     /// failure the input is returned unchanged as the error.
     ///
     /// # Errors
     ///
     /// Returns `self` unchanged if the builder is not a valid subset.
-    pub fn build_subset(self) -> Result<Subset, Self> {
+    pub fn build_subset(self) -> Result<SubsetDeal, Self> {
         let mut seen = Hand::EMPTY;
         for hand in self.0 {
             if hand.len() > 13 || hand & seen != Hand::EMPTY {
@@ -257,7 +257,7 @@ impl Builder {
             }
             seen |= hand;
         }
-        Ok(Subset(self))
+        Ok(SubsetDeal(self))
     }
 
     /// Try to convert this builder into a [`FullDeal`], validating that each
@@ -283,7 +283,7 @@ impl Builder {
 /// [`TryFrom<Builder>`], the infallible widening from a [`FullDeal`], or by
 /// parsing a PBN-ish string.
 ///
-/// `Subset` is read-only: it exposes [`Index<Seat>`](ops::Index) but not
+/// `SubsetDeal` is read-only: it exposes [`Index<Seat>`](ops::Index) but not
 /// [`IndexMut`](ops::IndexMut).  To mutate, widen back to a [`Builder`].
 ///
 /// Parses the [PBN] deal format with relaxed per-hand size —
@@ -294,9 +294,9 @@ impl Builder {
 ///
 /// [PBN]: https://www.tistis.nl/pbn/
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Subset(Builder);
+pub struct SubsetDeal(Builder);
 
-impl ops::Index<Seat> for Subset {
+impl ops::Index<Seat> for SubsetDeal {
     type Output = Hand;
 
     #[inline]
@@ -305,7 +305,7 @@ impl ops::Index<Seat> for Subset {
     }
 }
 
-impl Subset {
+impl SubsetDeal {
     /// Empty subset — all four hands empty
     pub const EMPTY: Self = Self(Builder::new());
 
@@ -337,14 +337,14 @@ impl Subset {
     }
 }
 
-impl From<Subset> for Builder {
+impl From<SubsetDeal> for Builder {
     #[inline]
-    fn from(subset: Subset) -> Self {
+    fn from(subset: SubsetDeal) -> Self {
         subset.0
     }
 }
 
-impl TryFrom<Builder> for Subset {
+impl TryFrom<Builder> for SubsetDeal {
     type Error = Builder;
 
     #[inline]
@@ -353,13 +353,13 @@ impl TryFrom<Builder> for Subset {
     }
 }
 
-impl FromStr for Subset {
+impl FromStr for SubsetDeal {
     type Err = ParseDealError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         parse_pbn(s)?
             .build_subset()
-            .map_err(|_| ParseDealError::InvalidSubset)
+            .map_err(|_| ParseDealError::InvalidSubsetDeal)
     }
 }
 
@@ -367,7 +367,7 @@ impl FromStr for Subset {
 ///
 /// Invariants: each of the four hands contains exactly 13 cards, and the
 /// hands partition the full 52-card deck.  Construct via
-/// [`Builder::build_full`], [`TryFrom<Builder>`], [`TryFrom<Subset>`], or by
+/// [`Builder::build_full`], [`TryFrom<Builder>`], [`TryFrom<SubsetDeal>`], or by
 /// parsing a PBN string.
 ///
 /// `FullDeal` is read-only.  Parses the [PBN] deal format:
@@ -429,7 +429,7 @@ impl From<FullDeal> for Builder {
     }
 }
 
-impl From<FullDeal> for Subset {
+impl From<FullDeal> for SubsetDeal {
     #[inline]
     fn from(deal: FullDeal) -> Self {
         Self(deal.0)
@@ -445,14 +445,14 @@ impl TryFrom<Builder> for FullDeal {
     }
 }
 
-impl TryFrom<Subset> for FullDeal {
-    type Error = Subset;
+impl TryFrom<SubsetDeal> for FullDeal {
+    type Error = SubsetDeal;
 
     #[inline]
-    fn try_from(subset: Subset) -> Result<Self, Self::Error> {
+    fn try_from(subset: SubsetDeal) -> Result<Self, Self::Error> {
         match subset.0.build_full() {
             Ok(full) => Ok(full),
-            Err(builder) => Err(Subset(builder)),
+            Err(builder) => Err(SubsetDeal(builder)),
         }
     }
 }
@@ -495,7 +495,7 @@ fn parse_pbn(s: &str) -> Result<Builder, ParseDealError> {
     Ok(builder)
 }
 
-/// Shared PBN-compatible `Display` helper for [`Subset`] and [`FullDeal`]
+/// Shared PBN-compatible `Display` helper for [`SubsetDeal`] and [`FullDeal`]
 struct DisplayAt {
     builder: Builder,
     seat: Seat,

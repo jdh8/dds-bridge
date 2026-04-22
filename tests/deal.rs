@@ -205,7 +205,7 @@ fn test_subset_parser() -> Result<(), ParseDealError> {
 
     let expected = Builder::new().east(east).west(west).build_subset().unwrap();
     assert_eq!(
-        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<Subset>(),
+        "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<SubsetDeal>(),
         Ok(expected),
     );
 
@@ -231,7 +231,7 @@ fn test_full_deal_rejects_non_full() {
 fn test_subset_rejects_duplicates() {
     // Both North and East claim the ace of spades.
     assert!(matches!(
-        "N:A... A... ... ...".parse::<Subset>(),
-        Err(ParseDealError::InvalidSubset)
+        "N:A... A... ... ...".parse::<SubsetDeal>(),
+        Err(ParseDealError::InvalidSubsetDeal)
     ));
 }

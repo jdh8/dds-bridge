@@ -1,5 +1,5 @@
 use crate::contract::{Contract, Penalty};
-use crate::deal::{Builder, FullDeal, Seat, Subset};
+use crate::deal::{Builder, FullDeal, Seat, SubsetDeal};
 use crate::hand::{Card, Hand, Holding, Rank};
 use crate::{Strain, Suit};
 
@@ -301,7 +301,7 @@ impl From<TricksTable> for sys::ddTableResults {
 }
 
 /// FFI converter for a [`Builder`].  Used internally by [`FullDeal`] and
-/// [`Subset`] converters; `Builder` itself is unvalidated so prefer those.
+/// [`SubsetDeal`] converters; `Builder` itself is unvalidated so prefer those.
 impl From<Builder> for sys::ddTableDeal {
     fn from(builder: Builder) -> Self {
         Self {
@@ -325,9 +325,9 @@ impl From<FullDeal> for sys::ddTableDeal {
     }
 }
 
-impl From<Subset> for sys::ddTableDeal {
+impl From<SubsetDeal> for sys::ddTableDeal {
     #[inline]
-    fn from(subset: Subset) -> Self {
+    fn from(subset: SubsetDeal) -> Self {
         Builder::from(subset).into()
     }
 }
@@ -661,7 +661,7 @@ pub enum BoardError {
 ///
 /// # Invariants
 ///
-/// 1. `remaining` is a valid [`Subset`] (≤13 cards per hand, pairwise
+/// 1. `remaining` is a valid [`SubsetDeal`] (≤13 cards per hand, pairwise
 ///    disjoint).
 /// 2. Each card in `current_cards` is absent from every remaining hand (the
 ///    "already played" invariant).
@@ -676,7 +676,7 @@ pub struct Board {
     trump: Strain,
     lead: Seat,
     current_cards: ArrayVec<Card, 3>,
-    remaining: Subset,
+    remaining: SubsetDeal,
 }
 
 impl Board {
@@ -691,7 +691,7 @@ impl Board {
             trump,
             lead,
             current_cards: ArrayVec::new(),
-            remaining: Subset::EMPTY,
+            remaining: SubsetDeal::EMPTY,
         }
     }
 
@@ -708,7 +708,7 @@ impl Board {
     pub fn with_trick(
         trump: Strain,
         lead: Seat,
-        remaining: Subset,
+        remaining: SubsetDeal,
         played: &[Card],
     ) -> Result<Self, BoardError> {
         if played.len() > 3 {
@@ -783,7 +783,7 @@ impl Board {
     /// Remaining cards in each hand
     #[must_use]
     #[inline]
-    pub const fn remaining(&self) -> &Subset {
+    pub const fn remaining(&self) -> &SubsetDeal {
         &self.remaining
     }
 }
