@@ -1,3 +1,23 @@
+//! Double-dummy solver and par-calculation bindings built on [`dds_bridge_sys`].
+//!
+//! # Panic policy
+//!
+//! The solver entry points in this module — [`calculate_par`](crate::solver::calculate_par),
+//! [`calculate_pars`](crate::solver::calculate_pars), and the [`Solver`] methods
+//! [`solve_deal`](Solver::solve_deal), [`solve_deals`](Solver::solve_deals),
+//! [`solve_board`](Solver::solve_board), [`solve_boards`](Solver::solve_boards),
+//! [`analyse_play`](Solver::analyse_play), and
+//! [`analyse_plays`](Solver::analyse_plays) — are not expected to panic.
+//! They map DDS status codes through an internal helper that panics on error,
+//! but reaching that panic means either invalid input slipped past a safe
+//! constructor or DDS itself misbehaved. Either case is a bug — please report
+//! it.
+//!
+//! This policy does not cover validator panics from safe constructors
+//! (e.g. [`TricksRow::new`](crate::solver::TricksRow::new)), which panic by
+//! design on out-of-range inputs and have `try_*` counterparts for fallible
+//! construction.
+
 use crate::contract::{Contract, Penalty};
 use crate::deal::{Builder, FullDeal, PartialDeal, Seat};
 use crate::hand::{Card, Hand, Holding, Rank};
@@ -542,6 +562,10 @@ impl From<sys::parResultsMaster> for Par {
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
 /// - `dealer`: The dealer of the deal
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
@@ -561,6 +585,10 @@ pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> P
 ///
 /// - `tricks`: The number of tricks each seat can take as declarer for each strain
 /// - `vul`: The vulnerability of pairs
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
@@ -752,14 +780,14 @@ impl CurrentTrick {
     /// Number of cards played so far (0 to 3)
     #[must_use]
     #[inline]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.cards.len()
     }
 
     /// Whether no cards have been played yet
     #[must_use]
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.cards.is_empty()
     }
 
@@ -1311,6 +1339,10 @@ impl Solver {
 
     /// Solve a single deal with [`sys::CalcDDtable`]
     ///
+    /// # Panics
+    ///
+    /// Not expected — panics here are bugs. See the module-level panic policy.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1391,6 +1423,10 @@ impl Solver {
     ///
     /// - `deals`: A slice of deals to solve
     /// - `flags`: Flags of strains to solve for
+    ///
+    /// # Panics
+    ///
+    /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_deals(&self, deals: &[FullDeal], flags: NonEmptyStrainFlags) -> Vec<TricksTable> {
         let mut tables = Vec::new();
@@ -1405,6 +1441,10 @@ impl Solver {
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
+    ///
+    /// # Panics
+    ///
+    /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_board(&self, objective: Objective) -> FoundPlays {
         let mut result = sys::futureTricks::default();
@@ -1455,6 +1495,10 @@ impl Solver {
     /// Solve boards in parallel
     ///
     /// - `args`: A slice of boards and their targets to solve
+    ///
+    /// # Panics
+    ///
+    /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
@@ -1473,9 +1517,7 @@ impl Solver {
     ///
     /// # Panics
     ///
-    /// Panics if DDS returns an error status, which includes the trace
-    /// containing an invalid card (not held by the player on turn) or a
-    /// disallowed revoke.
+    /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn analyse_play(&self, trace: PlayTrace) -> PlayAnalysis {
         let mut result = sys::solvedPlay::default();
@@ -1522,9 +1564,7 @@ impl Solver {
     ///
     /// # Panics
     ///
-    /// Panics if DDS returns an error status, which includes any trace
-    /// containing an invalid card (not held by the player on turn) or a
-    /// disallowed revoke.
+    /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
         let mut results = Vec::new();
