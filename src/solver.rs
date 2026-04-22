@@ -1,5 +1,5 @@
 use crate::contract::{Contract, Penalty};
-use crate::deal::{Builder, FullDeal, Seat, PartialDeal};
+use crate::deal::{Builder, FullDeal, PartialDeal, Seat};
 use crate::hand::{Card, Hand, Holding, Rank};
 use crate::{Strain, Suit};
 
@@ -623,12 +623,6 @@ impl Target {
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum BoardError {
-    /// More than three cards are on the table
-    #[error("A trick can hold at most 3 cards on the table before it completes")]
-    TooManyPlayed,
-    /// The same card appears twice among the played cards
-    #[error("Duplicate card in the played cards on the table")]
-    DuplicatePlayedCard,
     /// A card on the table is still present in one of the remaining hands
     #[error("A played card is also present in a remaining hand")]
     PlayedCardInHand,
@@ -644,77 +638,242 @@ pub enum BoardError {
     InconsistentHandSizes,
     /// A played card does not follow suit though the player held the led suit
     ///
-    /// `index` is the position within `played` of the offending card (always
-    /// ≥ 1, since the lead itself cannot revoke).
+    /// `index` is the position within the current trick of the offending card
+    /// (always ≥ 1, since the lead itself cannot revoke).
     #[error("Played card at index {index} is a revoke — player held the led suit")]
     Revoke {
-        /// Position of the revoking card within the `played` slice
+        /// Position of the revoking card within the current trick
         index: u8,
     },
+}
+
+/// Error returned when pushing cards to a [`CurrentTrick`]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum CurrentTrickError {
+    /// More than three cards are on the table
+    #[error("A trick can hold at most 3 cards on the table before it completes")]
+    TooManyPlayed,
+    /// The same card appears twice among the played cards
+    #[error("Duplicate card in the played cards on the table")]
+    DuplicatePlayedCard,
+}
+
+/// Trick-in-progress — 0 to 3 cards played, in playing order
+///
+/// Owns enough context (`trump` + `lead`) to answer "which card is currently
+/// winning" on its own, independent of any [`Board`] or [`PartialDeal`].
+/// Cards are played by the seats starting at [`lead`](Self::lead) in playing
+/// order: the first card by `lead`, the second by `lead.lho()`, and so on.
+///
+/// # Invariants
+///
+/// 1. At most 3 cards are stored (enforced by the backing `ArrayVec<Card, 3>`).
+/// 2. The stored cards are pairwise distinct.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CurrentTrick {
+    trump: Strain,
+    lead: Seat,
+    cards: ArrayVec<Card, 3>,
+    seen: Hand,
+}
+
+impl CurrentTrick {
+    /// Empty trick led by `lead` under `trump`
+    #[must_use]
+    #[inline]
+    pub const fn new(trump: Strain, lead: Seat) -> Self {
+        Self {
+            trump,
+            lead,
+            cards: ArrayVec::new_const(),
+            seen: Hand::EMPTY,
+        }
+    }
+
+    /// Build from a slice, validating the 0–3-card length and pairwise
+    /// disjointness invariants.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`CurrentTrickError`] if the slice has more than 3 entries or
+    /// contains a duplicate card.
+    pub fn from_slice(
+        trump: Strain,
+        lead: Seat,
+        played: &[Card],
+    ) -> Result<Self, CurrentTrickError> {
+        let mut trick = Self::new(trump, lead);
+        for &card in played {
+            trick.try_push(card)?;
+        }
+        Ok(trick)
+    }
+
+    /// Append one card to the trick.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CurrentTrickError::TooManyPlayed`] if the trick already holds
+    /// 3 cards, or [`CurrentTrickError::DuplicatePlayedCard`] if `card` is
+    /// already in the trick.
+    pub fn try_push(&mut self, card: Card) -> Result<(), CurrentTrickError> {
+        if self.cards.is_full() {
+            return Err(CurrentTrickError::TooManyPlayed);
+        }
+        if !self.seen.insert(card) {
+            return Err(CurrentTrickError::DuplicatePlayedCard);
+        }
+        self.cards.push(card);
+        Ok(())
+    }
+
+    /// Strain of the contract governing this trick
+    #[must_use]
+    #[inline]
+    pub const fn trump(&self) -> Strain {
+        self.trump
+    }
+
+    /// Seat that led this trick
+    #[must_use]
+    #[inline]
+    pub const fn lead(&self) -> Seat {
+        self.lead
+    }
+
+    /// Cards played so far, in playing order
+    #[must_use]
+    #[inline]
+    pub fn cards(&self) -> &[Card] {
+        &self.cards
+    }
+
+    /// Number of cards played so far (0 to 3)
+    #[must_use]
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.cards.len()
+    }
+
+    /// Whether no cards have been played yet
+    #[must_use]
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.cards.is_empty()
+    }
+
+    /// Bitmask union of the cards played so far
+    #[must_use]
+    #[inline]
+    pub const fn seen(&self) -> Hand {
+        self.seen
+    }
+
+    /// Suit led this trick, or `None` if no card has been played yet
+    #[must_use]
+    #[inline]
+    pub fn led_suit(&self) -> Option<Suit> {
+        self.cards.first().map(|c| c.suit)
+    }
+
+    /// Index of the currently-winning card among those played (0 to `len-1`),
+    /// or `None` when the trick is empty.  Trump beats led suit beats off-suit;
+    /// ties within a category are broken by rank.
+    #[must_use]
+    pub fn winning_index(&self) -> Option<usize> {
+        let (first, rest) = self.cards.split_first()?;
+        let led = first.suit;
+        let trump = self.trump.suit();
+        let rank_of = |category: Option<Suit>, card: &Card, priority: u8| {
+            // Pack (priority, rank) so trump > led > off, ties by rank.
+            let matches_category = category.is_some_and(|s| s == card.suit);
+            let pri = if matches_category { priority } else { 0 };
+            (u16::from(pri) << 8) | u16::from(card.rank.get())
+        };
+        // Priority: 2 for trump, 1 for led, 0 for off-suit.
+        let score = |card: &Card| -> u16 {
+            if let Some(t) = trump
+                && card.suit == t
+            {
+                return rank_of(Some(t), card, 2);
+            }
+            rank_of(Some(led), card, 1)
+        };
+        let mut best_idx = 0usize;
+        let mut best = score(first);
+        for (i, card) in rest.iter().enumerate() {
+            let s = score(card);
+            if s > best {
+                best = s;
+                best_idx = i + 1;
+            }
+        }
+        Some(best_idx)
+    }
+
+    /// The currently-winning card, or `None` when the trick is empty
+    #[must_use]
+    pub fn winning_card(&self) -> Option<Card> {
+        self.winning_index().map(|i| self.cards[i])
+    }
+
+    /// Seat that played the currently-winning card, or `None` when the trick
+    /// is empty
+    #[must_use]
+    pub fn winning_seat(&self) -> Option<Seat> {
+        let i = self.winning_index()?;
+        let mut seat = self.lead;
+        for _ in 0..i {
+            seat = seat.lho();
+        }
+        Some(seat)
+    }
 }
 
 /// A snapshot of a board
 ///
 /// Construct via [`Board::with_trick`], which handles both start-of-trick
-/// (pass `&[]` for `played`) and mid-trick (0–3 played cards) cases.  The
+/// (use [`CurrentTrick::new`]) and mid-trick (0–3 played cards) cases.  The
 /// invariants below are enforced by the constructor.
 ///
 /// # Invariants
 ///
 /// 1. `remaining` is a valid [`PartialDeal`] (≤13 cards per hand, pairwise
 ///    disjoint).
-/// 2. Each card in `current_cards` is absent from every remaining hand (the
+/// 2. Each card in the current trick is absent from every remaining hand (the
 ///    "already played" invariant).
 /// 3. **Uniform-size-after-restoration**: putting the
-///    `k = current_cards.len()` table cards back into their players' hands
+///    `k = current_trick.len()` table cards back into their players' hands
 ///    yields a subset where all four hands share a common size `m`.
-///    Equivalently, the `k` seats starting at `lead` (in playing order:
-///    `lead`, `lead.lho()`, …) have size `m − 1` and the remaining `4 − k`
-///    seats have size `m`.
+///    Equivalently, the `k` seats starting at `current_trick.lead()` (in
+///    playing order: `lead`, `lead.lho()`, …) have size `m − 1` and the
+///    remaining `4 − k` seats have size `m`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
-    trump: Strain,
-    lead: Seat,
-    current_cards: ArrayVec<Card, 3>,
+    current_trick: CurrentTrick,
     remaining: PartialDeal,
 }
 
 impl Board {
-    /// Construct a mid-trick board with 0–3 cards already played.
-    ///
-    /// The played cards are interpreted as being played by the seats starting
-    /// at `lead` in playing order: `played[0]` by `lead`, `played[1]` by
-    /// `lead.lho()`, and so on.
+    /// Construct a mid-trick board from a pre-validated [`CurrentTrick`] and
+    /// the cards remaining in each hand.
     ///
     /// # Errors
     ///
     /// Returns a [`BoardError`] if the invariants documented on [`Board`] do
     /// not hold.
     pub fn with_trick(
-        trump: Strain,
-        lead: Seat,
         remaining: PartialDeal,
-        played: &[Card],
+        current_trick: CurrentTrick,
     ) -> Result<Self, BoardError> {
-        if played.len() > 3 {
-            return Err(BoardError::TooManyPlayed);
+        if !(current_trick.seen() & remaining.collected()).is_empty() {
+            return Err(BoardError::PlayedCardInHand);
         }
 
-        let mut current_cards = ArrayVec::<Card, 3>::new();
-        let mut seen_played = Hand::EMPTY;
-        let remaining_cards = remaining.collected();
-        for &card in played {
-            if !seen_played.insert(card) {
-                return Err(BoardError::DuplicatePlayedCard);
-            }
-            if remaining_cards.contains(card) {
-                return Err(BoardError::PlayedCardInHand);
-            }
-            current_cards.push(card);
-        }
-
+        let lead = current_trick.lead();
         let order = [lead, lead.lho(), lead.partner(), lead.rho()];
-        let k = played.len();
+        let k = current_trick.len();
         // `order[k]` is always a seat that has not yet played this trick, so
         // its hand size is the common "full" size `m` we expect.
         let m = remaining[order[k]].len();
@@ -725,23 +884,20 @@ impl Board {
             }
         }
 
-        if let Some((&lead_card, rest)) = current_cards.split_first() {
-            let led_suit = lead_card.suit;
-            for (j, played_card) in rest.iter().enumerate() {
-                if played_card.suit != led_suit && !remaining[order[j + 1]][led_suit].is_empty() {
+        if let Some(led_suit) = current_trick.led_suit() {
+            for (j, played_card) in current_trick.cards().iter().enumerate().skip(1) {
+                if played_card.suit != led_suit && !remaining[order[j]][led_suit].is_empty() {
                     return Err(BoardError::Revoke {
-                        // SAFETY: `j < 3` constrained by `ArrayVec<Card, 3>`
+                        // `j < 3` constrained by `ArrayVec<Card, 3>`
                         #[allow(clippy::cast_possible_truncation)]
-                        index: (j + 1) as u8,
+                        index: j as u8,
                     });
                 }
             }
         }
 
         Ok(Self {
-            trump,
-            lead,
-            current_cards,
+            current_trick,
             remaining,
         })
     }
@@ -750,21 +906,28 @@ impl Board {
     #[must_use]
     #[inline]
     pub const fn trump(&self) -> Strain {
-        self.trump
+        self.current_trick.trump()
     }
 
     /// Seat leading the current trick
     #[must_use]
     #[inline]
     pub const fn lead(&self) -> Seat {
-        self.lead
+        self.current_trick.lead()
     }
 
     /// Cards already played to the current trick, in playing order
     #[must_use]
     #[inline]
     pub fn current_cards(&self) -> &[Card] {
-        &self.current_cards
+        self.current_trick.cards()
+    }
+
+    /// The current trick — cards played so far plus trump and lead
+    #[must_use]
+    #[inline]
+    pub const fn current_trick(&self) -> &CurrentTrick {
+        &self.current_trick
     }
 
     /// Remaining cards in each hand
@@ -780,20 +943,20 @@ impl From<Board> for sys::deal {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
 
-        for (i, card) in board.current_cards.into_iter().enumerate() {
+        for (i, card) in board.current_trick.cards().iter().enumerate() {
             suits[i] = 3 - card.suit as c_int;
             ranks[i] = c_int::from(card.rank.get());
         }
 
         Self {
-            trump: match board.trump {
+            trump: match board.current_trick.trump() {
                 Strain::Spades => 0,
                 Strain::Hearts => 1,
                 Strain::Diamonds => 2,
                 Strain::Clubs => 3,
                 Strain::Notrump => 4,
             },
-            first: board.lead as c_int,
+            first: board.current_trick.lead() as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
             remainCards: sys::ddTableDeal::from(board.remaining).cards,

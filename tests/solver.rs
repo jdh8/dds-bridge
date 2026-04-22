@@ -183,10 +183,8 @@ fn solve_board_score_matches_dd_table() {
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
         board: Board::with_trick(
-            Strain::Notrump,
-            Seat::North,
             DEAL.build_partial().unwrap(),
-            &[],
+            CurrentTrick::new(Strain::Notrump, Seat::North),
         )
         .unwrap(),
         target: Target::Any(-1),
@@ -214,10 +212,8 @@ fn solve_boards_matches_solve_board() {
     let solver = Solver::lock();
     let obj = Objective {
         board: Board::with_trick(
-            Strain::Notrump,
-            Seat::North,
             DEAL.build_partial().unwrap(),
-            &[],
+            CurrentTrick::new(Strain::Notrump, Seat::North),
         )
         .unwrap(),
         target: Target::Any(-1),
@@ -289,10 +285,8 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
     let board = Board::with_trick(
-        Strain::Notrump,
-        Seat::North,
         DEAL.build_partial().unwrap(),
-        &[],
+        CurrentTrick::new(Strain::Notrump, Seat::North),
     )
     .unwrap();
     let solver = Solver::lock();
@@ -326,10 +320,8 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
     let board = Board::with_trick(
-        Strain::Notrump,
-        Seat::North,
         DEAL.build_partial().unwrap(),
-        &[],
+        CurrentTrick::new(Strain::Notrump, Seat::North),
     )
     .unwrap();
     let solver = Solver::lock();
@@ -385,10 +377,8 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
         board: Board::with_trick(
-            Strain::Notrump,
-            Seat::North,
             DEAL.build_partial().unwrap(),
-            &[],
+            CurrentTrick::new(Strain::Notrump, Seat::North),
         )
         .unwrap(),
         cards,
@@ -525,7 +515,10 @@ fn board_with_trick_detects_revoke_on_second_card() {
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
     assert_eq!(
-        Board::with_trick(Strain::Notrump, Seat::North, remaining, &played),
+        Board::with_trick(
+            remaining,
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+        ),
         Err(BoardError::Revoke { index: 1 })
     );
 }
@@ -551,7 +544,13 @@ fn board_with_trick_accepts_non_revoke_discard() {
         ],
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
-    assert!(Board::with_trick(Strain::Notrump, Seat::North, remaining, &played).is_ok());
+    assert!(
+        Board::with_trick(
+            remaining,
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+        )
+        .is_ok()
+    );
 }
 
 /// Only the third played card revokes; earlier cards followed suit.
@@ -571,7 +570,10 @@ fn board_with_trick_detects_revoke_on_third_card() {
     );
     let played = [c(Suit::Spades, 14), c(Suit::Spades, 2), c(Suit::Hearts, 3)];
     assert_eq!(
-        Board::with_trick(Strain::Notrump, Seat::North, remaining, &played),
+        Board::with_trick(
+            remaining,
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+        ),
         Err(BoardError::Revoke { index: 2 })
     );
 }
@@ -605,7 +607,7 @@ fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
             c(Suit::Clubs, 5),
         ],
     );
-    assert!(Board::with_trick(Strain::Notrump, Seat::North, full, &[]).is_ok());
+    assert!(Board::with_trick(full, CurrentTrick::new(Strain::Notrump, Seat::North),).is_ok());
 
     let after_lead = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -630,11 +632,102 @@ fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
     );
     assert!(
         Board::with_trick(
-            Strain::Notrump,
-            Seat::North,
             after_lead,
-            &[c(Suit::Spades, 14)],
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &[c(Suit::Spades, 14)]).unwrap(),
         )
         .is_ok()
     );
+}
+
+/// `CurrentTrick::from_slice` rejects more than three cards.
+#[test]
+fn current_trick_from_slice_rejects_overlong() {
+    let played = [
+        c(Suit::Spades, 14),
+        c(Suit::Spades, 13),
+        c(Suit::Spades, 12),
+        c(Suit::Spades, 11),
+    ];
+    assert_eq!(
+        CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played),
+        Err(CurrentTrickError::TooManyPlayed),
+    );
+}
+
+/// `CurrentTrick::from_slice` rejects duplicated cards.
+#[test]
+fn current_trick_from_slice_rejects_duplicate() {
+    let played = [c(Suit::Spades, 14), c(Suit::Spades, 14)];
+    assert_eq!(
+        CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played),
+        Err(CurrentTrickError::DuplicatePlayedCard),
+    );
+}
+
+/// `CurrentTrick::try_push` enforces the 0–3-cards cap.
+#[test]
+fn current_trick_try_push_refuses_fourth_card() {
+    let mut trick = CurrentTrick::from_slice(
+        Strain::Notrump,
+        Seat::North,
+        &[
+            c(Suit::Spades, 14),
+            c(Suit::Spades, 13),
+            c(Suit::Spades, 12),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        trick.try_push(c(Suit::Spades, 11)),
+        Err(CurrentTrickError::TooManyPlayed),
+    );
+    assert_eq!(trick.len(), 3);
+}
+
+/// Notrump: the highest card of the led suit wins; off-suit cards can never
+/// beat a card of the led suit.
+#[test]
+fn current_trick_winning_seat_notrump_highest_of_led_suit() {
+    // North leads ♠A, East plays ♥K (off-suit), South plays ♠Q, West plays ♣A.
+    // Winner: North with ♠A.
+    let trick = CurrentTrick::from_slice(
+        Strain::Notrump,
+        Seat::North,
+        &[
+            c(Suit::Spades, 14),
+            c(Suit::Hearts, 13),
+            c(Suit::Spades, 12),
+        ],
+    )
+    .unwrap();
+    assert_eq!(trick.led_suit(), Some(Suit::Spades));
+    assert_eq!(trick.winning_index(), Some(0));
+    assert_eq!(trick.winning_card(), Some(c(Suit::Spades, 14)));
+    assert_eq!(trick.winning_seat(), Some(Seat::North));
+}
+
+/// Trump contract: any trump beats the led suit, even a low trump.
+#[test]
+fn current_trick_winning_seat_trump_beats_led_suit() {
+    // North leads ♠A, East plays ♥2 (trump) — East wins.
+    let trick = CurrentTrick::from_slice(
+        Strain::Hearts,
+        Seat::North,
+        &[c(Suit::Spades, 14), c(Suit::Hearts, 2)],
+    )
+    .unwrap();
+    assert_eq!(trick.winning_index(), Some(1));
+    assert_eq!(trick.winning_card(), Some(c(Suit::Hearts, 2)));
+    assert_eq!(trick.winning_seat(), Some(Seat::East));
+}
+
+/// Empty trick has no winner.
+#[test]
+fn current_trick_empty_has_no_winner() {
+    let trick = CurrentTrick::new(Strain::Notrump, Seat::North);
+    assert!(trick.is_empty());
+    assert_eq!(trick.led_suit(), None);
+    assert_eq!(trick.winning_index(), None);
+    assert_eq!(trick.winning_card(), None);
+    assert_eq!(trick.winning_seat(), None);
 }
