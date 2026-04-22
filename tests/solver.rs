@@ -31,12 +31,12 @@ fn solve_four_13_card_straight_flushes() {
             Holding::EMPTY,
             Holding::ALL,
         ));
-    const SOLUTION: TricksTable = TricksTable([
-        TricksRow::new(13, 0, 13, 0),
-        TricksRow::new(0, 13, 0, 13),
-        TricksRow::new(13, 0, 13, 0),
-        TricksRow::new(0, 13, 0, 13),
-        TricksRow::new(0, 0, 0, 0),
+    const SOLUTION: TrickCountTable = TrickCountTable([
+        TrickCountRow::new(13, 0, 13, 0),
+        TrickCountRow::new(0, 13, 0, 13),
+        TrickCountRow::new(13, 0, 13, 0),
+        TrickCountRow::new(0, 13, 0, 13),
+        TrickCountRow::new(0, 0, 0, 0),
     ]);
     const CONTRACT: Contract = Contract::new(7, Strain::Spades, Penalty::Undoubled);
     const CONTRACTS: [ParContract; 2] = [
@@ -84,7 +84,7 @@ fn solve_par_5_tricks() {
         .east(Hand::new(X, AKQJ, T987, XXXX))
         .south(Hand::new(XXXX, T987, AKQJ, X))
         .west(Hand::new(AKQJ, X, XXXX, T987));
-    const SOLUTION: TricksTable = TricksTable([TricksRow::new(5, 5, 5, 5); 5]);
+    const SOLUTION: TrickCountTable = TrickCountTable([TrickCountRow::new(5, 5, 5, 5); 5]);
     const PAR: Par = Par {
         score: 0,
         contracts: Vec::new(),
@@ -115,9 +115,9 @@ fn solve_everyone_makes_1nt() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    const SUIT: TricksRow = TricksRow::new(6, 6, 6, 6);
-    const NT: TricksRow = TricksRow::new(7, 7, 7, 7);
-    const SOLUTION: TricksTable = TricksTable([SUIT, SUIT, SUIT, SUIT, NT]);
+    const SUIT: TrickCountRow = TrickCountRow::new(6, 6, 6, 6);
+    const NT: TrickCountRow = TrickCountRow::new(7, 7, 7, 7);
+    const SOLUTION: TrickCountTable = TrickCountTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::Undoubled);
     assert_eq!(
         Solver::lock().solve_deal(DEAL.build_full().unwrap()),
@@ -192,7 +192,7 @@ fn solve_board_score_matches_dd_table() {
     core::mem::drop(solver);
     // solve_board reports tricks for the leading side (NS as defenders here).
     // The declarer is North's RHO (West).  Defenders take 13 - declarer's tricks.
-    let expected = 13 - tricks[Strain::Notrump].get(Seat::North.rho());
+    let expected = 13 - u8::from(tricks[Strain::Notrump].get(Seat::North.rho()));
     assert!(!found.plays.is_empty());
     assert_eq!(i32::from(found.plays[0].score), i32::from(expected));
 }
@@ -461,13 +461,21 @@ fn system_info_display_matches_system_string() {
 }
 
 #[test]
-fn tricks_row_try_new_rejects_out_of_range() {
-    assert_eq!(TricksRow::try_new(14, 0, 0, 0), Err(InvalidTricks));
-    assert_eq!(TricksRow::try_new(0, 14, 0, 0), Err(InvalidTricks));
-    assert_eq!(TricksRow::try_new(0, 0, 14, 0), Err(InvalidTricks));
-    assert_eq!(TricksRow::try_new(0, 0, 0, 14), Err(InvalidTricks));
-    assert!(TricksRow::try_new(13, 13, 13, 13).is_ok());
-    assert!(TricksRow::try_new(0, 0, 0, 0).is_ok());
+fn trick_count_try_new_rejects_out_of_range() {
+    assert_eq!(TrickCount::try_new(14), Err(InvalidTrickCount));
+    assert_eq!(TrickCount::try_new(255), Err(InvalidTrickCount));
+    assert!(TrickCount::try_new(0).is_ok());
+    assert!(TrickCount::try_new(13).is_ok());
+}
+
+#[test]
+fn trick_count_row_try_new_rejects_out_of_range() {
+    assert_eq!(TrickCountRow::try_new(14, 0, 0, 0), Err(InvalidTrickCount));
+    assert_eq!(TrickCountRow::try_new(0, 14, 0, 0), Err(InvalidTrickCount));
+    assert_eq!(TrickCountRow::try_new(0, 0, 14, 0), Err(InvalidTrickCount));
+    assert_eq!(TrickCountRow::try_new(0, 0, 0, 14), Err(InvalidTrickCount));
+    assert!(TrickCountRow::try_new(13, 13, 13, 13).is_ok());
+    assert!(TrickCountRow::try_new(0, 0, 0, 0).is_ok());
 }
 
 /// Helper: build a `PartialDeal` from four iterables of `Card`.

@@ -11,7 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking:** `TricksRow::new(n, e, s, w)` now panics (compile-time error in const contexts) when any value exceeds 13, instead of silently truncating to a 4-bit field. Use `TricksRow::try_new` to handle the error.
+- **Breaking:** The trick-count types are renamed and gain a per-seat newtype:
+  - `TricksRow` → `TrickCountRow`, `TricksTable` → `TrickCountTable` (and their `Hex` views).
+  - New `TrickCount(u8)` newtype for a trick count in `0..=13`, analogous to `Level` / `Rank`. It provides `new`, `try_new`, `get() -> u8`, `Display`, and infallible `From<TrickCount>` for `u8` and `usize`.
+  - `TrickCountRow::get(seat)` now returns `TrickCount` instead of `u8`. Call sites that index into arrays (e.g. histograms) keep working via `usize::from(row.get(seat))`; code that needs the raw byte can use `u8::from(...)` or `.get().get()`.
+  - The validation error `InvalidTricks` is renamed to `InvalidTrickCount` and is shared between `TrickCount::try_new` and `TrickCountRow::try_new`.
+- **Breaking:** `TrickCountRow::new(n, e, s, w)` now panics (compile-time error in const contexts) when any value exceeds 13, instead of silently truncating to a 4-bit field. Use `TrickCountRow::try_new` to handle the error.
 - **Breaking:** `Deal` is replaced by a type hierarchy with stricter invariants:
   - `Builder` — unvalidated `[Hand; 4]` with `IndexMut<Seat>`; the only mutable deal type. Direct successor of today's `Deal` for incremental construction.
   - `PartialDeal` — newtype over `Builder` with the invariant that each hand has ≤13 cards and the hands are pairwise disjoint. Read-only (`Index<Seat>` only). `FromStr` accepts PBN with partial holdings or `x` spots.
@@ -20,12 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `Board` fields are now private. `Board::new` is removed; `Board::try_new(remaining, current_trick)` is the sole constructor, taking a pre-validated [`CurrentTrick`](#added) that owns `trump`, `lead`, and the 0–3 played cards. New accessors `trump()`, `lead()`, `current_cards()`, `current_trick()`, `remaining()`. The `remaining` field is now a `PartialDeal` rather than a `Deal`. New `BoardError` enum covers cross-cutting invariant violations (`PlayedCardInHand`, `InconsistentHandSizes`, `Revoke`); the trick-shape errors (`TooManyPlayed`, `DuplicatePlayedCard`) moved to `CurrentTrickError`.
 - **Breaking:** `Solver::solve_deal` and `Solver::solve_deals` take `FullDeal` / `&[FullDeal]` instead of `Deal` / `&[Deal]`. The FFI converter `From<FullDeal> for sys::ddTableDeal` (plus `From<PartialDeal> for sys::ddTableDeal`) replaces `From<Deal>`.
 - **Breaking:** `ParseDealError` gains two variants, `InvalidSubset` and `NotFullDeal`, emitted by the strict parsers.
-- Panics from the solver entry points (`calculate_par`, `calculate_pars`, and `Solver::{solve_deal, solve_deals, solve_board, solve_boards, analyse_play, analyse_plays}`) are now considered bugs — please report them. These functions route DDS status codes through an internal helper that panics on error; reaching it means invalid input slipped past a safe constructor or DDS itself misbehaved. This policy does not cover validator panics from safe constructors (e.g. `TricksRow::new`), which panic by design on out-of-range inputs and have `try_*` counterparts for fallible construction.
+- Panics from the solver entry points (`calculate_par`, `calculate_pars`, and `Solver::{solve_deal, solve_deals, solve_board, solve_boards, analyse_play, analyse_plays}`) are now considered bugs — please report them. These functions route DDS status codes through an internal helper that panics on error; reaching it means invalid input slipped past a safe constructor or DDS itself misbehaved. This policy does not cover validator panics from safe constructors (e.g. `TrickCountRow::new`), which panic by design on out-of-range inputs and have `try_*` counterparts for fallible construction.
 - **Breaking:** `Seat`, `SeatFlags`, and `ParseSeatError` have moved out of the `deal` module into a new top-level `seat` module. The crate-root re-exports `dds_bridge::Seat` and `dds_bridge::SeatFlags` are unchanged, so most consumers need no code changes. Code that imported these types through the `deal` submodule path (e.g. `use dds_bridge::deal::Seat;`) must update to `dds_bridge::seat::Seat` or the crate-root re-export.
 
 ### Added
 
-- `TricksRow::try_new(n, e, s, w)` returns `Result<Self, InvalidTricks>`, rejecting any per-seat value outside `0..=13`, mirroring `Level::try_new`.
+- `TrickCountRow::try_new(n, e, s, w)` returns `Result<Self, InvalidTrickCount>`, rejecting any per-seat value outside `0..=13`, mirroring `Level::try_new`.
+- `TrickCount` newtype (see the Changed entry above) — construct with `TrickCount::new` / `TrickCount::try_new`, unwrap with `get()` or via `u8::from` / `usize::from`.
 - `NonEmptyStrainFlags` — a guaranteed-non-empty wrapper around `StrainFlags`, analogous to `NonZero<T>`. Constructable via `NonEmptyStrainFlags::new(flags)` (returns `Option`); the inner value is recovered with `.get()` or `StrainFlags::from(…)`. `Solver::solve_deals` now takes `NonEmptyStrainFlags` instead of `StrainFlags`, encoding the non-empty requirement in the type.
 - `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.
 - `Solver::analyse_plays` wraps `AnalyseAllPlaysBin` to analyse multiple play traces in parallel.

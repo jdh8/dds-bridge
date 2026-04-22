@@ -14,9 +14,9 @@
 //! it.
 //!
 //! This policy does not cover validator panics from safe constructors
-//! (e.g. [`TricksRow::new`](crate::solver::TricksRow::new)), which panic by
-//! design on out-of-range inputs and have `try_*` counterparts for fallible
-//! construction.
+//! (e.g. [`TrickCountRow::new`](crate::solver::TrickCountRow::new)), which
+//! panic by design on out-of-range inputs and have `try_*` counterparts for
+//! fallible construction.
 
 use crate::contract::{Contract, Penalty};
 use crate::deal::{Builder, FullDeal, PartialDeal};
@@ -127,19 +127,89 @@ impl From<NonEmptyStrainFlags> for StrainFlags {
     }
 }
 
-/// Error returned when a [`TricksRow`] field is outside `0..=13`
+/// Error returned when a trick count is outside `0..=13`
+///
+/// Produced by both [`TrickCount::try_new`] and [`TrickCountRow::try_new`].
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-#[error("each seat's tricks must be in 0..=13")]
-pub struct InvalidTricks;
+#[error("trick count must be in 0..=13")]
+pub struct InvalidTrickCount;
+
+/// A number of tricks in `0..=13`
+///
+/// A validated newtype over `u8`, analogous to [`Level`](crate::contract::Level)
+/// (1..=7) and [`Rank`](crate::hand::Rank) (2..=14). Appears as the per-seat
+/// value returned by [`TrickCountRow::get`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+#[repr(transparent)]
+pub struct TrickCount(u8);
+
+impl TrickCount {
+    /// Create a new trick count
+    ///
+    /// # Panics
+    ///
+    /// When `n` is outside `0..=13`. In const contexts, this is a compile-time
+    /// error.
+    #[must_use]
+    #[inline]
+    pub const fn new(n: u8) -> Self {
+        match Self::try_new(n) {
+            Ok(tc) => tc,
+            Err(_) => panic!("trick count must be in 0..=13"),
+        }
+    }
+
+    /// Try to create a new trick count
+    ///
+    /// # Errors
+    ///
+    /// When `n` is outside `0..=13`.
+    #[inline]
+    pub const fn try_new(n: u8) -> Result<Self, InvalidTrickCount> {
+        if n > 13 {
+            return Err(InvalidTrickCount);
+        }
+        Ok(Self(n))
+    }
+
+    /// Get the underlying `u8`
+    #[must_use]
+    #[inline]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+impl From<TrickCount> for u8 {
+    #[inline]
+    fn from(tc: TrickCount) -> Self {
+        tc.0
+    }
+}
+
+impl From<TrickCount> for usize {
+    #[inline]
+    fn from(tc: TrickCount) -> Self {
+        tc.0 as Self
+    }
+}
+
+impl fmt::Display for TrickCount {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 /// Tricks that each seat can take as declarer for a strain
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
-pub struct TricksRow(u16);
+pub struct TrickCountRow(u16);
 
-impl TricksRow {
+impl TrickCountRow {
     /// Create a new row from the number of tricks each seat can take
     ///
     /// # Panics
@@ -151,7 +221,7 @@ impl TricksRow {
     pub const fn new(n: u8, e: u8, s: u8, w: u8) -> Self {
         match Self::try_new(n, e, s, w) {
             Ok(row) => row,
-            Err(_) => panic!("each seat's tricks must be in 0..=13"),
+            Err(_) => panic!("trick count must be in 0..=13"),
         }
     }
 
@@ -161,9 +231,9 @@ impl TricksRow {
     ///
     /// When any value is outside `0..=13`.
     #[inline]
-    pub const fn try_new(n: u8, e: u8, s: u8, w: u8) -> Result<Self, InvalidTricks> {
+    pub const fn try_new(n: u8, e: u8, s: u8, w: u8) -> Result<Self, InvalidTrickCount> {
         if n > 13 || e > 13 || s > 13 || w > 13 {
-            return Err(InvalidTricks);
+            return Err(InvalidTrickCount);
         }
         Ok(Self(
             (n as u16) << (4 * Seat::North as u8)
@@ -175,37 +245,37 @@ impl TricksRow {
 
     /// Get the number of tricks a seat can take as declarer
     #[must_use]
-    pub const fn get(self, seat: Seat) -> u8 {
-        (self.0 >> (4 * seat as u8) & 0xF) as u8
+    pub const fn get(self, seat: Seat) -> TrickCount {
+        TrickCount((self.0 >> (4 * seat as u8) & 0xF) as u8)
     }
 
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
-    pub const fn hex(self, seat: Seat) -> TricksRowHex {
-        TricksRowHex { row: self, seat }
+    pub const fn hex(self, seat: Seat) -> TrickCountRowHex {
+        TrickCountRowHex { row: self, seat }
     }
 }
 
-/// Hexadecimal view of a [`TricksRow`] from a seat's perspective
+/// Hexadecimal view of a [`TrickCountRow`] from a seat's perspective
 ///
-/// Returned by [`TricksRow::hex`]. Formats as four hex digits — the tricks
+/// Returned by [`TrickCountRow::hex`]. Formats as four hex digits — the tricks
 /// taken by the seat, its LHO, its partner, and its RHO — via the
 /// [`UpperHex`](fmt::UpperHex) impl.
 #[derive(Debug, Clone, Copy)]
-pub struct TricksRowHex {
-    row: TricksRow,
+pub struct TrickCountRowHex {
+    row: TrickCountRow,
     seat: Seat,
 }
 
-impl fmt::UpperHex for TricksRowHex {
+impl fmt::UpperHex for TrickCountRowHex {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "{:X}{:X}{:X}{:X}",
-            self.row.get(self.seat),
-            self.row.get(self.seat.lho()),
-            self.row.get(self.seat.partner()),
-            self.row.get(self.seat.rho()),
+            self.row.get(self.seat).get(),
+            self.row.get(self.seat.lho()).get(),
+            self.row.get(self.seat.partner()).get(),
+            self.row.get(self.seat.rho()).get(),
         )
     }
 }
@@ -215,21 +285,21 @@ impl fmt::UpperHex for TricksRowHex {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
-pub struct TricksTable(pub [TricksRow; 5]);
+pub struct TrickCountTable(pub [TrickCountRow; 5]);
 
-impl core::ops::Index<Strain> for TricksTable {
-    type Output = TricksRow;
+impl core::ops::Index<Strain> for TrickCountTable {
+    type Output = TrickCountRow;
 
-    fn index(&self, strain: Strain) -> &TricksRow {
+    fn index(&self, strain: Strain) -> &TrickCountRow {
         &self.0[strain as usize]
     }
 }
 
-impl TricksTable {
+impl TrickCountTable {
     /// Hexadecimal representation from a seat's perspective
     #[must_use]
-    pub const fn hex<T: AsRef<[Strain]>>(self, seat: Seat, strains: T) -> TricksTableHex<T> {
-        TricksTableHex {
+    pub const fn hex<T: AsRef<[Strain]>>(self, seat: Seat, strains: T) -> TrickCountTableHex<T> {
+        TrickCountTableHex {
             table: self,
             seat,
             strains,
@@ -237,19 +307,19 @@ impl TricksTable {
     }
 }
 
-/// Hexadecimal view of a [`TricksTable`] from a seat's perspective
+/// Hexadecimal view of a [`TrickCountTable`] from a seat's perspective
 ///
-/// Returned by [`TricksTable::hex`]. Formats as one [`TricksRowHex`] per
-/// strain in the supplied slice, concatenated, via the
+/// Returned by [`TrickCountTable::hex`]. Formats as one [`TrickCountRowHex`]
+/// per strain in the supplied slice, concatenated, via the
 /// [`UpperHex`](fmt::UpperHex) impl.
 #[derive(Debug, Clone, Copy)]
-pub struct TricksTableHex<T: AsRef<[Strain]>> {
-    table: TricksTable,
+pub struct TrickCountTableHex<T: AsRef<[Strain]>> {
+    table: TrickCountTable,
     seat: Seat,
     strains: T,
 }
 
-impl<T: AsRef<[Strain]>> fmt::UpperHex for TricksTableHex<T> {
+impl<T: AsRef<[Strain]>> fmt::UpperHex for TrickCountTableHex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for &strain in self.strains.as_ref() {
             self.table[strain].hex(self.seat).fmt(f)?;
@@ -272,15 +342,15 @@ impl Strain {
     }
 }
 
-impl From<sys::ddTableResults> for TricksTable {
+impl From<sys::ddTableResults> for TrickCountTable {
     fn from(table: sys::ddTableResults) -> Self {
-        const fn make_row(row: [c_int; 4]) -> TricksRow {
+        const fn make_row(row: [c_int; 4]) -> TrickCountRow {
             debug_assert!(row[0] >= 0 && row[0] <= 13);
             debug_assert!(row[1] >= 0 && row[1] <= 13);
             debug_assert!(row[2] >= 0 && row[2] <= 13);
             debug_assert!(row[3] >= 0 && row[3] <= 13);
             #[allow(clippy::cast_sign_loss)]
-            TricksRow::new(
+            TrickCountRow::new(
                 (row[0] & 0xF) as u8,
                 (row[1] & 0xF) as u8,
                 (row[2] & 0xF) as u8,
@@ -298,14 +368,14 @@ impl From<sys::ddTableResults> for TricksTable {
     }
 }
 
-impl From<TricksTable> for sys::ddTableResults {
-    fn from(table: TricksTable) -> Self {
-        const fn make_row(row: TricksRow) -> [c_int; 4] {
+impl From<TrickCountTable> for sys::ddTableResults {
+    fn from(table: TrickCountTable) -> Self {
+        const fn make_row(row: TrickCountRow) -> [c_int; 4] {
             [
-                row.get(Seat::North) as c_int,
-                row.get(Seat::East) as c_int,
-                row.get(Seat::South) as c_int,
-                row.get(Seat::West) as c_int,
+                row.get(Seat::North).get() as c_int,
+                row.get(Seat::East).get() as c_int,
+                row.get(Seat::South).get() as c_int,
+                row.get(Seat::West).get() as c_int,
             ]
         }
 
@@ -568,7 +638,7 @@ impl From<sys::parResultsMaster> for Par {
 ///
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
-pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> Par {
+pub fn calculate_par(tricks: TrickCountTable, vul: Vulnerability, dealer: Seat) -> Par {
     let mut par = sys::parResultsMaster::default();
     let status = unsafe {
         sys::DealerParBin(
@@ -591,7 +661,7 @@ pub fn calculate_par(tricks: TricksTable, vul: Vulnerability, dealer: Seat) -> P
 ///
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
-pub fn calculate_pars(tricks: TricksTable, vul: Vulnerability) -> [Par; 2] {
+pub fn calculate_pars(tricks: TrickCountTable, vul: Vulnerability) -> [Par; 2] {
     let mut pars = [sys::parResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
     let status = unsafe { sys::SidesParBin(&mut tricks.into(), &raw mut pars[0], vul.to_sys()) };
@@ -1300,12 +1370,12 @@ impl Solver {
     /// let tricks = Solver::lock().solve_deal(deal);
     /// // North holds all the spades, so North or South declaring spades
     /// // draws trumps and takes every trick.
-    /// assert_eq!(tricks[Strain::Spades].get(Seat::North), 13);
+    /// assert_eq!(u8::from(tricks[Strain::Spades].get(Seat::North)), 13);
     /// # Ok(())
     /// # }
     /// ```
     #[must_use]
-    pub fn solve_deal(&self, deal: FullDeal) -> TricksTable {
+    pub fn solve_deal(&self, deal: FullDeal) -> TrickCountTable {
         let mut result = sys::ddTableResults::default();
         let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
         check(status);
@@ -1373,13 +1443,17 @@ impl Solver {
     ///
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
-    pub fn solve_deals(&self, deals: &[FullDeal], flags: NonEmptyStrainFlags) -> Vec<TricksTable> {
+    pub fn solve_deals(
+        &self,
+        deals: &[FullDeal],
+        flags: NonEmptyStrainFlags,
+    ) -> Vec<TrickCountTable> {
         let mut tables = Vec::new();
         for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.get().bits().count_ones()) as usize) {
             tables.extend(
                 unsafe { Self::solve_deal_segment(chunk, flags) }.results[..chunk.len()]
                     .iter()
-                    .map(|&x| TricksTable::from(x)),
+                    .map(|&x| TrickCountTable::from(x)),
             );
         }
         tables
