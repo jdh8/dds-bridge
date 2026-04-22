@@ -16,9 +16,6 @@
 //! [`Rank::try_new`] for fallible construction.  In const contexts the panic
 //! becomes a compile-time error.
 
-#[cfg(feature = "serde")]
-mod serde_;
-
 use crate::Suit;
 use core::fmt::{self, Write as _};
 use core::iter::FusedIterator;
@@ -139,6 +136,10 @@ impl FromStr for Rank {
 ///
 /// Internally packed as `(rank << 2) | suit` in a single byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct Card {
     /// The suit of the card
     pub suit: Suit,
@@ -182,6 +183,10 @@ impl FromStr for Card {
 
 /// A set of cards of the same suit
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 #[repr(transparent)]
 pub struct Holding(u16);
 
@@ -559,6 +564,10 @@ impl FromStr for Holding {
 
 /// A hand of playing cards
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct Hand([Holding; 4]);
 
 /// Iterator over the cards in a [`Hand`], yielding [`Card`]s in descending

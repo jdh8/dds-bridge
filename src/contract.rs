@@ -12,9 +12,6 @@
 //! [`Level::try_new`] for fallible construction.  In const contexts the panic
 //! becomes a compile-time error.
 
-#[cfg(feature = "serde")]
-mod serde_;
-
 use crate::Strain;
 use core::fmt::{self, Write as _};
 use core::num::NonZero;
@@ -104,6 +101,10 @@ impl FromStr for Level {
 /// The order of the fields ensures natural ordering by deriving [`PartialOrd`]
 /// and [`Ord`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct Bid {
     /// The level of the contract
     pub level: Level,
@@ -199,6 +200,10 @@ impl FromStr for Penalty {
 /// the number of tricks (in addition to the book of 6 tricks), and the strain
 /// denotes the trump suit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct Contract {
     /// The basic part of a contract
     pub bid: Bid,

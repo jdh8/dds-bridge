@@ -14,7 +14,7 @@ categories = ["game-development"]
 keywords = ["bridge", "double-dummy"]
 
 [features]
-serde = ["dep:serde", "arrayvec/serde", "bitflags/serde", "semver/serde"]
+serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "semver/serde"]
 
 [dependencies]
 arrayvec = "0.7"
@@ -23,6 +23,7 @@ dds-bridge-sys = "2"
 parking_lot = "0.12"
 semver = "1"
 serde = { version = "1", features = ["derive"], optional = true }
+serde_with = { version = "3", default-features = false, features = ["macros"], optional = true }
 thiserror = "2"
 
 [dev-dependencies]

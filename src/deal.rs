@@ -24,9 +24,6 @@
 //!
 //! [PBN]: https://www.tistis.nl/pbn/
 
-#[cfg(feature = "serde")]
-mod serde_;
-
 use crate::hand::{Hand, ParseHandError};
 use crate::seat::Seat;
 use core::fmt::{self, Write as _};
@@ -186,6 +183,10 @@ impl Builder {
 ///
 /// [PBN]: https://www.tistis.nl/pbn/
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct PartialDeal(Builder);
 
 impl ops::Index<Seat> for PartialDeal {
@@ -255,6 +256,12 @@ impl FromStr for PartialDeal {
     }
 }
 
+impl fmt::Display for PartialDeal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.display(Seat::North).fmt(f)
+    }
+}
+
 /// A full bridge deal — exactly 13 cards per hand, 52 total
 ///
 /// Invariants: each of the four hands contains exactly 13 cards, and the
@@ -282,6 +289,10 @@ impl FromStr for PartialDeal {
 ///
 /// [PBN]: https://www.tistis.nl/pbn/
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde_with::SerializeDisplay, serde_with::DeserializeFromStr)
+)]
 pub struct FullDeal(Builder);
 
 impl ops::Index<Seat> for FullDeal {
@@ -356,6 +367,12 @@ impl FromStr for FullDeal {
         parse_pbn(s)?
             .build_full()
             .map_err(|_| ParseDealError::NotFullDeal)
+    }
+}
+
+impl fmt::Display for FullDeal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.display(Seat::North).fmt(f)
     }
 }
 
