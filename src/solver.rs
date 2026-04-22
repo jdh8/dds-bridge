@@ -833,7 +833,7 @@ impl CurrentTrick {
 
 /// A snapshot of a board
 ///
-/// Construct via [`Board::with_trick`], which handles both start-of-trick
+/// Construct via [`Board::try_new`], which handles both start-of-trick
 /// (use [`CurrentTrick::new`]) and mid-trick (0–3 played cards) cases.  The
 /// invariants below are enforced by the constructor.
 ///
@@ -863,7 +863,7 @@ impl Board {
     ///
     /// Returns a [`BoardError`] if the invariants documented on [`Board`] do
     /// not hold.
-    pub fn with_trick(
+    pub fn try_new(
         remaining: PartialDeal,
         current_trick: CurrentTrick,
     ) -> Result<Self, BoardError> {

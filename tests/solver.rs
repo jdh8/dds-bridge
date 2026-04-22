@@ -182,7 +182,7 @@ fn solve_board_score_matches_dd_table() {
     let solver = Solver::lock();
     let tricks = solver.solve_deal(DEAL.build_full().unwrap());
     let found = solver.solve_board(Objective {
-        board: Board::with_trick(
+        board: Board::try_new(
             DEAL.build_partial().unwrap(),
             CurrentTrick::new(Strain::Notrump, Seat::North),
         )
@@ -211,7 +211,7 @@ fn solve_boards_matches_solve_board() {
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
     let obj = Objective {
-        board: Board::with_trick(
+        board: Board::try_new(
             DEAL.build_partial().unwrap(),
             CurrentTrick::new(Strain::Notrump, Seat::North),
         )
@@ -284,7 +284,7 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(
+    let board = Board::try_new(
         DEAL.build_partial().unwrap(),
         CurrentTrick::new(Strain::Notrump, Seat::North),
     )
@@ -319,7 +319,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::with_trick(
+    let board = Board::try_new(
         DEAL.build_partial().unwrap(),
         CurrentTrick::new(Strain::Notrump, Seat::North),
     )
@@ -376,7 +376,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         rank: Rank::A,
     });
     let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board::with_trick(
+        board: Board::try_new(
             DEAL.build_partial().unwrap(),
             CurrentTrick::new(Strain::Notrump, Seat::North),
         )
@@ -495,7 +495,7 @@ const fn c(suit: Suit, rank: u8) -> Card {
 
 /// East fails to follow North's spade lead despite still holding a spade.
 #[test]
-fn board_with_trick_detects_revoke_on_second_card() {
+fn board_try_new_detects_revoke_on_second_card() {
     // North plays ♠A; East plays ♥2 while still holding ♠K → revoke.
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -515,7 +515,7 @@ fn board_with_trick_detects_revoke_on_second_card() {
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
     assert_eq!(
-        Board::with_trick(
+        Board::try_new(
             remaining,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
         ),
@@ -525,7 +525,7 @@ fn board_with_trick_detects_revoke_on_second_card() {
 
 /// Same shape, but East genuinely has no spades — a legal discard.
 #[test]
-fn board_with_trick_accepts_non_revoke_discard() {
+fn board_try_new_accepts_non_revoke_discard() {
     // East has only hearts after the trick; playing ♥2 off the ♠A lead is legal.
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -545,7 +545,7 @@ fn board_with_trick_accepts_non_revoke_discard() {
     );
     let played = [c(Suit::Spades, 14), c(Suit::Hearts, 2)];
     assert!(
-        Board::with_trick(
+        Board::try_new(
             remaining,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
         )
@@ -555,7 +555,7 @@ fn board_with_trick_accepts_non_revoke_discard() {
 
 /// Only the third played card revokes; earlier cards followed suit.
 #[test]
-fn board_with_trick_detects_revoke_on_third_card() {
+fn board_try_new_detects_revoke_on_third_card() {
     // North ♠A, East ♠2 (follows), South ♥3 while still holding ♠Q → revoke at index 2.
     let remaining = subset_from(
         [c(Suit::Hearts, 4), c(Suit::Hearts, 5), c(Suit::Hearts, 6)],
@@ -570,7 +570,7 @@ fn board_with_trick_detects_revoke_on_third_card() {
     );
     let played = [c(Suit::Spades, 14), c(Suit::Spades, 2), c(Suit::Hearts, 3)];
     assert_eq!(
-        Board::with_trick(
+        Board::try_new(
             remaining,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
         ),
@@ -580,7 +580,7 @@ fn board_with_trick_detects_revoke_on_third_card() {
 
 /// A lone lead (one card on the table) cannot revoke, nor can an empty trick.
 #[test]
-fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
+fn board_try_new_empty_and_single_card_tricks_cannot_revoke() {
     let full = subset_from(
         [
             c(Suit::Spades, 14),
@@ -607,7 +607,7 @@ fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
             c(Suit::Clubs, 5),
         ],
     );
-    assert!(Board::with_trick(full, CurrentTrick::new(Strain::Notrump, Seat::North),).is_ok());
+    assert!(Board::try_new(full, CurrentTrick::new(Strain::Notrump, Seat::North),).is_ok());
 
     let after_lead = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -631,7 +631,7 @@ fn board_with_trick_empty_and_single_card_tricks_cannot_revoke() {
         ],
     );
     assert!(
-        Board::with_trick(
+        Board::try_new(
             after_lead,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &[c(Suit::Spades, 14)]).unwrap(),
         )
