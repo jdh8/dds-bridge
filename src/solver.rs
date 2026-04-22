@@ -657,11 +657,11 @@ pub enum BoardError {
     /// The remaining hand sizes do not match the number of played cards
     ///
     /// With `k` cards on the table, exactly the `k` seats starting from
-    /// `lead` (in playing order) must have one fewer card than the other
+    /// `leader` (in playing order) must have one fewer card than the other
     /// seats; all other seats must share a common size.
     #[error(
         "Remaining hand sizes do not match the played-count pattern \
-         (the k seats from lead must have size m-1; others m)"
+         (the k seats from leader must have size m-1; others m)"
     )]
     InconsistentHandSizes,
     /// A played card does not follow suit though the player held the led suit
@@ -689,10 +689,8 @@ pub enum CurrentTrickError {
 
 /// Trick-in-progress — 0 to 3 cards played, in playing order
 ///
-/// Owns enough context (`trump` + `lead`) to answer "which card is currently
-/// winning" on its own, independent of any [`Board`] or [`PartialDeal`].
-/// Cards are played by the seats starting at [`lead`](Self::lead) in playing
-/// order: the first card by `lead`, the second by `lead.lho()`, and so on.
+/// Cards are played by the seats starting at [`leader`](Self::leader) in playing
+/// order: the first card by `leader`, the second by `leader.lho()`, and so on.
 ///
 /// # Invariants
 ///
@@ -701,19 +699,19 @@ pub enum CurrentTrickError {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CurrentTrick {
     trump: Strain,
-    lead: Seat,
+    leader: Seat,
     cards: ArrayVec<Card, 3>,
     seen: Hand,
 }
 
 impl CurrentTrick {
-    /// Empty trick led by `lead` under `trump`
+    /// Empty trick led by `leader` under `trump`
     #[must_use]
     #[inline]
-    pub const fn new(trump: Strain, lead: Seat) -> Self {
+    pub const fn new(trump: Strain, leader: Seat) -> Self {
         Self {
             trump,
-            lead,
+            leader,
             cards: ArrayVec::new_const(),
             seen: Hand::EMPTY,
         }
@@ -728,10 +726,10 @@ impl CurrentTrick {
     /// contains a duplicate card.
     pub fn from_slice(
         trump: Strain,
-        lead: Seat,
+        leader: Seat,
         played: &[Card],
     ) -> Result<Self, CurrentTrickError> {
-        let mut trick = Self::new(trump, lead);
+        let mut trick = Self::new(trump, leader);
         for &card in played {
             trick.try_push(card)?;
         }
@@ -766,8 +764,8 @@ impl CurrentTrick {
     /// Seat that led this trick
     #[must_use]
     #[inline]
-    pub const fn lead(&self) -> Seat {
-        self.lead
+    pub const fn leader(&self) -> Seat {
+        self.leader
     }
 
     /// Cards played so far, in playing order
@@ -821,8 +819,8 @@ impl CurrentTrick {
 /// 3. **Uniform-size-after-restoration**: putting the
 ///    `k = current_trick.len()` table cards back into their players' hands
 ///    yields a subset where all four hands share a common size `m`.
-///    Equivalently, the `k` seats starting at `current_trick.lead()` (in
-///    playing order: `lead`, `lead.lho()`, …) have size `m − 1` and the
+///    Equivalently, the `k` seats starting at `current_trick.leader()` (in
+///    playing order: `leader`, `leader.lho()`, …) have size `m − 1` and the
 ///    remaining `4 − k` seats have size `m`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
@@ -846,22 +844,21 @@ impl Board {
             return Err(BoardError::PlayedCardInHand);
         }
 
-        let lead = current_trick.lead();
-        let order = [lead, lead.lho(), lead.partner(), lead.rho()];
-        let k = current_trick.len();
-        // `order[k]` is always a seat that has not yet played this trick, so
-        // its hand size is the common "full" size `m` we expect.
-        let m = remaining[order[k]].len();
-        for (j, &seat) in order.iter().enumerate() {
-            let expected = if j < k { m - 1 } else { m };
-            if remaining[seat].len() != expected {
+        let leader = current_trick.leader();
+        let seats = [leader, leader.lho(), leader.partner(), leader.rho()];
+        let index = current_trick.len();
+        // Leader's RHO has not yet played this trick, so its hand length is the
+        // common "full" length we expect.
+        let full_len = remaining[leader.rho()].len();
+        for (j, &seat) in seats.iter().enumerate() {
+            if remaining[seat].len() + usize::from(j < index) != full_len {
                 return Err(BoardError::InconsistentHandSizes);
             }
         }
 
         if let Some(led_suit) = current_trick.led_suit() {
             for (j, played_card) in current_trick.cards().iter().enumerate().skip(1) {
-                if played_card.suit != led_suit && !remaining[order[j]][led_suit].is_empty() {
+                if played_card.suit != led_suit && !remaining[seats[j]][led_suit].is_empty() {
                     return Err(BoardError::Revoke {
                         // `j < 3` constrained by `ArrayVec<Card, 3>`
                         #[allow(clippy::cast_possible_truncation)]
@@ -887,8 +884,8 @@ impl Board {
     /// Seat leading the current trick
     #[must_use]
     #[inline]
-    pub const fn lead(&self) -> Seat {
-        self.current_trick.lead()
+    pub const fn leader(&self) -> Seat {
+        self.current_trick.leader()
     }
 
     /// Cards already played to the current trick, in playing order
@@ -898,7 +895,7 @@ impl Board {
         self.current_trick.cards()
     }
 
-    /// The current trick — cards played so far plus trump and lead
+    /// The current trick — cards played so far plus trump and leader
     #[must_use]
     #[inline]
     pub const fn current_trick(&self) -> &CurrentTrick {
@@ -931,7 +928,7 @@ impl From<Board> for sys::deal {
                 Strain::Clubs => 3,
                 Strain::Notrump => 4,
             },
-            first: board.current_trick.lead() as c_int,
+            first: board.current_trick.leader() as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
             remainCards: sys::ddTableDeal::from(board.remaining).cards,
