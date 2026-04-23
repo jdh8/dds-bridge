@@ -81,11 +81,13 @@ pub struct PlayAnalysis {
 impl From<sys::solvedPlay> for PlayAnalysis {
     fn from(solved: sys::solvedPlay) -> Self {
         let number = ffi::count_from_sys(solved.number, solved.tricks.len());
-        let mut tricks = ArrayVec::new();
-        for &n in &solved.tricks[..number] {
-            tricks.push(ffi::trick_count_from_sys(n));
+        Self {
+            tricks: solved.tricks[..number]
+                .iter()
+                .copied()
+                .map(ffi::trick_count_from_sys)
+                .collect(),
         }
-        Self { tricks }
     }
 }
 
@@ -121,19 +123,19 @@ pub struct FoundPlays {
 impl From<sys::futureTricks> for FoundPlays {
     fn from(future: sys::futureTricks) -> Self {
         let cards = ffi::count_from_sys(future.cards, future.suit.len());
-        let mut plays = ArrayVec::new();
-        for i in 0..cards {
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let equals = Holding::from_bits_truncate(future.equals[i] as u16);
-            plays.push(Play {
-                card: Card {
-                    suit: ffi::suit_from_desc_index(future.suit[i]),
-                    rank: ffi::rank_from_sys(future.rank[i]),
-                },
-                equals,
-                score: ffi::trick_count_from_sys(future.score[i]),
-            });
-        }
+        let plays = (0..cards)
+            .map(|i| {
+                Play {
+                    card: Card {
+                        suit: ffi::suit_from_desc_index(future.suit[i]),
+                        rank: ffi::rank_from_sys(future.rank[i]),
+                    },
+                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                    equals: Holding::from_bits_truncate(future.equals[i] as u16),
+                    score: ffi::trick_count_from_sys(future.score[i]),
+                }
+            })
+            .collect();
 
         Self {
             plays,
