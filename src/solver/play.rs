@@ -2,8 +2,7 @@
 
 use super::board::Board;
 use super::tricks::TrickCount;
-use crate::Suit;
-use crate::hand::{Card, Holding, Rank};
+use crate::hand::{Card, Holding};
 
 use arrayvec::ArrayVec;
 use dds_bridge_sys as sys;
@@ -97,12 +96,13 @@ pub struct PlayAnalysis {
 }
 
 impl From<sys::solvedPlay> for PlayAnalysis {
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn from(solved: sys::solvedPlay) -> Self {
+        use super::ffi::{count_from_sys, trick_count_from_sys};
+
+        let number = count_from_sys(solved.number, solved.tricks.len());
         let mut tricks = ArrayVec::new();
-        for i in 0..solved.number as usize {
-            assert!(solved.tricks[i] >= 0 && solved.tricks[i] <= 13);
-            tricks.push(TrickCount::new(solved.tricks[i] as u8));
+        for &n in &solved.tricks[..number] {
+            tricks.push(trick_count_from_sys(n));
         }
         Self { tricks }
     }
@@ -138,28 +138,29 @@ pub struct FoundPlays {
 }
 
 impl From<sys::futureTricks> for FoundPlays {
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn from(future: sys::futureTricks) -> Self {
+        use super::ffi::{
+            count_from_sys, rank_from_sys, suit_from_desc_index, trick_count_from_sys,
+        };
+
+        let cards = count_from_sys(future.cards, future.suit.len());
         let mut plays = ArrayVec::new();
-
-        for i in 0..future.cards as usize {
+        for i in 0..cards {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let equals = Holding::from_bits_truncate(future.equals[i] as u16);
-
-            assert!(future.score[i] >= 0 && future.score[i] <= 13);
-            let score = TrickCount::new(future.score[i] as u8);
-
             plays.push(Play {
                 card: Card {
-                    suit: Suit::DESC[future.suit[i] as usize],
-                    rank: Rank::new(future.rank[i] as u8),
+                    suit: suit_from_desc_index(future.suit[i]),
+                    rank: rank_from_sys(future.rank[i]),
                 },
                 equals,
-                score,
+                score: trick_count_from_sys(future.score[i]),
             });
         }
 
         Self {
             plays,
+            #[allow(clippy::cast_sign_loss)]
             nodes: future.nodes as u32,
         }
     }

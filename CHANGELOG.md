@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
   `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
   `pub(super)`; no public API change.
+- The `From<sys::*>` impls for `TrickCountTable`, `PlayAnalysis`, `FoundPlays`,
+  and `Par` now route every `c_int` narrowing through a new private
+  `solver::ffi` module. Invalid DDS output continues to panic, but with
+  descriptive messages (naming the offending field and expected range)
+  instead of the previous mix of assertion failures and generic out-of-bounds
+  panics. In particular, the `futureTricks.suit` indexing into `Suit::DESC`
+  and the `parResultsMaster.contracts[].denom` indexing into a local strain
+  array — both previously unchecked — are now explicit validations.
 
 ### Changed
 

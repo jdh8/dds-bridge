@@ -1,7 +1,6 @@
 //! Par-contract results and their conversion from DDS FFI types
 
-use crate::Strain;
-use crate::contract::{Contract, Penalty};
+use crate::contract::{Bid, Contract, Penalty};
 use crate::seat::Seat;
 
 use dds_bridge_sys as sys;
@@ -63,31 +62,30 @@ impl Par {
 
 impl From<sys::parResultsMaster> for Par {
     fn from(par: sys::parResultsMaster) -> Self {
+        use super::ffi::{count_from_sys, level_from_sys, strain_from_denom, trick_count_from_sys};
+
+        let number = count_from_sys(par.number, par.contracts.len());
+
         // DDS returns a zero contract for par-zero deals, but we want to filter
         // it out for consistency.
-        #[allow(clippy::cast_sign_loss)]
-        let len = par.number as usize * usize::from(par.contracts[0].level != 0);
+        let len = number * usize::from(par.contracts[0].level != 0);
 
-        #[allow(clippy::cast_sign_loss)]
         let contracts = par.contracts[..len]
             .iter()
             .flat_map(|contract| {
-                let strain = [
-                    Strain::Notrump,
-                    Strain::Spades,
-                    Strain::Hearts,
-                    Strain::Diamonds,
-                    Strain::Clubs,
-                ][contract.denom as usize];
+                let strain = strain_from_denom(contract.denom);
 
-                // SAFETY: the assertions inside ensure successful conversion
-                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_possible_wrap)]
                 let (penalty, overtricks) = if contract.underTricks > 0 {
-                    assert!(contract.underTricks <= 13);
-                    (Penalty::Doubled, -contract.underTricks as i8)
+                    (
+                        Penalty::Doubled,
+                        -(trick_count_from_sys(contract.underTricks).get() as i8),
+                    )
                 } else {
-                    assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
-                    (Penalty::Undoubled, contract.overTricks as i8)
+                    (
+                        Penalty::Undoubled,
+                        trick_count_from_sys(contract.overTricks).get() as i8,
+                    )
                 };
 
                 let seat = match contract.seats & 3 {
@@ -99,9 +97,13 @@ impl From<sys::parResultsMaster> for Par {
                 };
                 let is_pair = contract.seats >= 4;
 
-                assert!(contract.level >= 1 && contract.level <= 7);
-                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                let contract = Contract::new(contract.level as u8, strain, penalty);
+                let contract = Contract {
+                    bid: Bid {
+                        level: level_from_sys(contract.level),
+                        strain,
+                    },
+                    penalty,
+                };
 
                 core::iter::once(ParContract {
                     contract,

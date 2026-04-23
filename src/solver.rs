@@ -19,6 +19,7 @@
 //! fallible construction.
 
 mod board;
+mod ffi;
 mod par;
 mod play;
 mod strain_flags;

@@ -227,17 +227,22 @@ impl Strain {
 
 impl From<sys::ddTableResults> for TrickCountTable {
     fn from(table: sys::ddTableResults) -> Self {
-        const fn make_row(row: [c_int; 4]) -> TrickCountRow {
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            TrickCountRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
-        }
+        use super::ffi::trick_count_from_sys;
+        let row = |r: [c_int; 4]| {
+            TrickCountRow::new(
+                trick_count_from_sys(r[0]).get(),
+                trick_count_from_sys(r[1]).get(),
+                trick_count_from_sys(r[2]).get(),
+                trick_count_from_sys(r[3]).get(),
+            )
+        };
 
         Self([
-            make_row(table.resTable[Strain::Clubs.to_sys()]),
-            make_row(table.resTable[Strain::Diamonds.to_sys()]),
-            make_row(table.resTable[Strain::Hearts.to_sys()]),
-            make_row(table.resTable[Strain::Spades.to_sys()]),
-            make_row(table.resTable[Strain::Notrump.to_sys()]),
+            row(table.resTable[Strain::Clubs.to_sys()]),
+            row(table.resTable[Strain::Diamonds.to_sys()]),
+            row(table.resTable[Strain::Hearts.to_sys()]),
+            row(table.resTable[Strain::Spades.to_sys()]),
+            row(table.resTable[Strain::Notrump.to_sys()]),
         ])
     }
 }
