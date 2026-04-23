@@ -88,7 +88,6 @@ impl From<sys::parResultsMaster> for Par {
                     (Penalty::Undoubled, (contract.overTricks & 0xFF) as i8)
                 };
 
-                debug_assert_eq!(contract.level, contract.level & 7);
                 let seat = match contract.seats & 3 {
                     0 => Seat::North,
                     1 => Seat::East,

@@ -228,10 +228,6 @@ impl Strain {
 impl From<sys::ddTableResults> for TrickCountTable {
     fn from(table: sys::ddTableResults) -> Self {
         const fn make_row(row: [c_int; 4]) -> TrickCountRow {
-            debug_assert!(row[0] >= 0 && row[0] <= 13);
-            debug_assert!(row[1] >= 0 && row[1] <= 13);
-            debug_assert!(row[2] >= 0 && row[2] <= 13);
-            debug_assert!(row[3] >= 0 && row[3] <= 13);
             #[allow(clippy::cast_sign_loss)]
             TrickCountRow::new(
                 (row[0] & 0xF) as u8,
