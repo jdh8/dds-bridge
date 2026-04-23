@@ -39,12 +39,21 @@ pub struct PlayTrace {
     pub cards: ArrayVec<Card, 52>,
 }
 
-/// Thin wrapper over [`sys::playTraceBin`] so we can impl `From<&[Card]>` for it
+/// Thin wrapper over [`sys::playTraceBin`] so we can impl conversions for it
 #[repr(transparent)]
 pub(super) struct PlayTraceBin(pub(super) sys::playTraceBin);
 
-impl From<&[Card]> for PlayTraceBin {
-    fn from(cards: &[Card]) -> Self {
+/// Error returned when a play trace exceeds the 52-card limit
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct PlayTraceTooLong(pub(super) usize);
+
+impl TryFrom<&[Card]> for PlayTraceBin {
+    type Error = PlayTraceTooLong;
+
+    fn try_from(cards: &[Card]) -> Result<Self, Self::Error> {
+        if cards.len() > 52 {
+            return Err(PlayTraceTooLong(cards.len()));
+        }
         let mut play = sys::playTraceBin::default();
         #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
         {
@@ -54,7 +63,14 @@ impl From<&[Card]> for PlayTraceBin {
             play.suit[i] = 3 - card.suit as c_int;
             play.rank[i] = c_int::from(card.rank.get());
         }
-        Self(play)
+        Ok(Self(play))
+    }
+}
+
+impl From<&ArrayVec<Card, 52>> for PlayTraceBin {
+    fn from(cards: &ArrayVec<Card, 52>) -> Self {
+        // ArrayVec<Card, 52> is bounded to ≤ 52 elements, so this never fails.
+        Self::try_from(cards.as_slice()).unwrap()
     }
 }
 

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal
+
+- `PlayTraceBin::from(&[Card])` is replaced by `TryFrom<&[Card]>` (returns
+  `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
+  `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
+  `pub(super)`; no public API change.
+
 ### Changed
 
 - **Breaking:** The trick-count types are renamed and gain a per-seat newtype:

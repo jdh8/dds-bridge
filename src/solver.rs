@@ -348,7 +348,7 @@ impl Solver {
     #[must_use]
     pub fn analyse_play(&self, trace: PlayTrace) -> PlayAnalysis {
         let mut result = sys::solvedPlay::default();
-        let play: PlayTraceBin = trace.cards.as_slice().into();
+        let play = PlayTraceBin::from(&trace.cards);
         let status = unsafe { sys::AnalysePlayBin(trace.board.into(), play.0, &raw mut result, 0) };
         check(status);
         PlayAnalysis::from(result)
@@ -378,7 +378,7 @@ impl Solver {
         };
         traces.iter().enumerate().for_each(|(i, trace)| {
             pack.deals[i] = trace.board.clone().into();
-            plays.plays[i] = PlayTraceBin::from(trace.cards.as_slice()).0;
+            plays.plays[i] = PlayTraceBin::from(&trace.cards).0;
         });
         let mut res = sys::solvedPlays::default();
         let status =
