@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NonEmptyStrainFlags` — a guaranteed-non-empty wrapper around `StrainFlags`, analogous to `NonZero<T>`. Constructable via `NonEmptyStrainFlags::new(flags)` (returns `Option`); the inner value is recovered with `.get()` or `StrainFlags::from(…)`. `Solver::solve_deals` now takes `NonEmptyStrainFlags` instead of `StrainFlags`, encoding the non-empty requirement in the type.
 - `Solver::analyse_play` wraps `AnalysePlayBin` to trace double-dummy trick counts before and after each card of a play sequence. Companion types `PlayTrace` (starting `Board` plus played cards) and `PlayAnalysis` (declarer-view tricks for the starting position and after each card). Integration tests cover empty traces, optimal-card invariance, and the all-one-suit deal.
 - `Solver::analyse_plays` wraps `AnalyseAllPlaysBin` to analyse multiple play traces in parallel.
-- `Board::try_new` now detects revokes among its played cards and returns a new `BoardError::Revoke { index }` variant instead of deferring the check to DDS (which would panic).
+- `Board::try_new` now detects revokes among its played cards and returns a new `BoardError::Revoke { position: RevokePosition }` variant instead of deferring the check to DDS (which would panic).
 - `CurrentTrick` — a standalone type for a trick-in-progress carrying `trump`, `leader`, and 0–3 pairwise-distinct played cards. Constructable via `CurrentTrick::new(trump, leader)` or `CurrentTrick::from_slice(trump, leader, played)`, with incremental `try_push`. Shape and disjointness invariants are enforced once here and no longer re-checked by `Board::try_new`.
 - `SystemInfo` now exposes the full set of fields from `DDSInfo`: `platform()` (OS as `Platform`), `num_bits()`, `compiler()` (as `Compiler`), `threading()` (model as `Threading`), `num_cores()`, `thread_sizes()`, and `system_string()`. `Display` delegates to `system_string()`. New enums `Platform`, `Compiler`, and `Threading` carry all variants documented in the DDS header.
 
@@ -50,10 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   replaced by an explicit `3 => Seat::West` arm followed by
   `_ => unreachable!()`, so a malformed `contract.seats` value from DDS causes
   an immediate panic instead of silently falling back to `Seat::West`.
-- `PlayTraceBin::from(&[Card])` is replaced by `TryFrom<&[Card]>` (returns
-  `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
-  `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
-  `pub(super)`; no public API change.
+- `PlayTraceBin::from(&[Card])` is replaced by an infallible
+  `From<&ArrayVec<Card, 52>>` that the call sites now use. `PlayTraceBin`
+  remains `pub(super)`; no public API change.
 - The `From<sys::*>` impls for `TrickCountTable`, `PlayAnalysis`, `FoundPlays`,
   and `Par` now route every `c_int` narrowing through a new private
   `solver::ffi` module. Invalid DDS output continues to panic, but with
