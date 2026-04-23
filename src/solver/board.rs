@@ -1,5 +1,6 @@
 //! Solving input: boards, tricks-in-progress, targets, and objectives
 
+use super::tricks::TrickCount;
 use crate::deal::PartialDeal;
 use crate::hand::{Card, Hand};
 use crate::seat::Seat;
@@ -13,23 +14,24 @@ use core::ffi::c_int;
 
 /// Target tricks and number of solutions to find
 ///
-/// This enum corresponds to a tuple of `target` and `solutions` in
-/// [`sys::SolveBoard`].  The `target` tricks given as an associated value must
-/// be in the range of `-1..=13`, where `-1` instructs the solver to find cards
-/// that give the most tricks.
+/// Corresponds to the `target` and `solutions` arguments of
+/// [`sys::SolveBoard`]. The associated `Option<TrickCount>` selects between a
+/// minimum target (`Some`) and "find the most tricks" (`None`); the FFI `-1`
+/// sentinel is produced by [`Target::target`] and is not part of the public
+/// payload.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
     /// Find any card that fulfills the target
     ///
-    /// - `0..=13`: Find any card scoring at least `target` tricks
-    /// - `-1`: Find any card scoring the most tricks
-    Any(i8),
+    /// - `Some(tc)`: any card scoring at least `tc` tricks
+    /// - `None`: any card scoring the most tricks
+    Any(Option<TrickCount>),
 
     /// Find all cards that fulfill the target
     ///
-    /// - `0..=13`: Find all cards scoring at least `target` tricks
-    /// - `-1`: Find all cards scoring the most tricks
-    All(i8),
+    /// - `Some(tc)`: all cards scoring at least `tc` tricks
+    /// - `None`: all cards scoring the most tricks
+    All(Option<TrickCount>),
 
     /// Solve for all legal plays
     ///
@@ -43,8 +45,8 @@ impl Target {
     #[inline]
     pub const fn target(self) -> c_int {
         match self {
-            Self::Any(target) | Self::All(target) => target as c_int,
-            Self::Legal => -1,
+            Self::Any(Some(tc)) | Self::All(Some(tc)) => tc.get() as c_int,
+            Self::Any(None) | Self::All(None) | Self::Legal => -1,
         }
     }
 

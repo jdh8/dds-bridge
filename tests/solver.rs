@@ -187,7 +187,7 @@ fn solve_board_score_matches_dd_table() {
             CurrentTrick::new(Strain::Notrump, Seat::North),
         )
         .unwrap(),
-        target: Target::Any(-1),
+        target: Target::Any(None),
     });
     core::mem::drop(solver);
     // solve_board reports tricks for the leading side (NS as defenders here).
@@ -216,7 +216,7 @@ fn solve_boards_matches_solve_board() {
             CurrentTrick::new(Strain::Notrump, Seat::North),
         )
         .unwrap(),
-        target: Target::Any(-1),
+        target: Target::Any(None),
     };
     let single = solver.solve_board(obj.clone());
     let batch = solver.solve_boards(&[obj]);
@@ -292,7 +292,7 @@ fn analyse_play_empty_trace_complements_solve_board() {
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
-        target: Target::Any(-1),
+        target: Target::Any(None),
     });
     let analysis = solver.analyse_play(PlayTrace {
         board,
@@ -327,7 +327,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
-        target: Target::Any(-1),
+        target: Target::Any(None),
     });
     let best = found.plays[0];
     let mut cards = ArrayVec::new();
