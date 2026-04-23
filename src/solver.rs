@@ -375,6 +375,7 @@ impl Solver {
             ..Default::default()
         };
         let mut plays = sys::playTracesBin {
+            // SAFETY: the assertion above ensures successful conversion
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             noOfBoards: traces.len() as c_int,
             ..Default::default()

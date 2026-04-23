@@ -98,6 +98,8 @@ impl From<sys::parResultsMaster> for Par {
                     _ => unreachable!("The bitmask ensures this is always in 0..=3"),
                 };
                 let is_pair = contract.seats >= 4;
+
+                assert!(contract.level >= 1 && contract.level <= 7);
                 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 let contract = Contract::new(contract.level as u8, strain, penalty);
 

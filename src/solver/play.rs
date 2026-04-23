@@ -54,11 +54,14 @@ impl TryFrom<&[Card]> for PlayTraceBin {
         if cards.len() > 52 {
             return Err(PlayTraceTooLong(cards.len()));
         }
-        let mut play = sys::playTraceBin::default();
-        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
-        {
-            play.number = cards.len() as c_int;
-        }
+        assert!(cards.len() <= 52);
+        let mut play = sys::playTraceBin {
+            // SAFETY: the check above ensures the length is always in 0..=52
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            number: cards.len() as c_int,
+            ..Default::default()
+        };
+
         for (i, card) in cards.iter().enumerate() {
             play.suit[i] = 3 - card.suit as c_int;
             play.rank[i] = c_int::from(card.rank.get());
@@ -97,6 +100,7 @@ impl From<sys::solvedPlay> for PlayAnalysis {
     fn from(solved: sys::solvedPlay) -> Self {
         let mut tricks = ArrayVec::new();
         for i in 0..solved.number as usize {
+            assert!(solved.tricks[i] >= 0 && solved.tricks[i] <= 13);
             #[allow(clippy::cast_possible_truncation)]
             tricks.push(solved.tricks[i] as u8);
         }
@@ -140,6 +144,8 @@ impl From<sys::futureTricks> for FoundPlays {
 
         for i in 0..future.cards as usize {
             let equals = Holding::from_bits_truncate(future.equals[i] as u16);
+
+            assert!(future.score[i] >= 0 && future.score[i] <= 13);
             let score = future.score[i] as i8;
 
             plays.push(Play {
