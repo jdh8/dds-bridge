@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [Unreleased]
+
+### Internal
+
+- Replaced non-const `.unwrap()` in tests with `?` propagation. Tests with a single fallible error type return `Result<(), E>`; tests mixing error types return `anyhow::Result<()>`. `anyhow` is added as a dev-dependency. Proptest strategy closures and the `subset_from` test helper use `.expect(…)` with invariant-describing messages instead of bare `.unwrap()`.
+
 ## [0.18.0] - 2026-04-24
 
 The main idea of this release is to let the type system enforce solver preconditions.

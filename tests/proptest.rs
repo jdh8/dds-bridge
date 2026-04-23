@@ -85,7 +85,7 @@ fn full_deal() -> impl Strategy<Value = FullDeal> {
             .south(collect_hand(&deck[26..39]))
             .west(collect_hand(&deck[39..52]))
             .build_full()
-            .unwrap()
+            .expect("shuffle splits 52 unique cards evenly across 4 hands")
     })
 }
 
@@ -107,7 +107,7 @@ fn subset() -> impl Strategy<Value = PartialDeal> {
             .south(hands[2])
             .west(hands[3])
             .build_partial()
-            .unwrap()
+            .expect("bucket assignment keeps hands ≤13 cards and pairwise disjoint")
     })
 }
 

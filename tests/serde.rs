@@ -94,28 +94,30 @@ fn contract_json_is_string() -> serde_json::Result<()> {
 }
 
 #[test]
-fn holding_json_is_string() {
-    let h: Holding = "AKQJT".parse().unwrap();
-    assert_eq!(serde_json::to_string(&h).unwrap(), "\"AKQJT\"");
-    roundtrip(&h).unwrap();
+fn holding_json_is_string() -> anyhow::Result<()> {
+    let h: Holding = "AKQJT".parse()?;
+    assert_eq!(serde_json::to_string(&h)?, "\"AKQJT\"");
+    roundtrip(&h)?;
+    Ok(())
 }
 
 #[test]
-fn hand_json_is_string() {
-    let h: Hand = "AKQJ.T98.765.432".parse().unwrap();
-    assert_eq!(serde_json::to_string(&h).unwrap(), "\"AKQJ.T98.765.432\"");
-    roundtrip(&h).unwrap();
+fn hand_json_is_string() -> anyhow::Result<()> {
+    let h: Hand = "AKQJ.T98.765.432".parse()?;
+    assert_eq!(serde_json::to_string(&h)?, "\"AKQJ.T98.765.432\"");
+    roundtrip(&h)?;
+    Ok(())
 }
 
 #[test]
-fn full_deal_json_is_pbn_string() {
+fn full_deal_json_is_pbn_string() -> anyhow::Result<()> {
     // Each player holds a 13-card straight flush in one suit.
-    let d: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. ..AKQJT98765432. ...AKQJT98765432"
-        .parse()
-        .unwrap();
-    let json = serde_json::to_string(&d).unwrap();
+    let d: FullDeal =
+        "N:AKQJT98765432... .AKQJT98765432.. ..AKQJT98765432. ...AKQJT98765432".parse()?;
+    let json = serde_json::to_string(&d)?;
     assert!(json.starts_with("\"N:"), "unexpected: {json}");
-    roundtrip(&d).unwrap();
+    roundtrip(&d)?;
+    Ok(())
 }
 
 #[test]

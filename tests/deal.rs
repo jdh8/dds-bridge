@@ -207,7 +207,7 @@ fn test_subset_parser() -> Result<(), ParseDealError> {
         .east(east)
         .west(west)
         .build_partial()
-        .unwrap();
+        .map_err(|_| ParseDealError::InvalidPartialDeal)?;
 
     assert_eq!(
         "W:KQT2.AT.J6542.85 - A8654.KQ5.T.QJT6 -".parse::<PartialDeal>(),

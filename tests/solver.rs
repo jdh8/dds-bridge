@@ -5,7 +5,7 @@ use semver::Version;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
 #[test]
-fn solve_four_13_card_straight_flushes() {
+fn solve_four_13_card_straight_flushes() -> Result<(), Builder> {
     const DEAL: Builder = Builder::new()
         .north(Hand::new(
             Holding::ALL,
@@ -59,14 +59,12 @@ fn solve_four_13_card_straight_flushes() {
         score: 2210,
         contracts: CONTRACTS.to_vec(),
     };
-    assert_eq!(
-        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
-        SOLUTION
-    );
+    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
+    Ok(())
 }
 
 /// Defenders can cash 8 tricks in every strain.
@@ -74,7 +72,7 @@ fn solve_four_13_card_straight_flushes() {
 /// This example is taken from
 /// <http://bridge.thomasoandrews.com/deals/parzero/>.
 #[test]
-fn solve_par_5_tricks() {
+fn solve_par_5_tricks() -> Result<(), Builder> {
     const AKQJ: Holding = Holding::from_bits_truncate(0xF << 11);
     const T987: Holding = Holding::from_bits_truncate(0xF << 7);
     const XXXX: Holding = Holding::from_bits_truncate(0xF << 3);
@@ -89,14 +87,12 @@ fn solve_par_5_tricks() {
         score: 0,
         contracts: Vec::new(),
     };
-    assert_eq!(
-        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
-        SOLUTION
-    );
+    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&PAR));
     assert!(pars[1].equivalent(&PAR));
+    Ok(())
 }
 
 /// A symmetric deal where everyone makes 1NT but no suit contract
@@ -104,7 +100,7 @@ fn solve_par_5_tricks() {
 /// This example is taken from
 /// <http://www.rpbridge.net/7a23.htm#2>.
 #[test]
-fn solve_everyone_makes_1nt() {
+fn solve_everyone_makes_1nt() -> Result<(), Builder> {
     const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
@@ -118,10 +114,7 @@ fn solve_everyone_makes_1nt() {
     const NT: TrickCountRow = TrickCountRow::new(7, 7, 7, 7);
     const SOLUTION: TrickCountTable = TrickCountTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::Undoubled);
-    assert_eq!(
-        Solver::lock().solve_deal(DEAL.build_full().unwrap()),
-        SOLUTION
-    );
+    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let ns = Par {
         score: 90,
@@ -156,6 +149,7 @@ fn solve_everyone_makes_1nt() {
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&ns));
     assert!(pars[1].equivalent(&ew));
+    Ok(())
 }
 
 /// `solve_board` scores agree with the double-dummy table for the same deal.
@@ -167,7 +161,7 @@ fn solve_everyone_makes_1nt() {
 /// When North leads, West is North's natural declarer (the player to North's
 /// right).  West makes 7 tricks, so NS as the leading/defending side makes 6.
 #[test]
-fn solve_board_score_matches_dd_table() {
+fn solve_board_score_matches_dd_table() -> anyhow::Result<()> {
     // Same deal as `solve_everyone_makes_1nt`
     const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
@@ -179,13 +173,15 @@ fn solve_board_score_matches_dd_table() {
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
-    let tricks = solver.solve_deal(DEAL.build_full().unwrap());
+    let full = DEAL
+        .build_full()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a full deal"))?;
+    let partial = DEAL
+        .build_partial()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
+    let tricks = solver.solve_deal(full);
     let found = solver.solve_board(Objective {
-        board: Board::try_new(
-            DEAL.build_partial().unwrap(),
-            CurrentTrick::new(Strain::Notrump, Seat::North),
-        )
-        .unwrap(),
+        board: Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?,
         target: Target::Any(None),
     });
     core::mem::drop(solver);
@@ -194,11 +190,12 @@ fn solve_board_score_matches_dd_table() {
     let expected = 13 - u8::from(tricks[Strain::Notrump].get(Seat::North.rho()));
     assert!(!found.plays.is_empty());
     assert_eq!(u8::from(found.plays[0].score), expected);
+    Ok(())
 }
 
 /// `solve_boards` returns the same results as individual `solve_board` calls.
 #[test]
-fn solve_boards_matches_solve_board() {
+fn solve_boards_matches_solve_board() -> anyhow::Result<()> {
     const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
@@ -209,12 +206,11 @@ fn solve_boards_matches_solve_board() {
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
     let solver = Solver::lock();
+    let partial = DEAL
+        .build_partial()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let obj = Objective {
-        board: Board::try_new(
-            DEAL.build_partial().unwrap(),
-            CurrentTrick::new(Strain::Notrump, Seat::North),
-        )
-        .unwrap(),
+        board: Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?,
         target: Target::Any(None),
     };
     let single = solver.solve_board(obj.clone());
@@ -223,6 +219,7 @@ fn solve_boards_matches_solve_board() {
     assert_eq!(batch.len(), 1);
     // Node counts differ between single and batch solvers; compare only the plays.
     assert_eq!(batch[0].plays, single.plays);
+    Ok(())
 }
 
 /// `solve_deals` must chunk transparently across the internal `MAXNOOFBOARDS`
@@ -230,7 +227,7 @@ fn solve_boards_matches_solve_board() {
 /// deals, so 41 identical deals force a second chunk; every result must equal
 /// the single-deal answer.
 #[test]
-fn solve_deals_crosses_chunk_boundary() {
+fn solve_deals_crosses_chunk_boundary() -> Result<(), Builder> {
     const DEAL: Builder = Builder::new()
         .north(Hand::new(
             Holding::ALL,
@@ -257,14 +254,16 @@ fn solve_deals_crosses_chunk_boundary() {
             Holding::ALL,
         ));
     let solver = Solver::lock();
-    let expected = solver.solve_deal(DEAL.build_full().unwrap());
+    let full = DEAL.build_full()?;
+    let expected = solver.solve_deal(full);
 
-    let deals = [DEAL.build_full().unwrap(); 41];
+    let deals = [full; 41];
     let tables = solver.solve_deals(&deals, NonEmptyStrainFlags::ALL);
     core::mem::drop(solver);
 
     assert_eq!(tables.len(), deals.len());
     assert!(tables.iter().all(|&t| t == expected));
+    Ok(())
 }
 
 /// `analyse_play` with an empty trace returns just the starting DD value.
@@ -273,7 +272,7 @@ fn solve_deals_crosses_chunk_boundary() {
 /// opening leader — whereas `solve_board` reports tricks for the leading
 /// side, so the two values must sum to 13.
 #[test]
-fn analyse_play_empty_trace_complements_solve_board() {
+fn analyse_play_empty_trace_complements_solve_board() -> anyhow::Result<()> {
     const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
@@ -283,11 +282,10 @@ fn analyse_play_empty_trace_complements_solve_board() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::try_new(
-        DEAL.build_partial().unwrap(),
-        CurrentTrick::new(Strain::Notrump, Seat::North),
-    )
-    .unwrap();
+    let partial = DEAL
+        .build_partial()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
+    let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -303,12 +301,13 @@ fn analyse_play_empty_trace_complements_solve_board() {
         u8::from(analysis.tricks[0]) + u8::from(found.plays[0].score),
         13,
     );
+    Ok(())
 }
 
 /// Playing a card that `solve_board` ranks first must preserve the
 /// declarer-side DD value across the card.
 #[test]
-fn analyse_play_optimal_card_preserves_dd_value() {
+fn analyse_play_optimal_card_preserves_dd_value() -> anyhow::Result<()> {
     const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
     const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
     const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
@@ -318,11 +317,10 @@ fn analyse_play_optimal_card_preserves_dd_value() {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let board = Board::try_new(
-        DEAL.build_partial().unwrap(),
-        CurrentTrick::new(Strain::Notrump, Seat::North),
-    )
-    .unwrap();
+    let partial = DEAL
+        .build_partial()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
+    let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
     let solver = Solver::lock();
     let found = solver.solve_board(Objective {
         board: board.clone(),
@@ -336,6 +334,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
     assert_eq!(analysis.tricks.len(), 2);
     assert_eq!(analysis.tricks[0], analysis.tricks[1]);
     assert_eq!(u8::from(analysis.tricks[0]) + u8::from(best.score), 13,);
+    Ok(())
 }
 
 /// Straight-flush deal, NT contract: `Hand::new` orders suits C, D, H, S, so
@@ -343,7 +342,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
 /// spades.  North on lead runs every club trick, leaving declarer (North's
 /// RHO, West) with zero — which must hold across the opening lead.
 #[test]
-fn analyse_play_straight_flush_declarer_takes_zero() {
+fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
     const DEAL: Builder = Builder::new()
         .north(Hand::new(
             Holding::ALL,
@@ -374,16 +373,14 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         suit: Suit::Clubs,
         rank: Rank::A,
     });
-    let analysis = Solver::lock().analyse_play(PlayTrace {
-        board: Board::try_new(
-            DEAL.build_partial().unwrap(),
-            CurrentTrick::new(Strain::Notrump, Seat::North),
-        )
-        .unwrap(),
-        cards,
-    });
+    let partial = DEAL
+        .build_partial()
+        .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
+    let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
+    let analysis = Solver::lock().analyse_play(PlayTrace { board, cards });
     assert_eq!(analysis.tricks.len(), 2);
     assert!(analysis.tricks.iter().all(|&t| u8::from(t) == 0));
+    Ok(())
 }
 
 #[test]
@@ -490,7 +487,7 @@ fn subset_from(
         .south(Hand::from_iter(south))
         .west(Hand::from_iter(west))
         .build_partial()
-        .unwrap()
+        .expect("caller supplies ≤13 pairwise-disjoint cards per hand")
 }
 
 const fn c(suit: Suit, rank: u8) -> Card {
@@ -502,7 +499,7 @@ const fn c(suit: Suit, rank: u8) -> Card {
 
 /// East fails to follow North's spade lead despite still holding a spade.
 #[test]
-fn board_try_new_detects_revoke_on_second_card() {
+fn board_try_new_detects_revoke_on_second_card() -> Result<(), CurrentTrickError> {
     // North plays ♠A; East plays ♥2 while still holding ♠K → revoke.
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -524,17 +521,18 @@ fn board_try_new_detects_revoke_on_second_card() {
     assert_eq!(
         Board::try_new(
             remaining,
-            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played)?,
         ),
         Err(BoardError::Revoke {
             position: RevokePosition::Second
         })
     );
+    Ok(())
 }
 
 /// Same shape, but East genuinely has no spades — a legal discard.
 #[test]
-fn board_try_new_accepts_non_revoke_discard() {
+fn board_try_new_accepts_non_revoke_discard() -> Result<(), CurrentTrickError> {
     // East has only hearts after the trick; playing ♥2 off the ♠A lead is legal.
     let remaining = subset_from(
         [c(Suit::Hearts, 3), c(Suit::Hearts, 4), c(Suit::Hearts, 5)],
@@ -556,15 +554,16 @@ fn board_try_new_accepts_non_revoke_discard() {
     assert!(
         Board::try_new(
             remaining,
-            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played)?,
         )
         .is_ok()
     );
+    Ok(())
 }
 
 /// Only the third played card revokes; earlier cards followed suit.
 #[test]
-fn board_try_new_detects_revoke_on_third_card() {
+fn board_try_new_detects_revoke_on_third_card() -> Result<(), CurrentTrickError> {
     // North ♠A, East ♠2 (follows), South ♥3 while still holding ♠Q → revoke at index 2.
     let remaining = subset_from(
         [c(Suit::Hearts, 4), c(Suit::Hearts, 5), c(Suit::Hearts, 6)],
@@ -581,17 +580,18 @@ fn board_try_new_detects_revoke_on_third_card() {
     assert_eq!(
         Board::try_new(
             remaining,
-            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played)?,
         ),
         Err(BoardError::Revoke {
             position: RevokePosition::Third
         })
     );
+    Ok(())
 }
 
 /// A lone lead (one card on the table) cannot revoke, nor can an empty trick.
 #[test]
-fn board_try_new_empty_and_single_card_tricks_cannot_revoke() {
+fn board_try_new_empty_and_single_card_tricks_cannot_revoke() -> Result<(), CurrentTrickError> {
     let full = subset_from(
         [
             c(Suit::Spades, 14),
@@ -644,10 +644,11 @@ fn board_try_new_empty_and_single_card_tricks_cannot_revoke() {
     assert!(
         Board::try_new(
             after_lead,
-            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &[c(Suit::Spades, 14)]).unwrap(),
+            CurrentTrick::from_slice(Strain::Notrump, Seat::North, &[c(Suit::Spades, 14)])?,
         )
         .is_ok()
     );
+    Ok(())
 }
 
 /// `CurrentTrick::from_slice` rejects more than three cards.
@@ -677,7 +678,7 @@ fn current_trick_from_slice_rejects_duplicate() {
 
 /// `CurrentTrick::try_push` enforces the 0–3-cards cap.
 #[test]
-fn current_trick_try_push_refuses_fourth_card() {
+fn current_trick_try_push_refuses_fourth_card() -> Result<(), CurrentTrickError> {
     let mut trick = CurrentTrick::from_slice(
         Strain::Notrump,
         Seat::North,
@@ -686,11 +687,11 @@ fn current_trick_try_push_refuses_fourth_card() {
             c(Suit::Spades, 13),
             c(Suit::Spades, 12),
         ],
-    )
-    .unwrap();
+    )?;
     assert_eq!(
         trick.try_push(c(Suit::Spades, 11)),
         Err(CurrentTrickError::TooManyPlayed),
     );
     assert_eq!(trick.len(), 3);
+    Ok(())
 }
