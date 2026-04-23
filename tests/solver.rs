@@ -194,7 +194,7 @@ fn solve_board_score_matches_dd_table() {
     // The declarer is North's RHO (West).  Defenders take 13 - declarer's tricks.
     let expected = 13 - u8::from(tricks[Strain::Notrump].get(Seat::North.rho()));
     assert!(!found.plays.is_empty());
-    assert_eq!(i32::from(found.plays[0].score), i32::from(expected));
+    assert_eq!(u8::from(found.plays[0].score), expected);
 }
 
 /// `solve_boards` returns the same results as individual `solve_board` calls.
@@ -301,7 +301,7 @@ fn analyse_play_empty_trace_complements_solve_board() {
     core::mem::drop(solver);
     assert_eq!(analysis.tricks.len(), 1);
     assert_eq!(
-        i32::from(analysis.tricks[0]) + i32::from(found.plays[0].score),
+        u8::from(analysis.tricks[0]) + u8::from(found.plays[0].score),
         13,
     );
 }
@@ -336,7 +336,7 @@ fn analyse_play_optimal_card_preserves_dd_value() {
     core::mem::drop(solver);
     assert_eq!(analysis.tricks.len(), 2);
     assert_eq!(analysis.tricks[0], analysis.tricks[1]);
-    assert_eq!(i32::from(analysis.tricks[0]) + i32::from(best.score), 13,);
+    assert_eq!(u8::from(analysis.tricks[0]) + u8::from(best.score), 13,);
 }
 
 /// Straight-flush deal, NT contract: `Hand::new` orders suits C, D, H, S, so
@@ -384,7 +384,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() {
         cards,
     });
     assert_eq!(analysis.tricks.len(), 2);
-    assert!(analysis.tricks.iter().all(|&t| t == 0));
+    assert!(analysis.tricks.iter().all(|&t| u8::from(t) == 0));
 }
 
 #[test]

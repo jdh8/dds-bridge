@@ -1,6 +1,7 @@
 //! Play-trace input and play-analysis output types
 
 use super::board::Board;
+use super::tricks::TrickCount;
 use crate::Suit;
 use crate::hand::{Card, Holding, Rank};
 
@@ -92,17 +93,16 @@ impl From<&ArrayVec<Card, 52>> for PlayTraceBin {
 pub struct PlayAnalysis {
     /// Trick counts — `cards.len() + 1` entries, starting with the position
     /// before any card is played
-    pub tricks: ArrayVec<u8, 53>,
+    pub tricks: ArrayVec<TrickCount, 53>,
 }
 
 impl From<sys::solvedPlay> for PlayAnalysis {
-    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn from(solved: sys::solvedPlay) -> Self {
         let mut tricks = ArrayVec::new();
         for i in 0..solved.number as usize {
             assert!(solved.tricks[i] >= 0 && solved.tricks[i] <= 13);
-            #[allow(clippy::cast_possible_truncation)]
-            tricks.push(solved.tricks[i] as u8);
+            tricks.push(TrickCount::new(solved.tricks[i] as u8));
         }
         Self { tricks }
     }
@@ -125,7 +125,7 @@ pub struct Play {
     pub equals: Holding,
 
     /// Tricks this play would score
-    pub score: i8,
+    pub score: TrickCount,
 }
 
 /// Solved plays for a board
@@ -138,7 +138,7 @@ pub struct FoundPlays {
 }
 
 impl From<sys::futureTricks> for FoundPlays {
-    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn from(future: sys::futureTricks) -> Self {
         let mut plays = ArrayVec::new();
 
@@ -146,7 +146,7 @@ impl From<sys::futureTricks> for FoundPlays {
             let equals = Holding::from_bits_truncate(future.equals[i] as u16);
 
             assert!(future.score[i] >= 0 && future.score[i] <= 13);
-            let score = future.score[i] as i8;
+            let score = TrickCount::new(future.score[i] as u8);
 
             plays.push(Play {
                 card: Card {
