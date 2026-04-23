@@ -9,25 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Internal
-
-- The `_` wildcard arm in the par-decoding seat match (`src/solver/par.rs`) is
-  replaced by an explicit `3 => Seat::West` arm followed by
-  `_ => unreachable!()`, so a malformed `contract.seats` value from DDS causes
-  an immediate panic instead of silently falling back to `Seat::West`.
-- `PlayTraceBin::from(&[Card])` is replaced by `TryFrom<&[Card]>` (returns
-  `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
-  `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
-  `pub(super)`; no public API change.
-- The `From<sys::*>` impls for `TrickCountTable`, `PlayAnalysis`, `FoundPlays`,
-  and `Par` now route every `c_int` narrowing through a new private
-  `solver::ffi` module. Invalid DDS output continues to panic, but with
-  descriptive messages (naming the offending field and expected range)
-  instead of the previous mix of assertion failures and generic out-of-bounds
-  panics. In particular, the `futureTricks.suit` indexing into `Suit::DESC`
-  and the `parResultsMaster.contracts[].denom` indexing into a local strain
-  array — both previously unchecked — are now explicit validations.
-
 ### Changed
 
 - **Breaking:** `BoardError::Revoke` now carries `position: RevokePosition` instead of `index: u8`. The new `RevokePosition` enum has variants `Second`, `Third`, and `Fourth`, encoding the compile-time-bounded set of positions where a revoke can occur (the lead cannot revoke). Update match arms from `BoardError::Revoke { index: 1 }` / `index: 2` to `BoardError::Revoke { position: RevokePosition::Second }` / `RevokePosition::Third`.
@@ -62,6 +43,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Board::try_new` now detects revokes among its played cards and returns a new `BoardError::Revoke { index }` variant instead of deferring the check to DDS (which would panic).
 - `CurrentTrick` — a standalone type for a trick-in-progress carrying `trump`, `leader`, and 0–3 pairwise-distinct played cards. Constructable via `CurrentTrick::new(trump, leader)` or `CurrentTrick::from_slice(trump, leader, played)`, with incremental `try_push`. Shape and disjointness invariants are enforced once here and no longer re-checked by `Board::try_new`.
 - `SystemInfo` now exposes the full set of fields from `DDSInfo`: `platform()` (OS as `Platform`), `num_bits()`, `compiler()` (as `Compiler`), `threading()` (model as `Threading`), `num_cores()`, `thread_sizes()`, and `system_string()`. `Display` delegates to `system_string()`. New enums `Platform`, `Compiler`, and `Threading` carry all variants documented in the DDS header.
+
+### Internal
+
+- The `_` wildcard arm in the par-decoding seat match (`src/solver/par.rs`) is
+  replaced by an explicit `3 => Seat::West` arm followed by
+  `_ => unreachable!()`, so a malformed `contract.seats` value from DDS causes
+  an immediate panic instead of silently falling back to `Seat::West`.
+- `PlayTraceBin::from(&[Card])` is replaced by `TryFrom<&[Card]>` (returns
+  `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
+  `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
+  `pub(super)`; no public API change.
+- The `From<sys::*>` impls for `TrickCountTable`, `PlayAnalysis`, `FoundPlays`,
+  and `Par` now route every `c_int` narrowing through a new private
+  `solver::ffi` module. Invalid DDS output continues to panic, but with
+  descriptive messages (naming the offending field and expected range)
+  instead of the previous mix of assertion failures and generic out-of-bounds
+  panics. In particular, the `futureTricks.suit` indexing into `Suit::DESC`
+  and the `parResultsMaster.contracts[].denom` indexing into a local strain
+  array — both previously unchecked — are now explicit validations.
 
 ## [0.17.0]
 
