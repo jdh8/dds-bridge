@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
-## [Unreleased]
+## [0.18.0] - 2026-04-24
 
 ### Changed
 
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the `parResultsMaster.contracts[].denom` indexing into a local strain
   array — both previously unchecked — are now explicit validations.
 
-## [0.17.0]
+## [0.17.0] - 2026-04-20
 
 ### Removed
 
@@ -156,7 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation fixes.
 
-[Unreleased]: https://github.com/jdh8/dds-bridge/compare/v0.17.0...HEAD
+[0.18.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.18.0
 [0.17.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.17.0
 [0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
 [0.15.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.15.0
