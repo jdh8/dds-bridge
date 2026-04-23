@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.0] - 2026-04-24
 
+The main idea of this release is to let the type system enforce solver preconditions.
+
 ### Changed
 
 - **Breaking:** `BoardError::Revoke` now carries `position: RevokePosition` instead of `index: u8`. The new `RevokePosition` enum has variants `Second`, `Third`, and `Fourth`, encoding the compile-time-bounded set of positions where a revoke can occur (the lead cannot revoke). Update match arms from `BoardError::Revoke { index: 1 }` / `index: 2` to `BoardError::Revoke { position: RevokePosition::Second }` / `RevokePosition::Third`.
