@@ -45,6 +45,19 @@ use core::ffi::c_int;
 use core::mem::MaybeUninit;
 use std::sync::LazyLock;
 
+/// Maximum number of boards that can be solved in a single batch call to DDS
+///
+/// This is a hard limit in DDS, not a limit of this crate.  The batch methods
+/// in [`Solver`] will automatically split their input into segments of this
+/// size or smaller, so users of this crate don't need to worry about it as long
+/// as they use the batch methods for large inputs.  However, if users call the
+/// unsafe segment methods directly, they must ensure that their input sizes
+/// don't exceed this limit.
+///
+/// See also [`sys::MAXNOOFBOARDS`] and the safety requirements of the batch
+/// methods in [`Solver`].
+const MAX_BOARD_COUNT: usize = sys::MAXNOOFBOARDS as usize;
+
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
 /// message is a human-readable description of the error code returned by DDS.
 const fn check(status: i32) {
@@ -210,12 +223,10 @@ impl Solver {
         flags: NonEmptyStrainFlags,
     ) -> sys::ddTablesRes {
         let flags = flags.get();
-        assert!(deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize);
+        let strain_count = flags.bits().count_ones() as usize;
 
         let mut pack = sys::ddTableDeals {
-            // SAFETY: the assertion above ensures successful conversion
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-            noOfTables: deals.len() as c_int,
+            noOfTables: ffi::count_to_sys(deals.len(), MAX_BOARD_COUNT / strain_count),
             ..Default::default()
         };
         deals
@@ -304,11 +315,8 @@ impl Solver {
     /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
     unsafe fn solve_board_segment(args: &[Objective]) -> sys::solvedBoards {
-        assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
-            // SAFETY: the assertion above ensures successful conversion
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-            noOfBoards: args.len() as c_int,
+            noOfBoards: ffi::count_to_sys(args.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
         args.iter().enumerate().for_each(|(i, obj)| {
@@ -368,17 +376,12 @@ impl Solver {
     /// 2. `traces.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
     unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::solvedPlays {
-        assert!(traces.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
-            // SAFETY: the assertion above ensures successful conversion
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-            noOfBoards: traces.len() as c_int,
+            noOfBoards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
         let mut plays = sys::playTracesBin {
-            // SAFETY: the assertion above ensures successful conversion
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-            noOfBoards: traces.len() as c_int,
+            noOfBoards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
         traces.iter().enumerate().for_each(|(i, trace)| {

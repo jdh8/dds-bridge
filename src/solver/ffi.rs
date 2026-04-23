@@ -71,3 +71,15 @@ pub(super) fn count_from_sys(n: c_int, upper: usize) -> usize {
         .filter(|&u| u <= upper)
         .unwrap_or_else(|| panic!("DDS returned invalid count {n} (expected 0..={upper})"))
 }
+
+/// Validate a `usize` count field for passing to DDS through the FFI.
+///
+/// Panics if the value exceeds `upper` (the capacity of the corresponding array).
+#[inline]
+pub(super) fn count_to_sys(n: usize, upper: usize) -> c_int {
+    assert!(n <= upper, "count {n} exceeds upper bound {upper}");
+    assert!(n <= c_int::MAX as usize, "count {n} exceeds c_int::MAX");
+
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    return n as c_int;
+}

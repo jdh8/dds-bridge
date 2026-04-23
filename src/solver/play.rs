@@ -1,13 +1,13 @@
 //! Play-trace input and play-analysis output types
 
 use super::board::Board;
+use super::ffi;
 use super::tricks::TrickCount;
 use crate::hand::{Card, Holding};
 
 use arrayvec::ArrayVec;
-use dds_bridge_sys as sys;
-
 use core::ffi::c_int;
+use dds_bridge_sys as sys;
 
 /// A starting board and a sequence of cards played from it
 ///
@@ -97,12 +97,10 @@ pub struct PlayAnalysis {
 
 impl From<sys::solvedPlay> for PlayAnalysis {
     fn from(solved: sys::solvedPlay) -> Self {
-        use super::ffi::{count_from_sys, trick_count_from_sys};
-
-        let number = count_from_sys(solved.number, solved.tricks.len());
+        let number = ffi::count_from_sys(solved.number, solved.tricks.len());
         let mut tricks = ArrayVec::new();
         for &n in &solved.tricks[..number] {
-            tricks.push(trick_count_from_sys(n));
+            tricks.push(ffi::trick_count_from_sys(n));
         }
         Self { tricks }
     }
@@ -139,22 +137,18 @@ pub struct FoundPlays {
 
 impl From<sys::futureTricks> for FoundPlays {
     fn from(future: sys::futureTricks) -> Self {
-        use super::ffi::{
-            count_from_sys, rank_from_sys, suit_from_desc_index, trick_count_from_sys,
-        };
-
-        let cards = count_from_sys(future.cards, future.suit.len());
+        let cards = ffi::count_from_sys(future.cards, future.suit.len());
         let mut plays = ArrayVec::new();
         for i in 0..cards {
             #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let equals = Holding::from_bits_truncate(future.equals[i] as u16);
             plays.push(Play {
                 card: Card {
-                    suit: suit_from_desc_index(future.suit[i]),
-                    rank: rank_from_sys(future.rank[i]),
+                    suit: ffi::suit_from_desc_index(future.suit[i]),
+                    rank: ffi::rank_from_sys(future.rank[i]),
                 },
                 equals,
-                score: trick_count_from_sys(future.score[i]),
+                score: ffi::trick_count_from_sys(future.score[i]),
             });
         }
 

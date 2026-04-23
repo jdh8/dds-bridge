@@ -104,12 +104,11 @@ fn solve_par_5_tricks() {
 /// This example is taken from
 /// <http://www.rpbridge.net/7a23.htm#2>.
 #[test]
-#[allow(clippy::unusual_byte_groupings)]
 fn solve_everyone_makes_1nt() {
-    const A54: Holding = Holding::from_bits_truncate(0b10000_0000_1100_00);
-    const QJ32: Holding = Holding::from_bits_truncate(0b00110_0000_0011_00);
-    const K976: Holding = Holding::from_bits_truncate(0b01000_1011_0000_00);
-    const T8: Holding = Holding::from_bits_truncate(0b00001_0100_0000_00);
+    const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+    const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+    const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+    const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
     const DEAL: Builder = Builder::new()
         .north(Hand::new(A54, QJ32, K976, T8))
         .east(Hand::new(T8, A54, QJ32, K976))
