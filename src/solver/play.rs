@@ -124,16 +124,14 @@ impl From<sys::futureTricks> for FoundPlays {
     fn from(future: sys::futureTricks) -> Self {
         let cards = ffi::count_from_sys(future.cards, future.suit.len());
         let plays = (0..cards)
-            .map(|i| {
-                Play {
-                    card: Card {
-                        suit: ffi::suit_from_desc_index(future.suit[i]),
-                        rank: ffi::rank_from_sys(future.rank[i]),
-                    },
-                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                    equals: Holding::from_bits_truncate(future.equals[i] as u16),
-                    score: ffi::trick_count_from_sys(future.score[i]),
-                }
+            .map(|i| Play {
+                card: Card {
+                    suit: ffi::suit_from_desc_index(future.suit[i]),
+                    rank: ffi::rank_from_sys(future.rank[i]),
+                },
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                equals: Holding::from_bits_truncate(future.equals[i] as u16),
+                score: ffi::trick_count_from_sys(future.score[i]),
             })
             .collect();
 
