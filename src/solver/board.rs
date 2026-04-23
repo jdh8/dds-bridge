@@ -62,6 +62,30 @@ impl Target {
     }
 }
 
+/// Position of the revoking card within the current trick
+///
+/// The lead (first card) cannot revoke; these variants represent the
+/// subsequent seats in playing order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RevokePosition {
+    /// Second card of the trick (index 1)
+    Second,
+    /// Third card of the trick (index 2)
+    Third,
+    /// Fourth card of the trick (index 3)
+    Fourth,
+}
+
+impl core::fmt::Display for RevokePosition {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Second => f.write_str("second"),
+            Self::Third => f.write_str("third"),
+            Self::Fourth => f.write_str("fourth"),
+        }
+    }
+}
+
 /// Error returned when constructing a [`Board`] with invalid invariants
 #[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -80,13 +104,10 @@ pub enum BoardError {
     )]
     InconsistentHandSizes,
     /// A played card does not follow suit though the player held the led suit
-    ///
-    /// `index` is the position within the current trick of the offending card
-    /// (always ≥ 1, since the lead itself cannot revoke).
-    #[error("Played card at index {index} is a revoke — player held the led suit")]
+    #[error("Played card at {position} position is a revoke — player held the led suit")]
     Revoke {
         /// Position of the revoking card within the current trick
-        index: u8,
+        position: RevokePosition,
     },
 }
 
@@ -275,9 +296,11 @@ impl Board {
             for (j, played_card) in current_trick.cards().iter().enumerate().skip(1) {
                 if played_card.suit != led_suit && !remaining[seats[j]][led_suit].is_empty() {
                     return Err(BoardError::Revoke {
-                        // `j < 3` constrained by `ArrayVec<Card, 3>`
-                        #[allow(clippy::cast_possible_truncation)]
-                        index: j as u8,
+                        position: match j {
+                            1 => RevokePosition::Second,
+                            2 => RevokePosition::Third,
+                            _ => RevokePosition::Fourth,
+                        },
                     });
                 }
             }

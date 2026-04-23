@@ -527,7 +527,9 @@ fn board_try_new_detects_revoke_on_second_card() {
             remaining,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
         ),
-        Err(BoardError::Revoke { index: 1 })
+        Err(BoardError::Revoke {
+            position: RevokePosition::Second
+        })
     );
 }
 
@@ -582,7 +584,9 @@ fn board_try_new_detects_revoke_on_third_card() {
             remaining,
             CurrentTrick::from_slice(Strain::Notrump, Seat::North, &played).unwrap(),
         ),
-        Err(BoardError::Revoke { index: 2 })
+        Err(BoardError::Revoke {
+            position: RevokePosition::Third
+        })
     );
 }
 
