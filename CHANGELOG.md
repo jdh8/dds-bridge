@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Internal
 
+- The `_` wildcard arm in the par-decoding seat match (`src/solver/par.rs`) is
+  replaced by an explicit `3 => Seat::West` arm followed by
+  `_ => unreachable!()`, so a malformed `contract.seats` value from DDS causes
+  an immediate panic instead of silently falling back to `Seat::West`.
 - `PlayTraceBin::from(&[Card])` is replaced by `TryFrom<&[Card]>` (returns
   `PlayTraceTooLong` when the slice exceeds 52 cards) and an infallible
   `From<&ArrayVec<Card, 52>>` that the call sites now use. Both types remain
