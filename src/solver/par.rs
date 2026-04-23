@@ -80,12 +80,14 @@ impl From<sys::parResultsMaster> for Par {
                     Strain::Clubs,
                 ][contract.denom as usize];
 
+                // SAFETY: the assertions inside ensure successful conversion
+                #[allow(clippy::cast_possible_truncation)]
                 let (penalty, overtricks) = if contract.underTricks > 0 {
-                    debug_assert!(contract.underTricks <= 13);
-                    (Penalty::Doubled, -((contract.underTricks & 0xFF) as i8))
+                    assert!(contract.underTricks <= 13);
+                    (Penalty::Doubled, -contract.underTricks as i8)
                 } else {
-                    debug_assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
-                    (Penalty::Undoubled, (contract.overTricks & 0xFF) as i8)
+                    assert!(contract.overTricks >= 0 && contract.overTricks <= 13);
+                    (Penalty::Undoubled, contract.overTricks as i8)
                 };
 
                 let seat = match contract.seats & 3 {

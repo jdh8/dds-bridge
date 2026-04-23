@@ -209,11 +209,12 @@ impl Solver {
         flags: NonEmptyStrainFlags,
     ) -> sys::ddTablesRes {
         let flags = flags.get();
-        debug_assert!(
-            deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize
-        );
+        assert!(deals.len() * flags.bits().count_ones() as usize <= sys::MAXNOOFBOARDS as usize);
+
         let mut pack = sys::ddTableDeals {
-            noOfTables: c_int::try_from(deals.len()).unwrap_or(c_int::MAX),
+            // SAFETY: the assertion above ensures successful conversion
+            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+            noOfTables: deals.len() as c_int,
             ..Default::default()
         };
         deals
@@ -302,8 +303,9 @@ impl Solver {
     /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
     unsafe fn solve_board_segment(args: &[Objective]) -> sys::solvedBoards {
-        debug_assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
+        assert!(args.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
+            // SAFETY: the assertion above ensures successful conversion
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             noOfBoards: args.len() as c_int,
             ..Default::default()
@@ -365,8 +367,9 @@ impl Solver {
     /// 2. `traces.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
     unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::solvedPlays {
-        debug_assert!(traces.len() <= sys::MAXNOOFBOARDS as usize);
+        assert!(traces.len() <= sys::MAXNOOFBOARDS as usize);
         let mut pack = sys::boards {
+            // SAFETY: the assertion above ensures successful conversion
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             noOfBoards: traces.len() as c_int,
             ..Default::default()
