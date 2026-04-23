@@ -270,7 +270,7 @@ impl Solver {
         flags: NonEmptyStrainFlags,
     ) -> Vec<TrickCountTable> {
         let mut tables = Vec::new();
-        for chunk in deals.chunks((sys::MAXNOOFBOARDS / flags.get().bits().count_ones()) as usize) {
+        for chunk in deals.chunks(MAX_BOARD_COUNT / flags.get().bits().count_ones() as usize) {
             tables.extend(
                 unsafe { Self::solve_deal_segment(chunk, flags) }.results[..chunk.len()]
                     .iter()
@@ -340,7 +340,7 @@ impl Solver {
     #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
         let mut solutions = Vec::new();
-        for chunk in args.chunks(sys::MAXNOOFBOARDS as usize) {
+        for chunk in args.chunks(MAX_BOARD_COUNT) {
             solutions.extend(
                 unsafe { Self::solve_board_segment(chunk) }.solvedBoard[..chunk.len()]
                     .iter()
@@ -403,7 +403,7 @@ impl Solver {
     #[must_use]
     pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
         let mut results = Vec::new();
-        for chunk in traces.chunks(sys::MAXNOOFBOARDS as usize) {
+        for chunk in traces.chunks(MAX_BOARD_COUNT) {
             results.extend(
                 unsafe { Self::analyse_play_segment(chunk) }.solved[..chunk.len()]
                     .iter()
