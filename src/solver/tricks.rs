@@ -228,13 +228,8 @@ impl Strain {
 impl From<sys::ddTableResults> for TrickCountTable {
     fn from(table: sys::ddTableResults) -> Self {
         const fn make_row(row: [c_int; 4]) -> TrickCountRow {
-            #[allow(clippy::cast_sign_loss)]
-            TrickCountRow::new(
-                (row[0] & 0xF) as u8,
-                (row[1] & 0xF) as u8,
-                (row[2] & 0xF) as u8,
-                (row[3] & 0xF) as u8,
-            )
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+            TrickCountRow::new(row[0] as u8, row[1] as u8, row[2] as u8, row[3] as u8)
         }
 
         Self([

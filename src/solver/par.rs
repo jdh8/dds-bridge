@@ -95,7 +95,7 @@ impl From<sys::parResultsMaster> for Par {
                     1 => Seat::East,
                     2 => Seat::South,
                     3 => Seat::West,
-                    _ => unreachable!("DDS returned an invalid seat value"),
+                    _ => unreachable!("The bitmask ensures this is always in 0..=3"),
                 };
                 let is_pair = contract.seats >= 4;
                 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]

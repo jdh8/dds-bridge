@@ -98,7 +98,7 @@ impl From<sys::solvedPlay> for PlayAnalysis {
         let mut tricks = ArrayVec::new();
         for i in 0..solved.number as usize {
             #[allow(clippy::cast_possible_truncation)]
-            tricks.push((solved.tricks[i] & 0xFF) as u8);
+            tricks.push(solved.tricks[i] as u8);
         }
         Self { tricks }
     }
@@ -139,13 +139,13 @@ impl From<sys::futureTricks> for FoundPlays {
         let mut plays = ArrayVec::new();
 
         for i in 0..future.cards as usize {
-            let equals = Holding::from_bits_truncate((future.equals[i] & 0xFFFF) as u16);
-            let score = (future.score[i] & 0xFF) as i8;
+            let equals = Holding::from_bits_truncate(future.equals[i] as u16);
+            let score = future.score[i] as i8;
 
             plays.push(Play {
                 card: Card {
                     suit: Suit::DESC[future.suit[i] as usize],
-                    rank: Rank::new((future.rank[i] & 0xFF) as u8),
+                    rank: Rank::new(future.rank[i] as u8),
                 },
                 equals,
                 score,
