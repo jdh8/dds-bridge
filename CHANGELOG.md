@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Breaking:** `BoardError::Revoke` now carries `position: RevokePosition` instead of `index: u8`. The new `RevokePosition` enum has variants `Second`, `Third`, and `Fourth`, encoding the compile-time-bounded set of positions where a revoke can occur (the lead cannot revoke). Update match arms from `BoardError::Revoke { index: 1 }` / `index: 2` to `BoardError::Revoke { position: RevokePosition::Second }` / `RevokePosition::Third`.
-
 - **Breaking:** The trick-count types are renamed and gain a per-seat newtype:
   - `TricksRow` → `TrickCountRow`, `TricksTable` → `TrickCountTable` (and their `Hex` views).
   - New `TrickCount(u8)` newtype for a trick count in `0..=13`, analogous to `Level` / `Rank`. It provides `new`, `try_new`, `get() -> u8`, `Display`, and infallible `From<TrickCount>` for `u8` and `usize`.
