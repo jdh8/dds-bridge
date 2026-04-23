@@ -149,14 +149,14 @@ impl SystemInfo {
     /// table and `S` a small one.
     #[must_use]
     pub const fn thread_sizes(&self) -> &str {
-        // SAFETY: DDS fills `threadSizes` with a null-terminated ASCII string.
+        // SAFETY: [DDS fills `threadSizes` with a null-terminated ASCII string.](https://github.com/dds-bridge/dds/blob/d2bc4c2c703941664fc1d73e69caa5233cdeac18/src/System.cpp#L756)
         unsafe { c_chars_to_str(&self.0.threadSizes) }
     }
 
     /// Human-readable summary of the full DDS system configuration
     #[must_use]
     pub const fn system_string(&self) -> &str {
-        // SAFETY: DDS fills `systemString` with a null-terminated ASCII string.
+        // SAFETY: [DDS fills `systemString` with a null-terminated ASCII string.](https://github.com/dds-bridge/dds/blob/d2bc4c2c703941664fc1d73e69caa5233cdeac18/src/System.cpp#L773)
         unsafe { c_chars_to_str(&self.0.systemString) }
     }
 }
