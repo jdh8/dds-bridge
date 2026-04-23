@@ -1,11 +1,10 @@
 //! Par-contract results and their conversion from DDS FFI types
 
+use super::ffi;
 use crate::contract::{Bid, Contract, Penalty};
 use crate::seat::Seat;
-
-use dds_bridge_sys as sys;
-
 use core::ops::BitOr as _;
+use dds_bridge_sys as sys;
 
 /// Par contract
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -62,9 +61,7 @@ impl Par {
 
 impl From<sys::parResultsMaster> for Par {
     fn from(par: sys::parResultsMaster) -> Self {
-        use super::ffi::{count_from_sys, level_from_sys, strain_from_denom, trick_count_from_sys};
-
-        let number = count_from_sys(par.number, par.contracts.len());
+        let number = ffi::count_from_sys(par.number, par.contracts.len());
 
         // DDS returns a zero contract for par-zero deals, but we want to filter
         // it out for consistency.
@@ -73,19 +70,13 @@ impl From<sys::parResultsMaster> for Par {
         let contracts = par.contracts[..len]
             .iter()
             .flat_map(|contract| {
-                let strain = strain_from_denom(contract.denom);
+                let strain = ffi::strain_from_denom(contract.denom);
 
-                #[allow(clippy::cast_possible_wrap)]
+                #[allow(clippy::cast_possible_truncation)]
                 let (penalty, overtricks) = if contract.underTricks > 0 {
-                    (
-                        Penalty::Doubled,
-                        -(trick_count_from_sys(contract.underTricks).get() as i8),
-                    )
+                    (Penalty::Doubled, -contract.underTricks as i8)
                 } else {
-                    (
-                        Penalty::Undoubled,
-                        trick_count_from_sys(contract.overTricks).get() as i8,
-                    )
+                    (Penalty::Undoubled, contract.overTricks as i8)
                 };
 
                 let seat = match contract.seats & 3 {
@@ -99,7 +90,7 @@ impl From<sys::parResultsMaster> for Par {
 
                 let contract = Contract {
                     bid: Bid {
-                        level: level_from_sys(contract.level),
+                        level: ffi::level_from_sys(contract.level),
                         strain,
                     },
                     penalty,
