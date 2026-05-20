@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
-## [Unreleased]
+## [0.19.0] - unreleased
+
+### Changed
+
+- **Breaking:** Bump `dds-bridge-sys` to **3.0.0**, which vendors upstream DDS
+  **v3.0.0**. The safe wrappers in this crate (`Solver`, `Board`, `Par`,
+  `TrickCountTable`, …) keep their public surface, but every internal use of
+  raw `dds_bridge_sys` types follows the upstream rename map (camelCase →
+  PascalCase for structs, several `noOf*` / `*Tricks` fields → snake_case).
+  Crates that reach into `dds_bridge_sys` directly must update according to
+  the `dds-bridge-sys` v3.0.0 changelog.
 
 ### Internal
 

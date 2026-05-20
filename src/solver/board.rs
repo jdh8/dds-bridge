@@ -348,7 +348,7 @@ impl Board {
     }
 }
 
-impl From<Board> for sys::deal {
+impl From<Board> for sys::Deal {
     fn from(board: Board) -> Self {
         let mut suits = [0; 3];
         let mut ranks = [0; 3];
@@ -369,7 +369,7 @@ impl From<Board> for sys::deal {
             first: board.current_trick.leader() as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
-            remainCards: sys::ddTableDeal::from(board.remaining).cards,
+            remainCards: sys::DdTableDeal::from(board.remaining).cards,
         }
     }
 }

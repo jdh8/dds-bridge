@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.18.1-dev"
+version = "0.19.0"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 rust-version = "1.85"
@@ -19,7 +19,7 @@ serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "sem
 [dependencies]
 arrayvec = "0.7"
 bitflags = "2"
-dds-bridge-sys = "2"
+dds-bridge-sys = "3"
 parking_lot = "0.12"
 semver = "1"
 serde = { version = "1", features = ["derive"], optional = true }
@@ -30,6 +30,9 @@ thiserror = "2"
 anyhow = "1"
 proptest = "1"
 serde_json = "1"
+
+[patch.crates-io]
+dds-bridge-sys = { path = "../dds-bridge-sys" }
 
 [profile.dev]
 opt-level = 2

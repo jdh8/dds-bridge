@@ -59,8 +59,8 @@ impl Par {
     }
 }
 
-impl From<sys::parResultsMaster> for Par {
-    fn from(par: sys::parResultsMaster) -> Self {
+impl From<sys::ParResultsMaster> for Par {
+    fn from(par: sys::ParResultsMaster) -> Self {
         let number = ffi::count_from_sys(par.number, par.contracts.len());
 
         // DDS returns a zero contract for par-zero deals, but we want to filter
@@ -73,10 +73,10 @@ impl From<sys::parResultsMaster> for Par {
                 let strain = ffi::strain_from_denom(contract.denom);
 
                 #[allow(clippy::cast_possible_truncation)]
-                let (penalty, overtricks) = if contract.underTricks > 0 {
-                    (Penalty::Doubled, -contract.underTricks as i8)
+                let (penalty, overtricks) = if contract.under_tricks > 0 {
+                    (Penalty::Doubled, -contract.under_tricks as i8)
                 } else {
-                    (Penalty::Undoubled, contract.overTricks as i8)
+                    (Penalty::Undoubled, contract.over_tricks as i8)
                 };
 
                 let seat = match contract.seats & 3 {

@@ -39,13 +39,13 @@ pub struct PlayTrace {
     pub cards: ArrayVec<Card, 52>,
 }
 
-/// Thin wrapper over [`sys::playTraceBin`] so we can impl conversions for it
+/// Thin wrapper over [`sys::PlayTraceBin`] so we can impl conversions for it
 #[repr(transparent)]
-pub(super) struct PlayTraceBin(pub(super) sys::playTraceBin);
+pub(super) struct PlayTraceBin(pub(super) sys::PlayTraceBin);
 
 impl From<&ArrayVec<Card, 52>> for PlayTraceBin {
     fn from(cards: &ArrayVec<Card, 52>) -> Self {
-        let mut play = sys::playTraceBin {
+        let mut play = sys::PlayTraceBin {
             // SAFETY: ArrayVec ensures the length is always in 0..=52
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             number: cards.len() as c_int,
@@ -78,8 +78,8 @@ pub struct PlayAnalysis {
     pub tricks: ArrayVec<TrickCount, 53>,
 }
 
-impl From<sys::solvedPlay> for PlayAnalysis {
-    fn from(solved: sys::solvedPlay) -> Self {
+impl From<sys::SolvedPlay> for PlayAnalysis {
+    fn from(solved: sys::SolvedPlay) -> Self {
         let number = ffi::count_from_sys(solved.number, solved.tricks.len());
         Self {
             tricks: solved.tricks[..number]
@@ -120,8 +120,8 @@ pub struct FoundPlays {
     pub nodes: u32,
 }
 
-impl From<sys::futureTricks> for FoundPlays {
-    fn from(future: sys::futureTricks) -> Self {
+impl From<sys::FutureTricks> for FoundPlays {
+    fn from(future: sys::FutureTricks) -> Self {
         let cards = ffi::count_from_sys(future.cards, future.suit.len());
         let plays = (0..cards)
             .map(|i| Play {

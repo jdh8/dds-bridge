@@ -225,8 +225,8 @@ impl Strain {
     }
 }
 
-impl From<sys::ddTableResults> for TrickCountTable {
-    fn from(table: sys::ddTableResults) -> Self {
+impl From<sys::DdTableResults> for TrickCountTable {
+    fn from(table: sys::DdTableResults) -> Self {
         use super::ffi::trick_count_from_sys;
         let row = |r: [c_int; 4]| {
             TrickCountRow::new(
@@ -238,16 +238,16 @@ impl From<sys::ddTableResults> for TrickCountTable {
         };
 
         Self([
-            row(table.resTable[Strain::Clubs.to_sys()]),
-            row(table.resTable[Strain::Diamonds.to_sys()]),
-            row(table.resTable[Strain::Hearts.to_sys()]),
-            row(table.resTable[Strain::Spades.to_sys()]),
-            row(table.resTable[Strain::Notrump.to_sys()]),
+            row(table.res_table[Strain::Clubs.to_sys()]),
+            row(table.res_table[Strain::Diamonds.to_sys()]),
+            row(table.res_table[Strain::Hearts.to_sys()]),
+            row(table.res_table[Strain::Spades.to_sys()]),
+            row(table.res_table[Strain::Notrump.to_sys()]),
         ])
     }
 }
 
-impl From<TrickCountTable> for sys::ddTableResults {
+impl From<TrickCountTable> for sys::DdTableResults {
     fn from(table: TrickCountTable) -> Self {
         const fn make_row(row: TrickCountRow) -> [c_int; 4] {
             [
@@ -259,7 +259,7 @@ impl From<TrickCountTable> for sys::ddTableResults {
         }
 
         Self {
-            resTable: [
+            res_table: [
                 make_row(table[Strain::Spades]),
                 make_row(table[Strain::Hearts]),
                 make_row(table[Strain::Diamonds]),
@@ -272,7 +272,7 @@ impl From<TrickCountTable> for sys::ddTableResults {
 
 /// FFI converter for a [`Builder`].  Used internally by [`FullDeal`] and
 /// [`PartialDeal`] converters; `Builder` itself is unvalidated so prefer those.
-impl From<Builder> for sys::ddTableDeal {
+impl From<Builder> for sys::DdTableDeal {
     fn from(builder: Builder) -> Self {
         Self {
             cards: Seat::ALL.map(|seat| {
@@ -288,14 +288,14 @@ impl From<Builder> for sys::ddTableDeal {
     }
 }
 
-impl From<FullDeal> for sys::ddTableDeal {
+impl From<FullDeal> for sys::DdTableDeal {
     #[inline]
     fn from(deal: FullDeal) -> Self {
         Builder::from(deal).into()
     }
 }
 
-impl From<PartialDeal> for sys::ddTableDeal {
+impl From<PartialDeal> for sys::DdTableDeal {
     #[inline]
     fn from(subset: PartialDeal) -> Self {
         Builder::from(subset).into()

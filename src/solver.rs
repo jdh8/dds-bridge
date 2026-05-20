@@ -105,15 +105,9 @@ const fn check(status: i32) {
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn calculate_par(tricks: TrickCountTable, vul: Vulnerability, dealer: Seat) -> Par {
-    let mut par = sys::parResultsMaster::default();
-    let status = unsafe {
-        sys::DealerParBin(
-            &mut tricks.into(),
-            &raw mut par,
-            vul.to_sys(),
-            dealer as c_int,
-        )
-    };
+    let mut par = sys::ParResultsMaster::default();
+    let status =
+        unsafe { sys::DealerParBin(&tricks.into(), &raw mut par, vul.to_sys(), dealer as c_int) };
     check(status);
     par.into()
 }
@@ -128,9 +122,9 @@ pub fn calculate_par(tricks: TrickCountTable, vul: Vulnerability, dealer: Seat) 
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn calculate_pars(tricks: TrickCountTable, vul: Vulnerability) -> [Par; 2] {
-    let mut pars = [sys::parResultsMaster::default(); 2];
+    let mut pars = [sys::ParResultsMaster::default(); 2];
     // SAFE: calculating par is reentrant
-    let status = unsafe { sys::SidesParBin(&mut tricks.into(), &raw mut pars[0], vul.to_sys()) };
+    let status = unsafe { sys::SidesParBin(&tricks.into(), &raw mut pars[0], vul.to_sys()) };
     check(status);
     pars.map(Into::into)
 }
@@ -198,7 +192,7 @@ impl Solver {
     /// ```
     #[must_use]
     pub fn solve_deal(&self, deal: FullDeal) -> TrickCountTable {
-        let mut result = sys::ddTableResults::default();
+        let mut result = sys::DdTableResults::default();
         let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
         check(status);
         result.into()
@@ -221,12 +215,12 @@ impl Solver {
     unsafe fn solve_deal_segment(
         deals: &[FullDeal],
         flags: NonEmptyStrainFlags,
-    ) -> sys::ddTablesRes {
+    ) -> sys::DdTablesRes {
         let flags = flags.get();
         let strain_count = flags.bits().count_ones() as usize;
 
-        let mut pack = sys::ddTableDeals {
-            noOfTables: ffi::count_to_sys(deals.len(), MAX_BOARD_COUNT / strain_count),
+        let mut pack = sys::DdTableDeals {
+            no_of_tables: ffi::count_to_sys(deals.len(), MAX_BOARD_COUNT / strain_count),
             ..Default::default()
         };
         deals
@@ -241,14 +235,14 @@ impl Solver {
             c_int::from(!flags.contains(StrainFlags::CLUBS)),
             c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
         ];
-        let mut res = sys::ddTablesRes::default();
+        let mut res = sys::DdTablesRes::default();
         let status = unsafe {
             sys::CalcAllTables(
                 &raw mut pack,
                 -1,
                 filter.as_mut_ptr(),
                 &raw mut res,
-                &mut sys::allParResults::default(),
+                &mut sys::AllParResults::default(),
             )
         };
         check(status);
@@ -287,7 +281,7 @@ impl Solver {
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_board(&self, objective: Objective) -> FoundPlays {
-        let mut result = sys::futureTricks::default();
+        let mut result = sys::FutureTricks::default();
         let status = unsafe {
             sys::SolveBoard(
                 objective.board.into(),
@@ -314,9 +308,9 @@ impl Solver {
     ///    calling this function.
     /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
-    unsafe fn solve_board_segment(args: &[Objective]) -> sys::solvedBoards {
-        let mut pack = sys::boards {
-            noOfBoards: ffi::count_to_sys(args.len(), MAX_BOARD_COUNT),
+    unsafe fn solve_board_segment(args: &[Objective]) -> sys::SolvedBoards {
+        let mut pack = sys::Boards {
+            no_of_boards: ffi::count_to_sys(args.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
         args.iter().enumerate().for_each(|(i, obj)| {
@@ -324,7 +318,7 @@ impl Solver {
             pack.target[i] = obj.target.target();
             pack.solutions[i] = obj.target.solutions();
         });
-        let mut res = sys::solvedBoards::default();
+        let mut res = sys::SolvedBoards::default();
         let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
         check(status);
         res
@@ -342,7 +336,7 @@ impl Solver {
         let mut solutions = Vec::new();
         for chunk in args.chunks(MAX_BOARD_COUNT) {
             solutions.extend(
-                unsafe { Self::solve_board_segment(chunk) }.solvedBoard[..chunk.len()]
+                unsafe { Self::solve_board_segment(chunk) }.solved_board[..chunk.len()]
                     .iter()
                     .map(|&x| FoundPlays::from(x)),
             );
@@ -358,7 +352,7 @@ impl Solver {
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn analyse_play(&self, trace: PlayTrace) -> PlayAnalysis {
-        let mut result = sys::solvedPlay::default();
+        let mut result = sys::SolvedPlay::default();
         let play = PlayTraceBin::from(&trace.cards);
         let status = unsafe { sys::AnalysePlayBin(trace.board.into(), play.0, &raw mut result, 0) };
         check(status);
@@ -375,20 +369,20 @@ impl Solver {
     ///    calling this function.
     /// 2. `traces.len()` must not exceed [`sys::MAXNOOFBOARDS`].
     ///
-    unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::solvedPlays {
-        let mut pack = sys::boards {
-            noOfBoards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
+    unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::SolvedPlays {
+        let mut pack = sys::Boards {
+            no_of_boards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
-        let mut plays = sys::playTracesBin {
-            noOfBoards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
+        let mut plays = sys::PlayTracesBin {
+            no_of_boards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
             ..Default::default()
         };
         traces.iter().enumerate().for_each(|(i, trace)| {
             pack.deals[i] = trace.board.clone().into();
             plays.plays[i] = PlayTraceBin::from(&trace.cards).0;
         });
-        let mut res = sys::solvedPlays::default();
+        let mut res = sys::SolvedPlays::default();
         let status =
             unsafe { sys::AnalyseAllPlaysBin(&raw mut pack, &raw mut plays, &raw mut res, 0) };
         check(status);
