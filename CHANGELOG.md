@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
-## [0.19.0] - unreleased
+## [0.19.0] - 2026-05-20
 
 ### Changed
 
