@@ -42,17 +42,11 @@ use crate::seat::Seat;
 
 use dds_bridge_sys as sys;
 use parking_lot::Mutex;
-use rayon::iter::ParallelIterator;
-use rayon::slice::ParallelSlice;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use core::ffi::c_int;
 use core::mem::MaybeUninit;
 use std::sync::LazyLock;
-
-/// Worker-chunk size for rayon-driven batch methods.  Empirically a small
-/// chunk (4–16) keeps load balanced across workers while amortizing per-task
-/// overhead; the precise value is not API-visible.
-const CHUNK_SIZE: usize = 8;
 
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
 /// message is a human-readable description of the error code returned by DDS.
@@ -262,17 +256,11 @@ impl Solver {
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
-        let chunks: Vec<Vec<FoundPlays>> = args
-            .par_chunks(CHUNK_SIZE)
-            .map(|chunk| {
-                let mut ctx = SolverContext::default();
-                chunk
-                    .iter()
-                    .map(|obj| ctx.solve_board(obj.clone()))
-                    .collect()
+        args.par_iter()
+            .map_init(SolverContext::default, |ctx, obj: &Objective| {
+                ctx.solve_board(obj.clone())
             })
-            .collect();
-        chunks.into_iter().flatten().collect()
+            .collect()
     }
 
     /// Trace DD trick counts before and after each played card with
@@ -304,11 +292,7 @@ impl Solver {
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
-        let chunks: Vec<Vec<PlayAnalysis>> = traces
-            .par_chunks(CHUNK_SIZE)
-            .map(|chunk| chunk.iter().map(analyse_play_single).collect())
-            .collect();
-        chunks.into_iter().flatten().collect()
+        traces.par_iter().map(analyse_play_single).collect()
     }
 }
 

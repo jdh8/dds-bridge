@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `dds-bridge-sys` requirement to `3.1` (adds the `DdsSolverContext`
   shim). Adds `rayon = "1"` as a runtime dependency.
 
+### Internal
+
+- `Solver::solve_boards` and `Solver::analyse_plays` use `par_iter` with
+  rayon's `map_init` work-stealing pattern rather than fixed-size chunks.
+  On a 32-core host this measures ~3× faster for `solve_boards` and ~5×
+  faster for `analyse_plays` versus a tuned `par_chunks` implementation,
+  because work-stealing distributes uneven board difficulties across all
+  workers while still keeping each worker's `SolverContext` (and its
+  transposition table) warm for the boards it happens to process.
+- Added `benches/batch_solver.rs` with `criterion` and `rand` dev-deps,
+  exercising `solve_deals` / `solve_boards` / `analyse_plays` over 32
+  deterministic random deals.
+
 ## [0.19.0] - 2026-05-20
 
 ### Changed
