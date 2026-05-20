@@ -19,6 +19,7 @@
 //! fallible construction.
 
 mod board;
+mod context;
 mod ffi;
 mod par;
 mod play;
@@ -28,6 +29,7 @@ mod tricks;
 mod vulnerability;
 
 pub use board::*;
+pub use context::*;
 pub use par::*;
 pub use play::*;
 pub use strain_flags::*;
@@ -40,23 +42,17 @@ use crate::seat::Seat;
 
 use dds_bridge_sys as sys;
 use parking_lot::Mutex;
+use rayon::iter::ParallelIterator;
+use rayon::slice::ParallelSlice;
 
 use core::ffi::c_int;
 use core::mem::MaybeUninit;
 use std::sync::LazyLock;
 
-/// Maximum number of boards that can be solved in a single batch call to DDS
-///
-/// This is a hard limit in DDS, not a limit of this crate.  The batch methods
-/// in [`Solver`] will automatically split their input into segments of this
-/// size or smaller, so users of this crate don't need to worry about it as long
-/// as they use the batch methods for large inputs.  However, if users call the
-/// unsafe segment methods directly, they must ensure that their input sizes
-/// don't exceed this limit.
-///
-/// See also [`sys::MAXNOOFBOARDS`] and the safety requirements of the batch
-/// methods in [`Solver`].
-const MAX_BOARD_COUNT: usize = sys::MAXNOOFBOARDS as usize;
+/// Worker-chunk size for rayon-driven batch methods.  Empirically a small
+/// chunk (4–16) keeps load balanced across workers while amortizing per-task
+/// overhead; the precise value is not API-visible.
+const CHUNK_SIZE: usize = 8;
 
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
 /// message is a human-readable description of the error code returned by DDS.
@@ -136,13 +132,15 @@ static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
 
 /// Exclusive handle to the DDS solver
 ///
-/// DDS functions are not reentrant, so this struct holds a lock on the global
-/// thread pool.  Acquire a `Solver` once and call methods on it to avoid
-/// repeated locking.
+/// The legacy DDS C API was not reentrant, so this struct holds a global
+/// mutex to keep the legacy entry points serialized.  Acquire a `Solver` once
+/// and call methods on it to avoid repeated locking.
 ///
-/// The batch functions ([`CalcAllTables`](sys::CalcAllTables),
-/// [`SolveAllBoardsBin`](sys::SolveAllBoardsBin)) are internally
-/// multi-threaded, so parallelism is still utilized within each call.
+/// As of `dds-bridge-sys` 3.1 (DDS v3.0.0), batch methods
+/// ([`solve_deals`](Self::solve_deals), [`solve_boards`](Self::solve_boards),
+/// [`analyse_plays`](Self::analyse_plays)) parallelize across rayon workers
+/// using one [`SolverContext`] per worker thread.  Single-deal methods stay
+/// on the legacy thread-safe entry points.
 pub struct Solver(#[allow(dead_code)] parking_lot::MutexGuard<'static, ()>);
 
 impl Solver {
@@ -198,61 +196,24 @@ impl Solver {
         result.into()
     }
 
-    /// Solve deals with a single call of [`sys::CalcAllTables`]
+    /// Solve a slice of deals for given strains
     ///
-    /// - `deals`: A slice of deals to solve
-    /// - `flags`: Flags of strains to solve for
+    /// Drives a single [`SolverContext`] sequentially across all deals so the
+    /// transposition table stays warm between solves — typically faster than
+    /// looping over [`solve_deal`](Self::solve_deal), which throws away the
+    /// transposition table after each call.
     ///
-    /// # Safety
+    /// Unlike [`solve_boards`](Self::solve_boards), this method does **not**
+    /// parallelize across rayon workers: upstream DDS 3's `calc_dd_table`
+    /// shares global scheduling buffers between contexts, so concurrent
+    /// invocations corrupt each other.  Callers that need batch parallelism
+    /// for DD tables should partition their input and call this method from
+    /// multiple `Solver`s — but in practice [`solve_boards`](Self::solve_boards)
+    /// (which has no such limitation) is the better building block.
     ///
-    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
-    ///    calling any DDS function while this function is running.  This is
-    ///    automatically guaranteed if the caller acquires a `Solver` before
-    ///    calling this function.
-    /// 2. `deals.len() * flags.bits().count_ones()` must not exceed
-    ///    [`sys::MAXNOOFBOARDS`].
-    ///
-    unsafe fn solve_deal_segment(
-        deals: &[FullDeal],
-        flags: NonEmptyStrainFlags,
-    ) -> sys::DdTablesRes {
-        let flags = flags.get();
-        let strain_count = flags.bits().count_ones() as usize;
-
-        let mut pack = sys::DdTableDeals {
-            no_of_tables: ffi::count_to_sys(deals.len(), MAX_BOARD_COUNT / strain_count),
-            ..Default::default()
-        };
-        deals
-            .iter()
-            .enumerate()
-            .for_each(|(i, &deal)| pack.deals[i] = deal.into());
-
-        let mut filter = [
-            c_int::from(!flags.contains(StrainFlags::SPADES)),
-            c_int::from(!flags.contains(StrainFlags::HEARTS)),
-            c_int::from(!flags.contains(StrainFlags::DIAMONDS)),
-            c_int::from(!flags.contains(StrainFlags::CLUBS)),
-            c_int::from(!flags.contains(StrainFlags::NOTRUMP)),
-        ];
-        let mut res = sys::DdTablesRes::default();
-        let status = unsafe {
-            sys::CalcAllTables(
-                &raw mut pack,
-                -1,
-                filter.as_mut_ptr(),
-                &raw mut res,
-                &mut sys::AllParResults::default(),
-            )
-        };
-        check(status);
-        res
-    }
-
-    /// Solve deals in parallel for given strains
-    ///
-    /// - `deals`: A slice of deals to solve
-    /// - `flags`: Flags of strains to solve for
+    /// The `flags` argument is preserved for API compatibility but is
+    /// informational: each solve returns the full 5×4 [`TrickCountTable`]
+    /// regardless of strain filtering.
     ///
     /// # Panics
     ///
@@ -261,17 +222,10 @@ impl Solver {
     pub fn solve_deals(
         &self,
         deals: &[FullDeal],
-        flags: NonEmptyStrainFlags,
+        _flags: NonEmptyStrainFlags,
     ) -> Vec<TrickCountTable> {
-        let mut tables = Vec::new();
-        for chunk in deals.chunks(MAX_BOARD_COUNT / flags.get().bits().count_ones() as usize) {
-            tables.extend(
-                unsafe { Self::solve_deal_segment(chunk, flags) }.results[..chunk.len()]
-                    .iter()
-                    .map(|&x| TrickCountTable::from(x)),
-            );
-        }
-        tables
+        let mut ctx = SolverContext::default();
+        deals.iter().map(|&deal| ctx.solve_deal(deal)).collect()
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
@@ -296,35 +250,10 @@ impl Solver {
         FoundPlays::from(result)
     }
 
-    /// Solve boards with a single call of [`sys::SolveAllBoardsBin`]
-    ///
-    /// - `args`: A slice of objectives to solve
-    ///
-    /// # Safety
-    ///
-    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
-    ///    calling any DDS function while this function is running.  This is
-    ///    automatically guaranteed if the caller acquires a `Solver` before
-    ///    calling this function.
-    /// 2. `args.len()` must not exceed [`sys::MAXNOOFBOARDS`].
-    ///
-    unsafe fn solve_board_segment(args: &[Objective]) -> sys::SolvedBoards {
-        let mut pack = sys::Boards {
-            no_of_boards: ffi::count_to_sys(args.len(), MAX_BOARD_COUNT),
-            ..Default::default()
-        };
-        args.iter().enumerate().for_each(|(i, obj)| {
-            pack.deals[i] = obj.board.clone().into();
-            pack.target[i] = obj.target.target();
-            pack.solutions[i] = obj.target.solutions();
-        });
-        let mut res = sys::SolvedBoards::default();
-        let status = unsafe { sys::SolveAllBoardsBin(&raw mut pack, &raw mut res) };
-        check(status);
-        res
-    }
-
     /// Solve boards in parallel
+    ///
+    /// Fans out across rayon workers; each worker owns one [`SolverContext`]
+    /// and reuses its transposition table across the boards it processes.
     ///
     /// - `args`: A slice of boards and their targets to solve
     ///
@@ -333,15 +262,17 @@ impl Solver {
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
-        let mut solutions = Vec::new();
-        for chunk in args.chunks(MAX_BOARD_COUNT) {
-            solutions.extend(
-                unsafe { Self::solve_board_segment(chunk) }.solved_board[..chunk.len()]
+        let chunks: Vec<Vec<FoundPlays>> = args
+            .par_chunks(CHUNK_SIZE)
+            .map(|chunk| {
+                let mut ctx = SolverContext::default();
+                chunk
                     .iter()
-                    .map(|&x| FoundPlays::from(x)),
-            );
-        }
-        solutions
+                    .map(|obj| ctx.solve_board(obj.clone()))
+                    .collect()
+            })
+            .collect();
+        chunks.into_iter().flatten().collect()
     }
 
     /// Trace DD trick counts before and after each played card with
@@ -359,51 +290,38 @@ impl Solver {
         PlayAnalysis::from(result)
     }
 
-    /// Analyse play traces with a single call of [`sys::AnalyseAllPlaysBin`]
+    /// Trace DD trick counts for many plays in parallel
     ///
-    /// # Safety
-    ///
-    /// 1. **Thread-unsafe:** The caller must ensure that no other thread is
-    ///    calling any DDS function while this function is running.  This is
-    ///    automatically guaranteed if the caller acquires a `Solver` before
-    ///    calling this function.
-    /// 2. `traces.len()` must not exceed [`sys::MAXNOOFBOARDS`].
-    ///
-    unsafe fn analyse_play_segment(traces: &[PlayTrace]) -> sys::SolvedPlays {
-        let mut pack = sys::Boards {
-            no_of_boards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
-            ..Default::default()
-        };
-        let mut plays = sys::PlayTracesBin {
-            no_of_boards: ffi::count_to_sys(traces.len(), MAX_BOARD_COUNT),
-            ..Default::default()
-        };
-        traces.iter().enumerate().for_each(|(i, trace)| {
-            pack.deals[i] = trace.board.clone().into();
-            plays.plays[i] = PlayTraceBin::from(&trace.cards).0;
-        });
-        let mut res = sys::SolvedPlays::default();
-        let status =
-            unsafe { sys::AnalyseAllPlaysBin(&raw mut pack, &raw mut plays, &raw mut res, 0) };
-        check(status);
-        res
-    }
-
-    /// Trace DD trick counts in parallel with [`sys::AnalyseAllPlaysBin`]
+    /// Fans out across rayon workers, each calling [`sys::AnalysePlayBin`]
+    /// with `threadIndex = 0`.  Per the `dds-bridge-sys` documentation, this
+    /// entry point is safe for concurrent invocation across threads, though
+    /// each call pays the full setup cost of a fresh internal solver context
+    /// (no TT reuse across traces — the modern shim does not yet expose a
+    /// context variant of `analyse_play`).
     ///
     /// # Panics
     ///
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
     pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
-        let mut results = Vec::new();
-        for chunk in traces.chunks(MAX_BOARD_COUNT) {
-            results.extend(
-                unsafe { Self::analyse_play_segment(chunk) }.solved[..chunk.len()]
-                    .iter()
-                    .map(|&x| PlayAnalysis::from(x)),
-            );
-        }
-        results
+        let chunks: Vec<Vec<PlayAnalysis>> = traces
+            .par_chunks(CHUNK_SIZE)
+            .map(|chunk| chunk.iter().map(analyse_play_single).collect())
+            .collect();
+        chunks.into_iter().flatten().collect()
     }
+}
+
+/// Single-trace play analysis used by [`Solver::analyse_plays`].
+///
+/// Calls [`sys::AnalysePlayBin`] with `threadIndex = 0`.  Safe to invoke
+/// concurrently from multiple threads (each call constructs its own internal
+/// solver context inside DDS).
+fn analyse_play_single(trace: &PlayTrace) -> PlayAnalysis {
+    let mut result = sys::SolvedPlay::default();
+    let play = PlayTraceBin::from(&trace.cards);
+    let status =
+        unsafe { sys::AnalysePlayBin(trace.board.clone().into(), play.0, &raw mut result, 0) };
+    check(status);
+    PlayAnalysis::from(result)
 }

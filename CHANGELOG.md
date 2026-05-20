@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [0.19.1] - 2026-05-21
+
+### Added
+
+- `SolverContext` — safe wrapper over the `dds-bridge-sys` 3.1 modern
+  per-context DDS API, exposed publicly for callers that want
+  transposition-table reuse across related queries on a single thread.
+  Companion types `SolverConfig` and `TtKind` configure the context;
+  `SolverContext::new(config)` constructs one, `Default` picks the large-TT
+  preset, and `solve_deal` / `solve_board` expose the corresponding queries.
+  `SolverContext` is `Send` but not `Sync` — one context per OS thread, never
+  shared.
+
+### Changed
+
+- `Solver::solve_boards` and `Solver::analyse_plays` now parallelize across
+  rayon workers, restoring batch parallelism that DDS v3.0.0 had collapsed to
+  a single thread inside the legacy entry points. `solve_boards` fans out
+  using one `SolverContext` per worker (warm transposition table per worker);
+  `analyse_plays` fans out using single-trace `AnalysePlayBin(threadIndex=0)`
+  calls, which DDS 3 documents as concurrent-safe. Public signatures are
+  unchanged.
+- `Solver::solve_deals` now drives a single `SolverContext` sequentially
+  across all deals, keeping the transposition table warm between solves (the
+  previous `CalcAllTables` path discarded it after each deal). Parallelism is
+  not safe here: upstream `calc_dd_table` shares global scheduling buffers
+  between contexts, so concurrent invocations corrupt each other. Callers
+  that need batch parallelism for DD tables should prefer `solve_boards`,
+  which has no such limitation.
+- Bump `dds-bridge-sys` requirement to `3.1` (adds the `DdsSolverContext`
+  shim). Adds `rayon = "1"` as a runtime dependency.
+
 ## [0.19.0] - 2026-05-20
 
 ### Changed
@@ -173,6 +205,8 @@ The main idea of this release is to let the type system enforce solver precondit
 
 - Documentation fixes.
 
+[0.19.1]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.1
+[0.19.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.0
 [0.18.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.18.0
 [0.17.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.17.0
 [0.16.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.16.0
