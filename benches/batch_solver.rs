@@ -22,6 +22,7 @@ fn deals(seed: u64) -> Vec<FullDeal> {
     let mut rng = SmallRng::seed_from_u64(seed);
     (0..N)
         .map(|_| {
+            #[allow(clippy::cast_possible_truncation)]
             let mut cards: [u8; 52] = core::array::from_fn(|i| i as u8);
             cards.shuffle(&mut rng);
             let to_hand = |slice: &[u8]| {
