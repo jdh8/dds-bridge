@@ -57,9 +57,12 @@ fn board_from(deal: FullDeal) -> Board {
 fn bench_solve_deals(c: &mut Criterion) {
     let solver = Solver::lock();
     let ds = deals(0);
-    c.bench_function("solve_deals_32", |b| {
+    let mut group = c.benchmark_group("solve_deals");
+    group.sample_size(10);
+    group.bench_function("32", |b| {
         b.iter(|| black_box(solver.solve_deals(black_box(&ds), NonEmptyStrainFlags::ALL)));
     });
+    group.finish();
 }
 
 fn bench_solve_boards(c: &mut Criterion) {
