@@ -5,6 +5,7 @@
 //! on callers without a per-worker `SolverContext`.
 
 use arrayvec::ArrayVec;
+use core::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
 use dds_bridge::solver::{
     Board, CurrentTrick, NonEmptyStrainFlags, Objective, PlayTrace, Solver, Target,
@@ -13,7 +14,6 @@ use dds_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
-use std::hint::black_box;
 
 const N: usize = 32;
 

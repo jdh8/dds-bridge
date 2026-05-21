@@ -279,7 +279,7 @@ impl fmt::Display for PartialDeal {
 /// ```
 /// use dds_bridge::{FullDeal, Rank, Seat, Suit};
 ///
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # fn main() -> Result<(), Box<dyn core::error::Error>> {
 /// let deal: FullDeal = "N:.63.AKQ987.A9732 A8654.KQ5.T.QJT6 \
 ///                       J973.J98742.3.K4 KQT2.AT.J6542.85".parse()?;
 /// assert!(deal[Seat::East][Suit::Spades].contains(Rank::A));

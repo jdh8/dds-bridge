@@ -171,7 +171,7 @@ impl Solver {
     /// ```
     /// use dds_bridge::{FullDeal, Seat, Solver, Strain};
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # fn main() -> Result<(), Box<dyn core::error::Error>> {
     /// // Each player holds a 13-card straight flush in one suit.
     /// let deal: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. \
     ///                       ..AKQJT98765432. ...AKQJT98765432".parse()?;
