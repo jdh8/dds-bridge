@@ -266,6 +266,53 @@ fn solve_deals_crosses_chunk_boundary() -> Result<(), Builder> {
     Ok(())
 }
 
+/// `solve_deals` must agree with sequential `solve_deal` on a varied batch.
+///
+/// Regression test for the cparam-corruption bug fixed upstream: before the
+/// patch, rayon workers driving `calc_dd_table(ctx, ...)` raced on the
+/// file-scope `ParamType cparam` global and could write results into the
+/// wrong slot. The 41-identical-deals test masks the bug because every
+/// answer is the same; this test uses distinct random deals so any
+/// corruption shows up as a per-deal mismatch.
+#[test]
+fn solve_deals_parallel_matches_sequential() {
+    use rand::prelude::*;
+
+    fn random_deals(n: usize, seed: u64) -> Vec<dds_bridge::FullDeal> {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let mut deck: [u8; 52] = core::array::from_fn(|i| i as u8);
+        (0..n)
+            .map(|_| {
+                deck.shuffle(&mut rng);
+                let mut hand_bits = [0u64; 4];
+                for (i, &card) in deck.iter().enumerate() {
+                    let seat = i / 13;
+                    let suit = u32::from(card / 13);
+                    let rank = u32::from(card % 13) + 2;
+                    hand_bits[seat] |= 1u64 << (suit * 16 + rank);
+                }
+                let [n, e, s, w] = hand_bits.map(Hand::from_bits_retain);
+                dds_bridge::Builder::new()
+                    .north(n)
+                    .east(e)
+                    .south(s)
+                    .west(w)
+                    .build_full()
+                    .expect("13 cards per seat by construction")
+            })
+            .collect()
+    }
+
+    let deals = random_deals(16, 0xC0FFEE_D05);
+    let solver = Solver::lock();
+    let parallel = solver.solve_deals(&deals, NonEmptyStrainFlags::ALL);
+    let sequential: Vec<_> = deals.iter().map(|&d| solver.solve_deal(d)).collect();
+    core::mem::drop(solver);
+
+    assert_eq!(parallel.len(), deals.len());
+    assert_eq!(parallel, sequential);
+}
+
 /// `analyse_play` with an empty trace returns just the starting DD value.
 ///
 /// DDS reports tricks from declarer's viewpoint — declarer is the RHO of the

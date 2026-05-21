@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `Solver::solve_deals` now parallelizes across rayon workers, one
+  `SolverContext` per worker, mirroring the existing pattern in
+  `solve_boards`. Previous releases pinned this method to a single
+  sequential context because upstream DDS 3's `calc_dd_table` shared a
+  file-scope `ParamType cparam` buffer between contexts. The pinned
+  `dds-bridge-sys` (via the `pons-parallel-calc` fork branch) removes that
+  global, so `solve_deals` can fan out safely. Public signature is
+  unchanged.
 - Raise MSRV to 1.86 to match the dev-dependency `criterion` 0.8, whose
   0.8.x releases all require rustc 1.86. The previous `rust-version = "1.85"`
   was inconsistent with the resolved `criterion@0.8.2` and broke

@@ -190,20 +190,10 @@ impl Solver {
         result.into()
     }
 
-    /// Solve a slice of deals for given strains
+    /// Solve a slice of deals in parallel
     ///
-    /// Drives a single [`SolverContext`] sequentially across all deals so the
-    /// transposition table stays warm between solves — typically faster than
-    /// looping over [`solve_deal`](Self::solve_deal), which throws away the
-    /// transposition table after each call.
-    ///
-    /// Unlike [`solve_boards`](Self::solve_boards), this method does **not**
-    /// parallelize across rayon workers: upstream DDS 3's `calc_dd_table`
-    /// shares global scheduling buffers between contexts, so concurrent
-    /// invocations corrupt each other.  Callers that need batch parallelism
-    /// for DD tables should partition their input and call this method from
-    /// multiple `Solver`s — but in practice [`solve_boards`](Self::solve_boards)
-    /// (which has no such limitation) is the better building block.
+    /// Fans out across rayon workers; each worker owns one [`SolverContext`]
+    /// and reuses its transposition table across the deals it processes.
     ///
     /// The `flags` argument is preserved for API compatibility but is
     /// informational: each solve returns the full 5×4 [`TrickCountTable`]
@@ -218,8 +208,10 @@ impl Solver {
         deals: &[FullDeal],
         _flags: NonEmptyStrainFlags,
     ) -> Vec<TrickCountTable> {
-        let mut ctx = SolverContext::default();
-        deals.iter().map(|&deal| ctx.solve_deal(deal)).collect()
+        deals
+            .par_iter()
+            .map_init(SolverContext::default, |ctx, &deal| ctx.solve_deal(deal))
+            .collect()
     }
 
     /// Solve a single board with [`sys::SolveBoard`]
