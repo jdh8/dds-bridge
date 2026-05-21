@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable no-duplicate-heading -->
 
+## [Unreleased]
+
+### Changed
+
+- Raise MSRV to 1.86 to match the dev-dependency `criterion` 0.8, whose
+  0.8.x releases all require rustc 1.86. The previous `rust-version = "1.85"`
+  was inconsistent with the resolved `criterion@0.8.2` and broke
+  `cargo +1.85` builds with a resolver error.
+
 ## [0.19.1] - 2026-05-21
 
 ### Added
