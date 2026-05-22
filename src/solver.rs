@@ -32,8 +32,8 @@ pub use system_info::*;
 pub use tricks::*;
 pub use vulnerability::*;
 
-use crate::deal::FullDeal;
-use crate::seat::Seat;
+use contract_bridge::deal::FullDeal;
+use contract_bridge::seat::Seat;
 
 use dds_bridge_sys as sys;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -229,7 +229,8 @@ impl Solver {
     /// # Examples
     ///
     /// ```
-    /// use dds_bridge::{FullDeal, Seat, Solver, Strain};
+    /// use contract_bridge::{FullDeal, Seat, Strain};
+    /// use dds_bridge::Solver;
     ///
     /// # fn main() -> Result<(), Box<dyn core::error::Error>> {
     /// // Each player holds a 13-card straight flush in one suit.
@@ -245,7 +246,7 @@ impl Solver {
     /// ```
     #[must_use]
     pub fn solve_deal(&mut self, deal: FullDeal) -> TrickCountTable {
-        let table_deal = sys::DdTableDeal::from(deal);
+        let table_deal = tricks::dd_table_deal_from(deal);
         let mut result = sys::DdTableResults::default();
         // SAFETY: handle is non-null and owned by self; pointers are valid
         // for the duration of the call.

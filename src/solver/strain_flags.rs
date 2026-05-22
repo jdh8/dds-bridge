@@ -5,15 +5,15 @@ bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     pub struct StrainFlags : u8 {
-        /// Solve for clubs ([`Strain::Clubs`](crate::Strain::Clubs))
+        /// Solve for clubs ([`Strain::Clubs`](contract_bridge::Strain::Clubs))
         const CLUBS = 0x01;
-        /// Solve for diamonds ([`Strain::Diamonds`](crate::Strain::Diamonds))
+        /// Solve for diamonds ([`Strain::Diamonds`](contract_bridge::Strain::Diamonds))
         const DIAMONDS = 0x02;
-        /// Solve for hearts ([`Strain::Hearts`](crate::Strain::Hearts))
+        /// Solve for hearts ([`Strain::Hearts`](contract_bridge::Strain::Hearts))
         const HEARTS = 0x04;
-        /// Solve for spades ([`Strain::Spades`](crate::Strain::Spades))
+        /// Solve for spades ([`Strain::Spades`](contract_bridge::Strain::Spades))
         const SPADES = 0x08;
-        /// Solve for notrump ([`Strain::Notrump`](crate::Strain::Notrump))
+        /// Solve for notrump ([`Strain::Notrump`](contract_bridge::Strain::Notrump))
         const NOTRUMP = 0x10;
     }
 }

@@ -1,8 +1,8 @@
 //! Trick counts and their conversions to/from DDS FFI types
 
-use crate::deal::{Builder, FullDeal, PartialDeal};
-use crate::seat::Seat;
-use crate::{Strain, Suit};
+use contract_bridge::deal::Builder;
+use contract_bridge::seat::Seat;
+use contract_bridge::{Strain, Suit};
 
 use dds_bridge_sys as sys;
 use thiserror::Error;
@@ -19,8 +19,8 @@ pub struct InvalidTrickCount;
 
 /// A number of tricks in `0..=13`
 ///
-/// A validated newtype over `u8`, analogous to [`Level`](crate::contract::Level)
-/// (1..=7) and [`Rank`](crate::hand::Rank) (2..=14). Appears as the per-seat
+/// A validated newtype over `u8`, analogous to [`Level`](contract_bridge::contract::Level)
+/// (1..=7) and [`Rank`](contract_bridge::hand::Rank) (2..=14). Appears as the per-seat
 /// value returned by [`TrickCountRow::get`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -211,17 +211,15 @@ impl<T: AsRef<[Strain]>> fmt::UpperHex for TrickCountTableHex<T> {
     }
 }
 
-impl Strain {
-    /// Convert to the index in [`dds_bridge_sys`]
-    #[must_use]
-    const fn to_sys(self) -> usize {
-        match self {
-            Self::Spades => 0,
-            Self::Hearts => 1,
-            Self::Diamonds => 2,
-            Self::Clubs => 3,
-            Self::Notrump => 4,
-        }
+/// Convert a [`Strain`] to its index in [`dds_bridge_sys`]
+#[must_use]
+const fn strain_to_sys(strain: Strain) -> usize {
+    match strain {
+        Strain::Spades => 0,
+        Strain::Hearts => 1,
+        Strain::Diamonds => 2,
+        Strain::Clubs => 3,
+        Strain::Notrump => 4,
     }
 }
 
@@ -238,11 +236,11 @@ impl From<sys::DdTableResults> for TrickCountTable {
         };
 
         Self([
-            row(table.res_table[Strain::Clubs.to_sys()]),
-            row(table.res_table[Strain::Diamonds.to_sys()]),
-            row(table.res_table[Strain::Hearts.to_sys()]),
-            row(table.res_table[Strain::Spades.to_sys()]),
-            row(table.res_table[Strain::Notrump.to_sys()]),
+            row(table.res_table[strain_to_sys(Strain::Clubs)]),
+            row(table.res_table[strain_to_sys(Strain::Diamonds)]),
+            row(table.res_table[strain_to_sys(Strain::Hearts)]),
+            row(table.res_table[strain_to_sys(Strain::Spades)]),
+            row(table.res_table[strain_to_sys(Strain::Notrump)]),
         ])
     }
 }
@@ -270,34 +268,27 @@ impl From<TrickCountTable> for sys::DdTableResults {
     }
 }
 
-/// FFI converter for a [`Builder`].  Used internally by [`FullDeal`] and
-/// [`PartialDeal`] converters; `Builder` itself is unvalidated so prefer those.
-impl From<Builder> for sys::DdTableDeal {
-    fn from(builder: Builder) -> Self {
-        Self {
-            cards: Seat::ALL.map(|seat| {
-                let hand = builder[seat];
-                [
-                    hand[Suit::Spades].to_bits().into(),
-                    hand[Suit::Hearts].to_bits().into(),
-                    hand[Suit::Diamonds].to_bits().into(),
-                    hand[Suit::Clubs].to_bits().into(),
-                ]
-            }),
-        }
+/// Convert a [`Builder`] into the DDS `DdTableDeal`.  `Builder` is
+/// unvalidated, so prefer the [`FullDeal`] or [`PartialDeal`] entry points
+/// via [`dd_table_deal_from`].
+#[must_use]
+pub(crate) fn dd_table_deal_from_builder(builder: Builder) -> sys::DdTableDeal {
+    sys::DdTableDeal {
+        cards: Seat::ALL.map(|seat| {
+            let hand = builder[seat];
+            [
+                hand[Suit::Spades].to_bits().into(),
+                hand[Suit::Hearts].to_bits().into(),
+                hand[Suit::Diamonds].to_bits().into(),
+                hand[Suit::Clubs].to_bits().into(),
+            ]
+        }),
     }
 }
 
-impl From<FullDeal> for sys::DdTableDeal {
-    #[inline]
-    fn from(deal: FullDeal) -> Self {
-        Builder::from(deal).into()
-    }
-}
-
-impl From<PartialDeal> for sys::DdTableDeal {
-    #[inline]
-    fn from(subset: PartialDeal) -> Self {
-        Builder::from(subset).into()
-    }
+/// Convert a validated deal (either [`FullDeal`] or [`PartialDeal`]) into a
+/// DDS `DdTableDeal`.
+#[must_use]
+pub(crate) fn dd_table_deal_from(deal: impl Into<Builder>) -> sys::DdTableDeal {
+    dd_table_deal_from_builder(deal.into())
 }

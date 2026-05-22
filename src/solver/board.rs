@@ -1,10 +1,10 @@
 //! Solving input: boards, tricks-in-progress, targets, and objectives
 
 use super::tricks::TrickCount;
-use crate::deal::PartialDeal;
-use crate::hand::{Card, Hand};
-use crate::seat::Seat;
-use crate::{Strain, Suit};
+use contract_bridge::deal::PartialDeal;
+use contract_bridge::hand::{Card, Hand};
+use contract_bridge::seat::Seat;
+use contract_bridge::{Strain, Suit};
 
 use arrayvec::ArrayVec;
 use dds_bridge_sys as sys;
@@ -369,7 +369,7 @@ impl From<Board> for sys::Deal {
             first: board.current_trick.leader() as c_int,
             currentTrickSuit: suits,
             currentTrickRank: ranks,
-            remainCards: sys::DdTableDeal::from(board.remaining).cards,
+            remainCards: super::tricks::dd_table_deal_from(board.remaining).cards,
         }
     }
 }

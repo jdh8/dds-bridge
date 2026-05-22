@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
+use contract_bridge::{Builder, Card, Contract, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
 use dds_bridge::solver::*;
-use dds_bridge::{Builder, Card, Contract, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
 use semver::Version;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.
@@ -225,7 +225,7 @@ fn solve_boards_matches_solve_board() -> anyhow::Result<()> {
 fn solve_deals_parallel_matches_sequential() {
     use rand::prelude::*;
 
-    fn random_deals(n: usize, seed: u64) -> Vec<dds_bridge::FullDeal> {
+    fn random_deals(n: usize, seed: u64) -> Vec<contract_bridge::FullDeal> {
         let mut rng = StdRng::seed_from_u64(seed);
         let mut deck: [u8; 52] = core::array::from_fn(|i| i as u8);
         (0..n)
@@ -239,7 +239,7 @@ fn solve_deals_parallel_matches_sequential() {
                     hand_bits[seat] |= 1u64 << (suit * 16 + rank);
                 }
                 let [n, e, s, w] = hand_bits.map(Hand::from_bits_retain);
-                dds_bridge::Builder::new()
+                contract_bridge::Builder::new()
                     .north(n)
                     .east(e)
                     .south(s)
@@ -471,7 +471,7 @@ fn subset_from(
     east: impl IntoIterator<Item = Card>,
     south: impl IntoIterator<Item = Card>,
     west: impl IntoIterator<Item = Card>,
-) -> dds_bridge::PartialDeal {
+) -> contract_bridge::PartialDeal {
     Builder::new()
         .north(Hand::from_iter(north))
         .east(Hand::from_iter(east))

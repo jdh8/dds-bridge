@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** Bridge data types (`Card`, `Hand`, `Holding`, `Rank`,
+  `Suit`, `Strain`, `Seat`, `SeatFlags`, `Level`, `Bid`, `Contract`,
+  `Penalty`, `Builder`, `PartialDeal`, `FullDeal`, and their parse errors)
+  are extracted into a new `contract-bridge` crate. Downstream users must
+  switch imports such as `use dds_bridge::Strain;` to
+  `use contract_bridge::Strain;`. `dds-bridge` no longer re-exports these
+  types.
+- **Breaking:** The orphan-rule-violating
+  `From<Builder | FullDeal | PartialDeal> for sys::DdTableDeal` impls
+  (previously crate-private) become the free function
+  `dd_table_deal_from`. External consumers should not have been calling
+  these directly.
+- MSRV raised to **1.93** to match `contract-bridge`.
 - **Breaking:** `solver::analyse_play` now takes `&PlayTrace` instead of
   `PlayTrace` by value, mirroring the borrow-based `Solver::solve_board`
   signature introduced in 0.20. The private `analyse_play_ref` helper is

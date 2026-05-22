@@ -29,7 +29,8 @@ Parse a [PBN-formatted][pbn] deal, solve it for all strains and seats,
 and score a specific contract:
 
 ```rust
-use dds_bridge::{Contract, FullDeal, Penalty, Solver, Strain, Seat};
+use contract_bridge::{Contract, FullDeal, Penalty, Strain, Seat};
+use dds_bridge::Solver;
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
 // Each player holds a 13-card straight flush in one suit.

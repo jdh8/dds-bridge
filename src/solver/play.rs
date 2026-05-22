@@ -3,7 +3,7 @@
 use super::board::Board;
 use super::ffi;
 use super::tricks::TrickCount;
-use crate::hand::{Card, Holding};
+use contract_bridge::hand::{Card, Holding};
 
 use arrayvec::ArrayVec;
 use core::ffi::c_int;

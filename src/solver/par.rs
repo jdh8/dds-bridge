@@ -1,8 +1,8 @@
 //! Par-contract results and their conversion from DDS FFI types
 
 use super::ffi;
-use crate::contract::{Bid, Contract, Penalty};
-use crate::seat::Seat;
+use contract_bridge::contract::{Bid, Contract, Penalty};
+use contract_bridge::seat::Seat;
 use core::ops::BitOr as _;
 use dds_bridge_sys as sys;
 

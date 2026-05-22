@@ -5,11 +5,11 @@
 //! range. The panic path is the same as the one described in the solver
 //! module's panic policy — reaching it means DDS itself misbehaved.
 
-use crate::Strain;
-use crate::Suit;
-use crate::contract::Level;
-use crate::hand::Rank;
-use crate::solver::tricks::TrickCount;
+use contract_bridge::contract::Level;
+use contract_bridge::hand::Rank;
+use contract_bridge::{Strain, Suit};
+
+use super::tricks::TrickCount;
 
 use core::ffi::c_int;
 

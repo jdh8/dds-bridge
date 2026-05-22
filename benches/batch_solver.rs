@@ -1,10 +1,10 @@
 //! Benchmarks for the batch solver entry points.
 
 use arrayvec::ArrayVec;
+use contract_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use core::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
 use dds_bridge::solver::{self, Board, CurrentTrick, Objective, PlayTrace, Target};
-use dds_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
