@@ -8,7 +8,7 @@
 //! is tried as a single deal (e.g. `N:AKQJT98765432... ...`).
 
 use contract_bridge::{FullDeal, Seat, Strain};
-use dds_bridge::solver;
+use dds_bridge::solve_deals;
 use std::io::{self, Read};
 use std::process::ExitCode;
 
@@ -75,7 +75,7 @@ fn main() -> ExitCode {
         }
     }
 
-    let tables = solver::solve_deals(&deals);
+    let tables = solve_deals(&deals);
 
     for (i, (deal, table)) in raw.iter().zip(&tables).enumerate() {
         println!("Deal {}: {deal}", i + 1);

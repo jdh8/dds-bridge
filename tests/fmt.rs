@@ -1,7 +1,7 @@
 use core::fmt::{Debug, Display};
 use core::str::FromStr;
 
-use dds_bridge::solver::Vulnerability;
+use dds_bridge::Vulnerability;
 
 /// Assert that `value` survives a `Display` → `FromStr` round-trip.
 fn assert_roundtrip<T>(value: T)

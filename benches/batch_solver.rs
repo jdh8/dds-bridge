@@ -4,7 +4,9 @@ use arrayvec::ArrayVec;
 use contract_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use core::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
-use dds_bridge::solver::{self, Board, CurrentTrick, Objective, PlayTrace, Target};
+use dds_bridge::{
+    Board, CurrentTrick, Objective, PlayTrace, Target, analyse_plays, solve_boards, solve_deals,
+};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
@@ -53,7 +55,7 @@ fn bench_solve_deals(c: &mut Criterion) {
     let mut group = c.benchmark_group("solve_deals");
     group.sample_size(10);
     group.bench_function("32", |b| {
-        b.iter(|| black_box(solver::solve_deals(black_box(&ds))));
+        b.iter(|| black_box(solve_deals(black_box(&ds))));
     });
     group.finish();
 }
@@ -67,7 +69,7 @@ fn bench_solve_boards(c: &mut Criterion) {
         })
         .collect();
     c.bench_function("solve_boards_32", |b| {
-        b.iter(|| black_box(solver::solve_boards(black_box(&objectives))));
+        b.iter(|| black_box(solve_boards(black_box(&objectives))));
     });
 }
 
@@ -80,7 +82,7 @@ fn bench_analyse_plays(c: &mut Criterion) {
         })
         .collect();
     c.bench_function("analyse_plays_32", |b| {
-        b.iter(|| black_box(solver::analyse_plays(black_box(&traces))));
+        b.iter(|| black_box(analyse_plays(black_box(&traces))));
     });
 }
 

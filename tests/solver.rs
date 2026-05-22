@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
 use contract_bridge::{Builder, Card, Contract, Hand, Holding, Penalty, Rank, Seat, Strain, Suit};
-use dds_bridge::solver::*;
+use dds_bridge::*;
 use semver::Version;
 
 /// Everyone has a 13-card straight flush, and the par is 7SW=.

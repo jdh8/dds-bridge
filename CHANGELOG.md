@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** The `solver` module is promoted to the crate root. With
+  shared bridge primitives already migrated to `contract-bridge`,
+  `dds-bridge` is now solver-only, so the `solver::` namespace was
+  redundant. All items previously at `dds_bridge::solver::*` are now at
+  `dds_bridge::*` (e.g. `dds_bridge::solver::Vulnerability` →
+  `dds_bridge::Vulnerability`). Submodule files moved from
+  `src/solver/*.rs` to `src/*.rs`.
 - **Breaking:** Bridge data types (`Card`, `Hand`, `Holding`, `Rank`,
   `Suit`, `Strain`, `Seat`, `SeatFlags`, `Level`, `Bid`, `Contract`,
   `Penalty`, `Builder`, `PartialDeal`, `FullDeal`, and their parse errors)
