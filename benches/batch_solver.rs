@@ -1,15 +1,9 @@
 //! Benchmarks for the batch solver entry points.
-//!
-//! Run with the default thread pool, or set `RAYON_NUM_THREADS=1` to measure
-//! the single-threaded baseline that DDS 3.0's stripped-down batch API forces
-//! on callers without a per-worker `SolverContext`.
 
 use arrayvec::ArrayVec;
 use core::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
-use dds_bridge::solver::{
-    Board, CurrentTrick, NonEmptyStrainFlags, Objective, PlayTrace, Solver, Target,
-};
+use dds_bridge::solver::{self, Board, CurrentTrick, Objective, PlayTrace, Target};
 use dds_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
@@ -55,18 +49,16 @@ fn board_from(deal: FullDeal) -> Board {
 }
 
 fn bench_solve_deals(c: &mut Criterion) {
-    let solver = Solver::lock();
     let ds = deals(0);
     let mut group = c.benchmark_group("solve_deals");
     group.sample_size(10);
     group.bench_function("32", |b| {
-        b.iter(|| black_box(solver.solve_deals(black_box(&ds), NonEmptyStrainFlags::ALL)));
+        b.iter(|| black_box(solver::solve_deals(black_box(&ds))));
     });
     group.finish();
 }
 
 fn bench_solve_boards(c: &mut Criterion) {
-    let solver = Solver::lock();
     let objectives: Vec<Objective> = deals(1)
         .into_iter()
         .map(|d| Objective {
@@ -75,12 +67,11 @@ fn bench_solve_boards(c: &mut Criterion) {
         })
         .collect();
     c.bench_function("solve_boards_32", |b| {
-        b.iter(|| black_box(solver.solve_boards(black_box(&objectives))));
+        b.iter(|| black_box(solver::solve_boards(black_box(&objectives))));
     });
 }
 
 fn bench_analyse_plays(c: &mut Criterion) {
-    let solver = Solver::lock();
     let traces: Vec<PlayTrace> = deals(2)
         .into_iter()
         .map(|d| PlayTrace {
@@ -89,7 +80,7 @@ fn bench_analyse_plays(c: &mut Criterion) {
         })
         .collect();
     c.bench_function("analyse_plays_32", |b| {
-        b.iter(|| black_box(solver.analyse_plays(black_box(&traces))));
+        b.iter(|| black_box(solver::analyse_plays(black_box(&traces))));
     });
 }
 

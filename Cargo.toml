@@ -1,6 +1,6 @@
 [package]
 name = "dds-bridge"
-version = "0.19.1"
+version = "0.20.0"
 authors = ["Chen-Pang He (https://jdh8.org)"]
 edition = "2024"
 rust-version = "1.86"
@@ -20,7 +20,6 @@ serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "sem
 arrayvec = "0.7"
 bitflags = "2"
 dds-bridge-sys = "3.1"
-parking_lot = "0.12"
 rayon = "1"
 semver = "1"
 serde = { version = "1", features = ["derive"], optional = true }

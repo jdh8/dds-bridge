@@ -59,7 +59,7 @@ fn solve_four_13_card_straight_flushes() -> Result<(), Builder> {
         score: 2210,
         contracts: CONTRACTS.to_vec(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
+    assert_eq!(Solver::default().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&ns));
@@ -87,7 +87,7 @@ fn solve_par_5_tricks() -> Result<(), Builder> {
         score: 0,
         contracts: Vec::new(),
     };
-    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
+    assert_eq!(Solver::default().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let pars = calculate_pars(SOLUTION, Vulnerability::all());
     assert!(pars[0].equivalent(&PAR));
@@ -114,7 +114,7 @@ fn solve_everyone_makes_1nt() -> Result<(), Builder> {
     const NT: TrickCountRow = TrickCountRow::new(7, 7, 7, 7);
     const SOLUTION: TrickCountTable = TrickCountTable([SUIT, SUIT, SUIT, SUIT, NT]);
     const CONTRACT: Contract = Contract::new(1, Strain::Notrump, Penalty::Undoubled);
-    assert_eq!(Solver::lock().solve_deal(DEAL.build_full()?), SOLUTION);
+    assert_eq!(Solver::default().solve_deal(DEAL.build_full()?), SOLUTION);
 
     let ns = Par {
         score: 90,
@@ -172,7 +172,7 @@ fn solve_board_score_matches_dd_table() -> anyhow::Result<()> {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let solver = Solver::lock();
+    let mut solver = Solver::default();
     let full = DEAL
         .build_full()
         .map_err(|_| anyhow::anyhow!("DEAL is not a full deal"))?;
@@ -180,11 +180,10 @@ fn solve_board_score_matches_dd_table() -> anyhow::Result<()> {
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let tricks = solver.solve_deal(full);
-    let found = solver.solve_board(Objective {
+    let found = solver.solve_board(&Objective {
         board: Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?,
         target: Target::Any(None),
     });
-    core::mem::drop(solver);
     // solve_board reports tricks for the leading side (NS as defenders here).
     // The declarer is North's RHO (West).  Defenders take 13 - declarer's tricks.
     let expected = 13 - u8::from(tricks[Strain::Notrump].get(Seat::North.rho()));
@@ -205,7 +204,7 @@ fn solve_boards_matches_solve_board() -> anyhow::Result<()> {
         .east(Hand::new(T8, A54, QJ32, K976))
         .south(Hand::new(K976, T8, A54, QJ32))
         .west(Hand::new(QJ32, K976, T8, A54));
-    let solver = Solver::lock();
+    let mut solver = Solver::default();
     let partial = DEAL
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
@@ -213,67 +212,15 @@ fn solve_boards_matches_solve_board() -> anyhow::Result<()> {
         board: Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?,
         target: Target::Any(None),
     };
-    let single = solver.solve_board(obj.clone());
-    let batch = solver.solve_boards(&[obj]);
-    core::mem::drop(solver);
+    let single = solver.solve_board(&obj);
+    let batch = solve_boards(&[obj]);
     assert_eq!(batch.len(), 1);
     // Node counts differ between single and batch solvers; compare only the plays.
     assert_eq!(batch[0].plays, single.plays);
     Ok(())
 }
 
-/// `solve_deals` must chunk transparently across the internal `MAXNOOFBOARDS`
-/// boundary.  With 5 strains and `MAXNOOFBOARDS == 200`, each chunk holds 40
-/// deals, so 41 identical deals force a second chunk; every result must equal
-/// the single-deal answer.
-#[test]
-fn solve_deals_crosses_chunk_boundary() -> Result<(), Builder> {
-    const DEAL: Builder = Builder::new()
-        .north(Hand::new(
-            Holding::ALL,
-            Holding::EMPTY,
-            Holding::EMPTY,
-            Holding::EMPTY,
-        ))
-        .east(Hand::new(
-            Holding::EMPTY,
-            Holding::ALL,
-            Holding::EMPTY,
-            Holding::EMPTY,
-        ))
-        .south(Hand::new(
-            Holding::EMPTY,
-            Holding::EMPTY,
-            Holding::ALL,
-            Holding::EMPTY,
-        ))
-        .west(Hand::new(
-            Holding::EMPTY,
-            Holding::EMPTY,
-            Holding::EMPTY,
-            Holding::ALL,
-        ));
-    let solver = Solver::lock();
-    let full = DEAL.build_full()?;
-    let expected = solver.solve_deal(full);
-
-    let deals = [full; 41];
-    let tables = solver.solve_deals(&deals, NonEmptyStrainFlags::ALL);
-    core::mem::drop(solver);
-
-    assert_eq!(tables.len(), deals.len());
-    assert!(tables.iter().all(|&t| t == expected));
-    Ok(())
-}
-
 /// `solve_deals` must agree with sequential `solve_deal` on a varied batch.
-///
-/// Regression test for the cparam-corruption bug fixed upstream: before the
-/// patch, rayon workers driving `calc_dd_table(ctx, ...)` raced on the
-/// file-scope `ParamType cparam` global and could write results into the
-/// wrong slot. The 41-identical-deals test masks the bug because every
-/// answer is the same; this test uses distinct random deals so any
-/// corruption shows up as a per-deal mismatch.
 #[test]
 fn solve_deals_parallel_matches_sequential() {
     use rand::prelude::*;
@@ -303,11 +250,10 @@ fn solve_deals_parallel_matches_sequential() {
             .collect()
     }
 
-    let deals = random_deals(16, 0xC0FFEE_D05);
-    let solver = Solver::lock();
-    let parallel = solver.solve_deals(&deals, NonEmptyStrainFlags::ALL);
+    let deals = random_deals(16, 0x000C_0FFE_ED05);
+    let parallel = solve_deals(&deals);
+    let mut solver = Solver::default();
     let sequential: Vec<_> = deals.iter().map(|&d| solver.solve_deal(d)).collect();
-    core::mem::drop(solver);
 
     assert_eq!(parallel.len(), deals.len());
     assert_eq!(parallel, sequential);
@@ -333,16 +279,15 @@ fn analyse_play_empty_trace_complements_solve_board() -> anyhow::Result<()> {
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
-    let solver = Solver::lock();
-    let found = solver.solve_board(Objective {
+    let mut solver = Solver::default();
+    let found = solver.solve_board(&Objective {
         board: board.clone(),
         target: Target::Any(None),
     });
-    let analysis = solver.analyse_play(PlayTrace {
+    let analysis = analyse_play(PlayTrace {
         board,
         cards: ArrayVec::new(),
     });
-    core::mem::drop(solver);
     assert_eq!(analysis.tricks.len(), 1);
     assert_eq!(
         u8::from(analysis.tricks[0]) + u8::from(found.plays[0].score),
@@ -368,16 +313,15 @@ fn analyse_play_optimal_card_preserves_dd_value() -> anyhow::Result<()> {
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
-    let solver = Solver::lock();
-    let found = solver.solve_board(Objective {
+    let mut solver = Solver::default();
+    let found = solver.solve_board(&Objective {
         board: board.clone(),
         target: Target::Any(None),
     });
     let best = found.plays[0];
     let mut cards = ArrayVec::new();
     cards.push(best.card);
-    let analysis = solver.analyse_play(PlayTrace { board, cards });
-    core::mem::drop(solver);
+    let analysis = analyse_play(PlayTrace { board, cards });
     assert_eq!(analysis.tricks.len(), 2);
     assert_eq!(analysis.tricks[0], analysis.tricks[1]);
     assert_eq!(u8::from(analysis.tricks[0]) + u8::from(best.score), 13,);
@@ -424,7 +368,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
-    let analysis = Solver::lock().analyse_play(PlayTrace { board, cards });
+    let analysis = analyse_play(PlayTrace { board, cards });
     assert_eq!(analysis.tricks.len(), 2);
     assert!(analysis.tricks.iter().all(|&t| u8::from(t) == 0));
     Ok(())
@@ -432,7 +376,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
 
 #[test]
 fn system_info_version_is_2_9_0() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert_eq!(info.version(), Version::new(2, 9, 0));
 }
 
@@ -445,7 +389,7 @@ fn system_info_platform_matches_os() {
         () if cfg!(target_os = "windows") => Platform::Windows,
         () => return, // Skip test on unknown platforms
     };
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert_eq!(info.platform(), platform);
 }
 
@@ -457,49 +401,49 @@ fn system_info_num_bits_matches_target() {
         () if cfg!(target_pointer_width = "16") => 16,
         () => return, // Skip test on unknown pointer widths
     };
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert_eq!(info.num_bits(), num_bits);
 }
 
 #[test]
 fn system_info_compiler_is_known() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert!(!matches!(info.compiler(), Compiler::Unknown(_)));
 }
 
 #[test]
 fn system_info_threading_is_stl() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert_eq!(info.threading(), Threading::STL);
 }
 
 #[test]
 fn system_info_num_cores_is_positive() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert!(info.num_cores() > 0);
 }
 
 #[test]
 fn system_info_num_threads_is_positive() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert!(info.num_threads() > 0);
 }
 
 #[test]
 fn system_info_thread_sizes_is_nonempty() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert!(!info.thread_sizes().is_empty());
 }
 
 #[test]
 fn system_info_system_string_is_nonempty() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert!(!info.system_string().is_empty());
 }
 
 #[test]
 fn system_info_display_matches_system_string() {
-    let info = Solver::lock().system_info();
+    let info = system_info();
     assert_eq!(info.to_string(), info.system_string());
 }
 

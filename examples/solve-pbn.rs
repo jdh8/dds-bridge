@@ -7,8 +7,8 @@
 //! If a string doesn't contain any `[Deal "..."]` tag, the whole trimmed input
 //! is tried as a single deal (e.g. `N:AKQJT98765432... ...`).
 
-use dds_bridge::solver::NonEmptyStrainFlags;
-use dds_bridge::{FullDeal, Seat, Solver, Strain};
+use dds_bridge::solver;
+use dds_bridge::{FullDeal, Seat, Strain};
 use std::io::{self, Read};
 use std::process::ExitCode;
 
@@ -75,7 +75,7 @@ fn main() -> ExitCode {
         }
     }
 
-    let tables = Solver::lock().solve_deals(&deals, NonEmptyStrainFlags::ALL);
+    let tables = solver::solve_deals(&deals);
 
     for (i, (deal, table)) in raw.iter().zip(&tables).enumerate() {
         println!("Deal {}: {deal}", i + 1);

@@ -59,7 +59,7 @@ pub enum Threading {
 
 /// Information about the DDS library and how it was built
 ///
-/// Returned by [`Solver::system_info`](super::Solver::system_info).  Exposes
+/// Returned by [`system_info`](super::system_info).  Exposes
 /// the version, hardware configuration (cores, threads, pointer width), and
 /// compile-time choices (OS, compiler, threading model) that DDS was built
 /// with.

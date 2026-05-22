@@ -3,15 +3,12 @@
 //! # Panic policy
 //!
 //! The solver entry points in this module — [`calculate_par`],
-//! [`calculate_pars`], and the [`Solver`] methods
-//! [`solve_deal`](Solver::solve_deal), [`solve_deals`](Solver::solve_deals),
-//! [`solve_board`](Solver::solve_board), [`solve_boards`](Solver::solve_boards),
-//! [`analyse_play`](Solver::analyse_play), and
-//! [`analyse_plays`](Solver::analyse_plays) — are not expected to panic.
-//! They map DDS status codes through an internal helper that panics on error,
-//! but reaching that panic means either invalid input slipped past a safe
-//! constructor or DDS itself misbehaved. Either case is a bug — please report
-//! it.
+//! [`calculate_pars`], [`Solver::solve_deal`], [`Solver::solve_board`],
+//! [`solve_deals`], [`solve_boards`], [`analyse_play`], and [`analyse_plays`]
+//! — are not expected to panic.  They map DDS status codes through an
+//! internal helper that panics on error, but reaching that panic means
+//! either invalid input slipped past a safe constructor or DDS itself
+//! misbehaved. Either case is a bug — please report it.
 //!
 //! This policy does not cover validator panics from safe constructors
 //! (e.g. [`TrickCountRow::new`](crate::solver::TrickCountRow::new)), which
@@ -19,7 +16,6 @@
 //! fallible construction.
 
 mod board;
-mod context;
 mod ffi;
 mod par;
 mod play;
@@ -29,7 +25,6 @@ mod tricks;
 mod vulnerability;
 
 pub use board::*;
-pub use context::*;
 pub use par::*;
 pub use play::*;
 pub use strain_flags::*;
@@ -41,11 +36,11 @@ use crate::deal::FullDeal;
 use crate::seat::Seat;
 
 use dds_bridge_sys as sys;
-use parking_lot::Mutex;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use core::ffi::c_int;
 use core::mem::MaybeUninit;
+use core::ptr::NonNull;
 use std::sync::LazyLock;
 
 /// Panics if `status` is negative, which indicates an error in DDS.  The panic
@@ -119,48 +114,113 @@ pub fn calculate_pars(tricks: TrickCountTable, vul: Vulnerability) -> [Par; 2] {
     pars.map(Into::into)
 }
 
-static THREAD_POOL: LazyLock<Mutex<()>> = LazyLock::new(|| {
-    unsafe { sys::SetMaxThreads(0) };
-    Mutex::new(())
-});
+/// Kind of transposition table to allocate inside a [`Solver`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TtKind {
+    /// Small TT — lower memory footprint
+    Small,
+    /// Large TT — higher memory footprint, faster on bigger search trees
+    Large,
+}
 
-/// Exclusive handle to the DDS solver
+impl TtKind {
+    #[allow(clippy::cast_possible_wrap)]
+    const fn to_sys(self) -> c_int {
+        match self {
+            Self::Small => sys::DDS_TT_KIND_SMALL as c_int,
+            Self::Large => sys::DDS_TT_KIND_LARGE as c_int,
+        }
+    }
+}
+
+/// Configuration for a [`Solver`]
 ///
-/// The legacy DDS C API was not reentrant, so this struct holds a global
-/// mutex to keep the legacy entry points serialized.  Acquire a `Solver` once
-/// and call methods on it to avoid repeated locking.
+/// `0` for either memory field means "use the upstream default".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SolverConfig {
+    /// Kind of transposition table to allocate
+    pub tt_kind: TtKind,
+    /// Default (initial) TT size in MiB; `0` for the upstream default
+    pub tt_mem_default_mb: u32,
+    /// Maximum TT size in MiB; `0` for the upstream default
+    pub tt_mem_maximum_mb: u32,
+}
+
+impl Default for SolverConfig {
+    fn default() -> Self {
+        Self {
+            tt_kind: TtKind::Large,
+            tt_mem_default_mb: 0,
+            tt_mem_maximum_mb: 0,
+        }
+    }
+}
+
+impl SolverConfig {
+    fn to_sys(self) -> sys::DdsSolverConfig {
+        sys::DdsSolverConfig {
+            tt_kind: self.tt_kind.to_sys(),
+            tt_mem_default_mb: c_int::try_from(self.tt_mem_default_mb)
+                .expect("tt_mem_default_mb fits in c_int"),
+            tt_mem_maximum_mb: c_int::try_from(self.tt_mem_maximum_mb)
+                .expect("tt_mem_maximum_mb fits in c_int"),
+        }
+    }
+}
+
+/// Owned handle to a DDS solver context
 ///
-/// As of `dds-bridge-sys` 3.1 (DDS v3.0.0), batch methods
-/// ([`solve_deals`](Self::solve_deals), [`solve_boards`](Self::solve_boards),
-/// [`analyse_plays`](Self::analyse_plays)) parallelize across rayon workers
-/// using one [`SolverContext`] per worker thread.  Single-deal methods stay
-/// on the legacy thread-safe entry points.
-pub struct Solver(#[allow(dead_code)] parking_lot::MutexGuard<'static, ()>);
+/// One `Solver` owns one DDS `SolverContext` (private solver state:
+/// thread-local memory, transposition table, search state) and is the
+/// upstream-recommended way to drive DDS in parallel: one `Solver` per OS
+/// thread, never shared.
+///
+/// The handle is [`Send`] (work-stealing pools may move it between threads
+/// as long as no two threads access it at once) but not [`Sync`] — upstream
+/// forbids concurrent access from multiple threads to a single context.
+///
+/// The transposition table is preserved across calls on the same `Solver`,
+/// so reusing one over a batch of related queries amortizes setup cost.
+/// For batches of unrelated queries the free helpers [`solve_deals`] and
+/// [`solve_boards`] fan work across rayon workers with one `Solver` per
+/// worker.
+///
+/// [`Drop`] calls `dds_solver_context_free`.
+pub struct Solver {
+    handle: NonNull<sys::DdsSolverContext>,
+}
+
+// SAFETY: ownership is single-threaded at any one time. Sending the handle
+// across threads is fine; concurrent shared access is not (hence !Sync).
+unsafe impl Send for Solver {}
+
+impl Default for Solver {
+    /// Construct a new solver with the [`SolverConfig::default`] configuration.
+    fn default() -> Self {
+        Self::new(SolverConfig::default())
+    }
+}
 
 impl Solver {
-    /// Acquire exclusive access to the DDS solver, blocking until available
-    #[must_use]
-    pub fn lock() -> Self {
-        Self(THREAD_POOL.lock())
-    }
-
-    /// Try to acquire exclusive access to the DDS solver without blocking
+    /// Construct a new solver with the given configuration
     ///
-    /// Returns `None` if the solver is currently in use.
+    /// # Panics
+    ///
+    /// If the C++ allocator returns a null pointer.
     #[must_use]
-    pub fn try_lock() -> Option<Self> {
-        THREAD_POOL.try_lock().map(Self)
+    pub fn new(config: SolverConfig) -> Self {
+        let cfg = config.to_sys();
+        // SAFETY: cfg is a valid, properly-initialized struct.
+        let raw = unsafe { sys::dds_solver_context_new(&raw const cfg) };
+        let handle = NonNull::new(raw).expect("dds_solver_context_new returned null");
+        Self { handle }
     }
 
-    /// Get information about the underlying DDS library
-    #[must_use]
-    pub fn system_info(&self) -> SystemInfo {
-        let mut inner = MaybeUninit::uninit();
-        unsafe { sys::GetDDSInfo(inner.as_mut_ptr()) };
-        SystemInfo(unsafe { inner.assume_init() })
-    }
-
-    /// Solve a single deal with [`sys::CalcDDtable`]
+    /// Solve a single deal for all strains and all declarers
+    ///
+    /// Resets internal search state before solving so the result does not
+    /// depend on previous solves on this `Solver` (the transposition table
+    /// is preserved across calls).
     ///
     /// # Panics
     ///
@@ -175,7 +235,8 @@ impl Solver {
     /// // Each player holds a 13-card straight flush in one suit.
     /// let deal: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. \
     ///                       ..AKQJT98765432. ...AKQJT98765432".parse()?;
-    /// let tricks = Solver::lock().solve_deal(deal);
+    /// let mut solver = Solver::default();
+    /// let tricks = solver.solve_deal(deal);
     /// // North holds all the spades, so North or South declaring spades
     /// // draws trumps and takes every trick.
     /// assert_eq!(u8::from(tricks[Strain::Spades].get(Seat::North)), 13);
@@ -183,121 +244,136 @@ impl Solver {
     /// # }
     /// ```
     #[must_use]
-    pub fn solve_deal(&self, deal: FullDeal) -> TrickCountTable {
+    pub fn solve_deal(&mut self, deal: FullDeal) -> TrickCountTable {
+        let table_deal = sys::DdTableDeal::from(deal);
         let mut result = sys::DdTableResults::default();
-        let status = unsafe { sys::CalcDDtable(deal.into(), &raw mut result) };
+        // SAFETY: handle is non-null and owned by self; pointers are valid
+        // for the duration of the call.
+        let status = unsafe {
+            sys::dds_solver_context_reset_for_solve(self.handle.as_ptr());
+            sys::dds_calc_dd_table(self.handle.as_ptr(), &raw const table_deal, &raw mut result)
+        };
         check(status);
         result.into()
     }
 
-    /// Solve a slice of deals in parallel
+    /// Solve a single board against an [`Objective`]
     ///
-    /// Fans out across rayon workers; each worker owns one [`SolverContext`]
-    /// and reuses its transposition table across the deals it processes.
-    ///
-    /// The `flags` argument is preserved for API compatibility but is
-    /// informational: each solve returns the full 5×4 [`TrickCountTable`]
-    /// regardless of strain filtering.
+    /// Resets internal search state before solving so the result does not
+    /// depend on previous solves on this `Solver` (the transposition table
+    /// is preserved across calls).
     ///
     /// # Panics
     ///
     /// Not expected — panics here are bugs. See the module-level panic policy.
     #[must_use]
-    pub fn solve_deals(
-        &self,
-        deals: &[FullDeal],
-        _flags: NonEmptyStrainFlags,
-    ) -> Vec<TrickCountTable> {
-        deals
-            .par_iter()
-            .map_init(SolverContext::default, |ctx, &deal| ctx.solve_deal(deal))
-            .collect()
-    }
-
-    /// Solve a single board with [`sys::SolveBoard`]
-    ///
-    /// # Panics
-    ///
-    /// Not expected — panics here are bugs. See the module-level panic policy.
-    #[must_use]
-    pub fn solve_board(&self, objective: Objective) -> FoundPlays {
+    pub fn solve_board(&mut self, objective: &Objective) -> FoundPlays {
+        let deal = sys::Deal::from(objective.board.clone());
         let mut result = sys::FutureTricks::default();
+        // SAFETY: handle is non-null and owned by self; pointers are valid
+        // for the duration of the call.
         let status = unsafe {
-            sys::SolveBoard(
-                objective.board.into(),
+            sys::dds_solver_context_reset_for_solve(self.handle.as_ptr());
+            sys::dds_solve_board(
+                self.handle.as_ptr(),
+                &raw const deal,
                 objective.target.target(),
                 objective.target.solutions(),
                 0,
                 &raw mut result,
-                0,
             )
         };
         check(status);
         FoundPlays::from(result)
     }
+}
 
-    /// Solve boards in parallel
-    ///
-    /// Fans out across rayon workers; each worker owns one [`SolverContext`]
-    /// and reuses its transposition table across the boards it processes.
-    ///
-    /// - `args`: A slice of boards and their targets to solve
-    ///
-    /// # Panics
-    ///
-    /// Not expected — panics here are bugs. See the module-level panic policy.
-    #[must_use]
-    pub fn solve_boards(&self, args: &[Objective]) -> Vec<FoundPlays> {
-        args.par_iter()
-            .map_init(SolverContext::default, |ctx, obj: &Objective| {
-                ctx.solve_board(obj.clone())
-            })
-            .collect()
-    }
-
-    /// Trace DD trick counts before and after each played card with
-    /// [`sys::AnalysePlayBin`]
-    ///
-    /// # Panics
-    ///
-    /// Not expected — panics here are bugs. See the module-level panic policy.
-    #[must_use]
-    pub fn analyse_play(&self, trace: PlayTrace) -> PlayAnalysis {
-        let mut result = sys::SolvedPlay::default();
-        let play = PlayTraceBin::from(&trace.cards);
-        let status = unsafe { sys::AnalysePlayBin(trace.board.into(), play.0, &raw mut result, 0) };
-        check(status);
-        PlayAnalysis::from(result)
-    }
-
-    /// Trace DD trick counts for many plays in parallel
-    ///
-    /// Fans out across rayon workers, each calling [`sys::AnalysePlayBin`]
-    /// with `threadIndex = 0`.  Per the `dds-bridge-sys` documentation, this
-    /// entry point is safe for concurrent invocation across threads, though
-    /// each call pays the full setup cost of a fresh internal solver context
-    /// (no TT reuse across traces — the modern shim does not yet expose a
-    /// context variant of `analyse_play`).
-    ///
-    /// # Panics
-    ///
-    /// Not expected — panics here are bugs. See the module-level panic policy.
-    #[must_use]
-    pub fn analyse_plays(&self, traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
-        traces.par_iter().map(analyse_play_single).collect()
+impl Drop for Solver {
+    fn drop(&mut self) {
+        // SAFETY: handle was returned by dds_solver_context_new and has not
+        // been freed yet (Drop runs at most once).
+        unsafe { sys::dds_solver_context_free(self.handle.as_ptr()) };
     }
 }
 
-/// Single-trace play analysis used by [`Solver::analyse_plays`].
+/// Get information about the underlying DDS library
+#[must_use]
+pub fn system_info() -> SystemInfo {
+    let mut inner = MaybeUninit::uninit();
+    unsafe { sys::GetDDSInfo(inner.as_mut_ptr()) };
+    SystemInfo(unsafe { inner.assume_init() })
+}
+
+/// Solve a slice of deals in parallel
 ///
-/// Calls [`sys::AnalysePlayBin`] with `threadIndex = 0`.  Safe to invoke
-/// concurrently from multiple threads (each call constructs its own internal
-/// solver context inside DDS).
-fn analyse_play_single(trace: &PlayTrace) -> PlayAnalysis {
+/// Fans out across rayon workers; each worker owns one [`Solver`] and
+/// reuses its transposition table across the deals it processes.
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
+#[must_use]
+pub fn solve_deals(deals: &[FullDeal]) -> Vec<TrickCountTable> {
+    deals
+        .par_iter()
+        .map_init(Solver::default, |s, &d| s.solve_deal(d))
+        .collect()
+}
+
+/// Solve a slice of boards in parallel
+///
+/// Fans out across rayon workers; each worker owns one [`Solver`] and
+/// reuses its transposition table across the boards it processes.
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
+#[must_use]
+pub fn solve_boards(args: &[Objective]) -> Vec<FoundPlays> {
+    args.par_iter()
+        .map_init(Solver::default, |s, o| s.solve_board(o))
+        .collect()
+}
+
+/// One-shot initialization of the legacy DDS thread pool, needed only by the
+/// `AnalysePlayBin` path (the modern [`Solver`] context manages its own
+/// threads).
+static INIT_LEGACY_POOL: LazyLock<()> = LazyLock::new(|| unsafe { sys::SetMaxThreads(0) });
+
+fn analyse_play_ref(trace: &PlayTrace) -> PlayAnalysis {
+    LazyLock::force(&INIT_LEGACY_POOL);
     let mut result = sys::SolvedPlay::default();
     let play = PlayTraceBin::from(&trace.cards);
     let status =
         unsafe { sys::AnalysePlayBin(trace.board.clone().into(), play.0, &raw mut result, 0) };
     check(status);
     PlayAnalysis::from(result)
+}
+
+/// Trace DD trick counts before and after each played card with
+/// [`sys::AnalysePlayBin`]
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
+#[must_use]
+pub fn analyse_play(trace: PlayTrace) -> PlayAnalysis {
+    analyse_play_ref(&trace)
+}
+
+/// Trace DD trick counts for many plays in parallel
+///
+/// Fans out across rayon workers, each calling [`sys::AnalysePlayBin`] with
+/// `threadIndex = 0`.  Per the `dds-bridge-sys` documentation, this entry
+/// point is safe for concurrent invocation across threads, though each call
+/// pays the full setup cost of a fresh internal solver context (no TT
+/// reuse across traces — the modern shim does not yet expose a context
+/// variant of `analyse_play`).
+///
+/// # Panics
+///
+/// Not expected — panics here are bugs. See the module-level panic policy.
+#[must_use]
+pub fn analyse_plays(traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
+    traces.par_iter().map(analyse_play_ref).collect()
 }

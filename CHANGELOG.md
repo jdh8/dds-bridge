@@ -9,23 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0]
+
 ### Changed
 
-- `Solver::solve_deals` now parallelizes across rayon workers, one
-  `SolverContext` per worker, mirroring the existing pattern in
-  `solve_boards`. Previous releases pinned this method to a single
-  sequential context because upstream DDS 3's `calc_dd_table` shared a
-  file-scope `ParamType cparam` buffer between contexts. The pinned
-  `dds-bridge-sys` (via the `pons-parallel-calc` fork branch) removes that
-  global, so `solve_deals` can fan out safely. Public signature is
-  unchanged.
+- **Breaking:** `Solver` is redesigned as a per-thread context handle
+  wrapping a DDS `SolverContext`. Construct via
+  `Solver::new(SolverConfig)` or `Solver::default()`. `solve_deal` and
+  `solve_board` now take `&mut self` and preserve the transposition table
+  across calls on the same `Solver`, so reusing one `Solver` over a batch
+  of related queries amortizes setup cost. `Solver` is `Send` and `!Sync`
+  — build one per thread, never share.
+- **Breaking:** `Solver::solve_board` now takes `&Objective` instead of
+  `Objective` by value, avoiding clones in the batch caller.
+- **Breaking:** The batch helpers `solve_deals`, `solve_boards`, and
+  `analyse_plays` are now free functions in the `solver` module rather
+  than methods on `Solver`. They internally fan work across rayon workers
+  using one `Solver` per worker (with `Solver::default`).
+- **Breaking:** `analyse_play` and `system_info` are free functions in
+  the `solver` module, no longer methods on `Solver`. `system_info` no
+  longer requires a `Solver` to call.
+- **Breaking:** `solve_deals` no longer accepts a `NonEmptyStrainFlags`
+  argument. The argument had been informational since 0.19.1 (every solve
+  returned the full 5×4 table regardless); drop it from call sites.
 - Raise MSRV to 1.86 to match the dev-dependency `criterion` 0.8, whose
   0.8.x releases all require rustc 1.86. The previous `rust-version = "1.85"`
   was inconsistent with the resolved `criterion@0.8.2` and broke
   `cargo +1.85` builds with a resolver error.
-- Refer to `core::hint::black_box` and `core::error::Error` instead of their
-  `std::` re-exports for consistency with the rest of the crate, which
-  already uses `core::` paths. No behavior change.
+- Refer to `core::hint::black_box` and `core::error::Error` instead of
+  their `std::` re-exports for consistency with the rest of the crate,
+  which already uses `core::` paths. No behavior change.
+
+### Removed
+
+- **Breaking:** `Solver::lock` and `Solver::try_lock`, the internal
+  `THREAD_POOL` global mutex, and the `parking_lot` dependency. The new
+  `Solver` is per-thread and does not need a global serialization point.
+- **Breaking:** `SolverContext` (and its `new`/`Default` constructors)
+  — its role is now filled by `Solver` directly. The companion types
+  `SolverConfig` and `TtKind` remain, now associated with `Solver::new`.
 
 ## [0.19.1] - 2026-05-21
 
@@ -238,6 +260,7 @@ The main idea of this release is to let the type system enforce solver precondit
 
 - Documentation fixes.
 
+[0.20.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.20.0
 [0.19.1]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.1
 [0.19.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.0
 [0.18.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.18.0

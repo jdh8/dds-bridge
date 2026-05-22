@@ -11,7 +11,7 @@ use dds_bridge_sys as sys;
 
 /// A starting board and a sequence of cards played from it
 ///
-/// Input to [`Solver::analyse_play`](super::Solver::analyse_play).  The two
+/// Input to [`analyse_play`](super::analyse_play).  The two
 /// fields split the position and the play-trace cleanly:
 ///
 /// - [`board`](Self::board) is the snapshot from which analysis begins.  It
@@ -62,7 +62,7 @@ impl From<&ArrayVec<Card, 52>> for PlayTraceBin {
 
 /// Double-dummy trick counts before and after each played card in a trace
 ///
-/// Returned by [`Solver::analyse_play`](super::Solver::analyse_play).  Trick
+/// Returned by [`analyse_play`](super::analyse_play).  Trick
 /// counts are from the declarer's viewpoint: declarer is the right-hand
 /// opponent of the opening leader (the side to lead the very first trick in
 /// the starting [`Board`]).

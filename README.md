@@ -36,7 +36,7 @@ use dds_bridge::{Contract, FullDeal, Penalty, Solver, Strain, Seat};
 let deal: FullDeal = "N:AKQJT98765432... .AKQJT98765432.. \
                       ..AKQJT98765432. ...AKQJT98765432".parse()?;
 
-let solver = Solver::lock();
+let mut solver = Solver::default();
 let tricks = solver.solve_deal(deal);
 
 // 4♠ by North, scored as if 10 tricks taken, not vulnerable.
