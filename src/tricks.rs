@@ -272,7 +272,7 @@ impl From<TrickCountTable> for sys::DdTableResults {
 /// unvalidated, so prefer the [`FullDeal`] or [`PartialDeal`] entry points
 /// via [`dd_table_deal_from`].
 #[must_use]
-pub(crate) fn dd_table_deal_from_builder(builder: Builder) -> sys::DdTableDeal {
+pub fn dd_table_deal_from_builder(builder: Builder) -> sys::DdTableDeal {
     sys::DdTableDeal {
         cards: Seat::ALL.map(|seat| {
             let hand = builder[seat];
@@ -289,6 +289,6 @@ pub(crate) fn dd_table_deal_from_builder(builder: Builder) -> sys::DdTableDeal {
 /// Convert a validated deal (either [`FullDeal`] or [`PartialDeal`]) into a
 /// DDS `DdTableDeal`.
 #[must_use]
-pub(crate) fn dd_table_deal_from(deal: impl Into<Builder>) -> sys::DdTableDeal {
+pub fn dd_table_deal_from(deal: impl Into<Builder>) -> sys::DdTableDeal {
     dd_table_deal_from_builder(deal.into())
 }

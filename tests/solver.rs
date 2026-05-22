@@ -227,6 +227,7 @@ fn solve_deals_parallel_matches_sequential() {
 
     fn random_deals(n: usize, seed: u64) -> Vec<contract_bridge::FullDeal> {
         let mut rng = StdRng::seed_from_u64(seed);
+        #[allow(clippy::cast_possible_truncation)]
         let mut deck: [u8; 52] = core::array::from_fn(|i| i as u8);
         (0..n)
             .map(|_| {

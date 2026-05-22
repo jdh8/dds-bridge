@@ -332,7 +332,7 @@ pub fn solve_deals(deals: &[FullDeal]) -> Vec<TrickCountTable> {
 #[must_use]
 pub fn solve_boards(args: &[Objective]) -> Vec<FoundPlays> {
     args.par_iter()
-        .map_init(Solver::default, |s, o| s.solve_board(o))
+        .map_init(Solver::default, Solver::solve_board)
         .collect()
 }
 

@@ -41,7 +41,7 @@ pub struct PlayTrace {
 
 /// Thin wrapper over [`sys::PlayTraceBin`] so we can impl conversions for it
 #[repr(transparent)]
-pub(super) struct PlayTraceBin(pub(super) sys::PlayTraceBin);
+pub struct PlayTraceBin(pub sys::PlayTraceBin);
 
 impl From<&ArrayVec<Card, 52>> for PlayTraceBin {
     fn from(cards: &ArrayVec<Card, 52>) -> Self {

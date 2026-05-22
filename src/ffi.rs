@@ -14,7 +14,7 @@ use super::tricks::TrickCount;
 use core::ffi::c_int;
 
 #[inline]
-pub(super) fn trick_count_from_sys(n: c_int) -> TrickCount {
+pub fn trick_count_from_sys(n: c_int) -> TrickCount {
     u8::try_from(n)
         .ok()
         .and_then(|u| TrickCount::try_new(u).ok())
@@ -22,7 +22,7 @@ pub(super) fn trick_count_from_sys(n: c_int) -> TrickCount {
 }
 
 #[inline]
-pub(super) fn rank_from_sys(n: c_int) -> Rank {
+pub fn rank_from_sys(n: c_int) -> Rank {
     u8::try_from(n)
         .ok()
         .and_then(|u| Rank::try_new(u).ok())
@@ -30,7 +30,7 @@ pub(super) fn rank_from_sys(n: c_int) -> Rank {
 }
 
 #[inline]
-pub(super) fn level_from_sys(n: c_int) -> Level {
+pub fn level_from_sys(n: c_int) -> Level {
     u8::try_from(n)
         .ok()
         .and_then(|u| Level::try_new(u).ok())
@@ -38,7 +38,7 @@ pub(super) fn level_from_sys(n: c_int) -> Level {
 }
 
 #[inline]
-pub(super) fn suit_from_desc_index(i: c_int) -> Suit {
+pub fn suit_from_desc_index(i: c_int) -> Suit {
     match i {
         0 => Suit::Spades,
         1 => Suit::Hearts,
@@ -49,7 +49,7 @@ pub(super) fn suit_from_desc_index(i: c_int) -> Suit {
 }
 
 #[inline]
-pub(super) fn strain_from_denom(i: c_int) -> Strain {
+pub fn strain_from_denom(i: c_int) -> Strain {
     match i {
         0 => Strain::Notrump,
         1 => Strain::Spades,
@@ -65,7 +65,7 @@ pub(super) fn strain_from_denom(i: c_int) -> Strain {
 /// Returns the count as `usize`. Panics if the value is negative or exceeds
 /// `upper` (the capacity of the corresponding array).
 #[inline]
-pub(super) fn count_from_sys(n: c_int, upper: usize) -> usize {
+pub fn count_from_sys(n: c_int, upper: usize) -> usize {
     usize::try_from(n)
         .ok()
         .filter(|&u| u <= upper)

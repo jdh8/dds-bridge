@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   signature introduced in 0.20. The private `analyse_play_ref` helper is
   folded into `analyse_play` and removed. Call-site migration:
   `analyse_play(t)` → `analyse_play(&t)`.
+- Bumped the `dds-bridge-sys` requirement to `3.1.1-dev` so the local
+  pre-release patch (which carries the `dds_calc_dd_table` thread-safety
+  fix) is honored during development. Before publishing, bump this to the
+  matching released `3.1.1`.
+
+### Internal
+
+- Cleared `clippy::pedantic` and `clippy::nursery` warnings: use a method
+  reference (`Solver::solve_board`) in `solve_boards`'s rayon pipeline,
+  drop redundant `pub(super)`/`pub(crate)` qualifiers on items already
+  inside private modules (`ffi`, `play`, `tricks`), and annotate the
+  bounded `usize → u8` cast in the parallel-deals test.
 
 ## [0.20.0]
 
