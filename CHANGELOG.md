@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `solver::analyse_play` now takes `&PlayTrace` instead of
+  `PlayTrace` by value, mirroring the borrow-based `Solver::solve_board`
+  signature introduced in 0.20. The private `analyse_play_ref` helper is
+  folded into `analyse_play` and removed. Call-site migration:
+  `analyse_play(t)` → `analyse_play(&t)`.
+
 ## [0.20.0]
 
 ### Changed

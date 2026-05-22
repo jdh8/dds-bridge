@@ -340,16 +340,6 @@ pub fn solve_boards(args: &[Objective]) -> Vec<FoundPlays> {
 /// threads).
 static INIT_LEGACY_POOL: LazyLock<()> = LazyLock::new(|| unsafe { sys::SetMaxThreads(0) });
 
-fn analyse_play_ref(trace: &PlayTrace) -> PlayAnalysis {
-    LazyLock::force(&INIT_LEGACY_POOL);
-    let mut result = sys::SolvedPlay::default();
-    let play = PlayTraceBin::from(&trace.cards);
-    let status =
-        unsafe { sys::AnalysePlayBin(trace.board.clone().into(), play.0, &raw mut result, 0) };
-    check(status);
-    PlayAnalysis::from(result)
-}
-
 /// Trace DD trick counts before and after each played card with
 /// [`sys::AnalysePlayBin`]
 ///
@@ -357,8 +347,14 @@ fn analyse_play_ref(trace: &PlayTrace) -> PlayAnalysis {
 ///
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
-pub fn analyse_play(trace: PlayTrace) -> PlayAnalysis {
-    analyse_play_ref(&trace)
+pub fn analyse_play(trace: &PlayTrace) -> PlayAnalysis {
+    LazyLock::force(&INIT_LEGACY_POOL);
+    let mut result = sys::SolvedPlay::default();
+    let play = PlayTraceBin::from(&trace.cards);
+    let status =
+        unsafe { sys::AnalysePlayBin(trace.board.clone().into(), play.0, &raw mut result, 0) };
+    check(status);
+    PlayAnalysis::from(result)
 }
 
 /// Trace DD trick counts for many plays in parallel
@@ -375,5 +371,5 @@ pub fn analyse_play(trace: PlayTrace) -> PlayAnalysis {
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn analyse_plays(traces: &[PlayTrace]) -> Vec<PlayAnalysis> {
-    traces.par_iter().map(analyse_play_ref).collect()
+    traces.par_iter().map(analyse_play).collect()
 }

@@ -284,7 +284,7 @@ fn analyse_play_empty_trace_complements_solve_board() -> anyhow::Result<()> {
         board: board.clone(),
         target: Target::Any(None),
     });
-    let analysis = analyse_play(PlayTrace {
+    let analysis = analyse_play(&PlayTrace {
         board,
         cards: ArrayVec::new(),
     });
@@ -321,7 +321,7 @@ fn analyse_play_optimal_card_preserves_dd_value() -> anyhow::Result<()> {
     let best = found.plays[0];
     let mut cards = ArrayVec::new();
     cards.push(best.card);
-    let analysis = analyse_play(PlayTrace { board, cards });
+    let analysis = analyse_play(&PlayTrace { board, cards });
     assert_eq!(analysis.tricks.len(), 2);
     assert_eq!(analysis.tricks[0], analysis.tricks[1]);
     assert_eq!(u8::from(analysis.tricks[0]) + u8::from(best.score), 13,);
@@ -368,7 +368,7 @@ fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
         .build_partial()
         .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
     let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
-    let analysis = analyse_play(PlayTrace { board, cards });
+    let analysis = analyse_play(&PlayTrace { board, cards });
     assert_eq!(analysis.tricks.len(), 2);
     assert!(analysis.tricks.iter().all(|&t| u8::from(t) == 0));
     Ok(())
