@@ -54,10 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   signature introduced in 0.20. The private `analyse_play_ref` helper is
   folded into `analyse_play` and removed. Call-site migration:
   `analyse_play(t)` → `analyse_play(&t)`.
-- Bumped the `dds-bridge-sys` requirement to `3.1.1-dev` so the local
-  pre-release patch (which carries the `dds_calc_dd_table` thread-safety
-  fix) is honored during development. Before publishing, bump this to the
-  matching released `3.1.1`.
+- Bumped the `dds-bridge-sys` requirement to `3.1.1`.
+
+### Fixed
+
+- Parallel `solve_deals` (and any two `Solver`s driving `solve_deal`
+  concurrently) no longer races on a file-scope `ParamType cparam`
+  global inside DDS's `calc_tables.cpp`. The fix lives in
+  `dds-bridge-sys 3.1.1` (which repoints the vendored DDS at the
+  `pons-parallel-calc` fork) and is pulled in by the version bump
+  above. Symptom on the bug: trick counts came back as the wrong
+  declarer's row, sometimes with patterns like `0xDDDD` (13/13/13/13)
+  on otherwise plausible tables — observed in CI by
+  `solve_par_5_tricks`, `solve_everyone_makes_1nt`, and
+  `solve_deals_parallel_matches_sequential` when `cargo test` ran the
+  suite in parallel.
 
 ### Internal
 
