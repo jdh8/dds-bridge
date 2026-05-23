@@ -47,3 +47,12 @@ jobs:
       run: rustup toolchain install ${{ matrix.rust }} --profile minimal && rustup default ${{ matrix.rust }}
     - name: Test (all features)
       run: cargo test --all-features --verbose
+
+  test-release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install Rust stable
+      run: rustup toolchain install stable --profile minimal && rustup default stable
+    - name: Test (release profile, all features)
+      run: cargo test --release --all-features --verbose

@@ -33,7 +33,7 @@ contract-bridge = { version = "0.1", features = ["rand"] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 rand = "0.10"
 
-[profile.dev]
+[profile.dev.package."*"]
 opt-level = 2
 
 [[bench]]

@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   thread-safety issue in DDS itself. The test is kept in the codebase
   to surface the bug; remove `#[ignore]` once the underlying issue is
   resolved.
+- `test-release` CI job that runs `cargo test --release --all-features`
+  on ubuntu+stable. Catches the converse of the stack-temp bug class
+  fixed in ddss 0.1.2: UB-in-unsafe miscompilations,
+  inlining-exposed preconditions, and aggressive-inlining stack
+  growth that only surface at -O2/-O3 because the optimizer trusts
+  assumptions unsafe code may violate.
 
 ### Changed
 
@@ -55,6 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   folded into `analyse_play` and removed. Call-site migration:
   `analyse_play(t)` → `analyse_play(&t)`.
 - Bumped the `dds-bridge-sys` requirement to `3.1.1`.
+- Set `[profile.dev.package."*"]` to `opt-level = 2` (replaces the
+  blanket `[profile.dev] opt-level = 2`). Dependencies — most
+  importantly `dds-bridge-sys`'s C++ DDS engine via `cc` — stay
+  optimized in dev builds; `dds-bridge`'s own Rust drops to opt-level
+  0 so any stack-temp-class bug in this crate's own code would
+  surface under `cargo test`. Matches the profile shape ddss adopted
+  after its 0.1.2 release.
 
 ### Fixed
 
