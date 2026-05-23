@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `notrump-tricks` example: histogram of notrump tricks across random
+  deals (per-seat, right-sided per pair, and per-deal max). Parallels
+  the same example in [`ddss`](https://crates.io/crates/ddss), using
+  `dds_bridge::solve_deals` instead of `ddss::Solver::lock`.
+
 ### Changed
 
 - **Breaking:** The `solver` module is promoted to the crate root. With
