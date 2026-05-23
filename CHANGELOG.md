@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deals (per-seat, right-sided per pair, and per-deal max). Parallels
   the same example in [`ddss`](https://crates.io/crates/ddss), using
   `dds_bridge::solve_deals` instead of `ddss::Solver::lock`.
+- `solve_deals_large_batch_matches_sequential` test in `tests/solver.rs`
+  (adapted from a `pons` test that originally targeted `ddss`). Runs
+  `2 * MAXNOOFBOARDS = 400` random deals through `solve_deals` and
+  asserts equality with sequential `solve_deal`. Currently
+  `#[ignore]`-d: at this scale DDS returns trick counts > 13, tripping
+  the `TrickCount::try_new` assertion. The wrapper-side serialization
+  looks correct (`solve_deal` takes `&mut self`; each rayon worker has
+  its own `Solver` via `map_init`), so the corruption appears to be a
+  thread-safety issue in DDS itself. The test is kept in the codebase
+  to surface the bug; remove `#[ignore]` once the underlying issue is
+  resolved.
 
 ### Changed
 
