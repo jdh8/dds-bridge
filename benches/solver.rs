@@ -4,6 +4,7 @@ use arrayvec::ArrayVec;
 use contract_bridge::deck::full_deal;
 use contract_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use core::hint::black_box;
+use core::time::Duration;
 use criterion::{BatchSize, Criterion, Throughput, criterion_group, criterion_main};
 use dds_bridge::{
     Board, CurrentTrick, Objective, PlayTrace, Solver, Target, analyse_plays, solve_boards,
@@ -63,16 +64,17 @@ fn bench_solve_deal_single(c: &mut Criterion) {
 }
 
 /// Batch sizes exercised by [`bench_solve_deals`] / [`bench_solve_boards`].
-/// The N=32 baseline always runs; N=200 and N=1000 are gated behind the
-/// opt-in `large-bench` feature so a default `cargo bench` stays quick.
-#[cfg(feature = "large-bench")]
-const SIZES: &[usize] = &[32, 200, 1000];
-#[cfg(not(feature = "large-bench"))]
-const SIZES: &[usize] = &[32];
+/// Mirrors the sibling crate `ddss`: N=32 for the per-core saturation case,
+/// N=200 for the amortization-friendly case where the per-worker
+/// transposition table has many deals to spread its setup cost over.
+const SIZES: &[usize] = &[32, 200];
 
 fn bench_solve_deals(c: &mut Criterion) {
     let mut group = c.benchmark_group("solve_deals");
     group.sample_size(10);
+    // 10 samples + 30 s budget keeps criterion from warning that the
+    // default 5 s budget is too small for the slower N=200 iterations.
+    group.measurement_time(Duration::from_secs(30));
     for &n in SIZES {
         let ds = deals(0, n);
         group.throughput(Throughput::Elements(n as u64));
@@ -86,6 +88,7 @@ fn bench_solve_deals(c: &mut Criterion) {
 fn bench_solve_boards(c: &mut Criterion) {
     let mut group = c.benchmark_group("solve_boards");
     group.sample_size(10);
+    group.measurement_time(Duration::from_secs(30));
     for &n in SIZES {
         let objectives: Vec<Objective> = deals(1, n)
             .into_iter()

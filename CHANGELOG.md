@@ -20,13 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Throughput::Elements`, so results are also expressed in deals-per-second
   (and boards-per-second). Easier to reason about scaling than raw wall
   time when comparing batch sizes.
-- Opt-in `large-bench` Cargo feature extends the `solve_deals` and
-  `solve_boards` benchmark groups with `N=200` and `N=1000` cases. The
-  N=32 baseline still runs by default; the larger sizes are gated because
-  they add roughly ten minutes to a full `cargo bench`. Use `cargo bench
-  --features large-bench` to enable them — useful for confirming the
-  batched-FFI scheduling win at batch sizes much larger than
-  `hardware_concurrency()`.
+- `solve_deals` and `solve_boards` benchmark groups now also run at
+  `N=200` alongside the existing `N=32`, mirroring sibling crate `ddss`.
+  N=200 is the amortization-friendly case where the per-worker
+  transposition table has many deals to spread its setup cost over,
+  and it surfaces the scheduling win of the batched FFI that the N=32
+  saturation case can't. A 30 s measurement budget keeps criterion from
+  warning that the default 5 s isn't enough for the slower iterations.
 - Three tests ported from sibling crate `ddss` for parity:
   `solve_deals_batch_matches_sequential` (three deterministic
   hand-crafted deals, complements the existing 16-deal

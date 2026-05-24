@@ -15,11 +15,6 @@ keywords = ["bridge", "double-dummy"]
 
 [features]
 serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "contract-bridge/serde", "semver/serde"]
-# Opt-in larger-batch sizes (N=200, N=1000) in the solver benchmarks. The
-# default N=32 trio finishes in seconds; the larger ones add ~10 minutes
-# to a full `cargo bench`. Useful for confirming the batched-FFI win at
-# N >> hardware_concurrency().
-large-bench = []
 
 [dependencies]
 arrayvec = "0.7"
