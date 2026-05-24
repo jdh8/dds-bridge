@@ -320,8 +320,11 @@ pub fn solve_deals(deals: &[FullDeal]) -> Vec<TrickCountTable> {
     if deals.is_empty() {
         return Vec::new();
     }
-    let sys_deals: Vec<sys::DdTableDeal> =
-        deals.iter().copied().map(tricks::dd_table_deal_from).collect();
+    let sys_deals: Vec<sys::DdTableDeal> = deals
+        .iter()
+        .copied()
+        .map(tricks::dd_table_deal_from)
+        .collect();
     let mut results: Vec<sys::DdTableResults> = vec![sys::DdTableResults::default(); deals.len()];
     let cfg = SolverConfig::default().to_sys();
     // SAFETY: sys_deals and results are valid, disjoint, and length-matched
@@ -354,7 +357,10 @@ pub fn solve_boards(args: &[Objective]) -> Vec<FoundPlays> {
     if args.is_empty() {
         return Vec::new();
     }
-    let deals: Vec<sys::Deal> = args.iter().map(|o| sys::Deal::from(o.board.clone())).collect();
+    let deals: Vec<sys::Deal> = args
+        .iter()
+        .map(|o| sys::Deal::from(o.board.clone()))
+        .collect();
     let targets: Vec<c_int> = args.iter().map(|o| o.target.target()).collect();
     let solutions: Vec<c_int> = args.iter().map(|o| o.target.solutions()).collect();
     let modes: Vec<c_int> = vec![0; args.len()];
