@@ -261,6 +261,138 @@ fn solve_deals_parallel_matches_sequential() {
     assert_eq!(parallel, sequential);
 }
 
+/// `solve_deals` must agree with sequential `solve_deal` on a varied batch.
+///
+/// Complements [`solve_deals_parallel_matches_sequential`] with deterministic
+/// hand-crafted deals — useful for reproducing issues without an RNG.
+#[test]
+fn solve_deals_batch_matches_sequential() -> Result<(), Builder> {
+    const DEALS: [Builder; 3] = [
+        Builder::new()
+            .north(Hand::new(
+                Holding::ALL,
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::EMPTY,
+            ))
+            .east(Hand::new(
+                Holding::EMPTY,
+                Holding::ALL,
+                Holding::EMPTY,
+                Holding::EMPTY,
+            ))
+            .south(Hand::new(
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::ALL,
+                Holding::EMPTY,
+            ))
+            .west(Hand::new(
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::ALL,
+            )),
+        Builder::new()
+            .north(Hand::new(
+                Holding::ALL,
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::EMPTY,
+            ))
+            .south(Hand::new(
+                Holding::EMPTY,
+                Holding::ALL,
+                Holding::EMPTY,
+                Holding::EMPTY,
+            ))
+            .east(Hand::new(
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::ALL,
+                Holding::EMPTY,
+            ))
+            .west(Hand::new(
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::EMPTY,
+                Holding::ALL,
+            )),
+        Builder::new()
+            .north(Hand::new(
+                Holding::from_bits_truncate(0xF << 11),
+                Holding::from_bits_truncate(0xF << 7),
+                Holding::from_bits_truncate(0xF << 3),
+                Holding::from_bits_truncate(1 << 2),
+            ))
+            .east(Hand::new(
+                Holding::from_bits_truncate(1 << 2),
+                Holding::from_bits_truncate(0xF << 11),
+                Holding::from_bits_truncate(0xF << 7),
+                Holding::from_bits_truncate(0xF << 3),
+            ))
+            .south(Hand::new(
+                Holding::from_bits_truncate(0xF << 3),
+                Holding::from_bits_truncate(1 << 2),
+                Holding::from_bits_truncate(0xF << 11),
+                Holding::from_bits_truncate(0xF << 7),
+            ))
+            .west(Hand::new(
+                Holding::from_bits_truncate(0xF << 7),
+                Holding::from_bits_truncate(0xF << 3),
+                Holding::from_bits_truncate(1 << 2),
+                Holding::from_bits_truncate(0xF << 11),
+            )),
+    ];
+    let deals: Vec<_> = DEALS
+        .iter()
+        .map(|b| b.build_full())
+        .collect::<Result<_, _>>()?;
+    let parallel = solve_deals(&deals);
+    let mut solver = Solver::default();
+    let sequential: Vec<_> = deals.iter().map(|&d| solver.solve_deal(d)).collect();
+    assert_eq!(parallel, sequential);
+    Ok(())
+}
+
+/// `solve_deals` and `solve_boards` must not overflow Windows' 1 MB
+/// default thread stack. The batch entry points internally allocate
+/// multi-hundred-KB FFI packs; if any of them are constructed on the
+/// stack before being boxed, this test panics with a stack overflow.
+#[test]
+fn batch_solvers_fit_on_one_megabyte_stack() {
+    std::thread::Builder::new()
+        .stack_size(1 << 20)
+        .spawn(|| -> anyhow::Result<()> {
+            const A54: Holding = Holding::from_bits_truncate(0b100_0000_0011_0000);
+            const QJ32: Holding = Holding::from_bits_truncate(0b001_1000_0000_1100);
+            const K976: Holding = Holding::from_bits_truncate(0b010_0010_1100_0000);
+            const T8: Holding = Holding::from_bits_truncate(0b000_0101_0000_0000);
+            const DEAL: Builder = Builder::new()
+                .north(Hand::new(A54, QJ32, K976, T8))
+                .east(Hand::new(T8, A54, QJ32, K976))
+                .south(Hand::new(K976, T8, A54, QJ32))
+                .west(Hand::new(QJ32, K976, T8, A54));
+            let full = DEAL
+                .build_full()
+                .map_err(|_| anyhow::anyhow!("DEAL is not a full deal"))?;
+            let partial = DEAL
+                .build_partial()
+                .map_err(|_| anyhow::anyhow!("DEAL is not a valid partial deal"))?;
+            let board = Board::try_new(partial, CurrentTrick::new(Strain::Notrump, Seat::North))?;
+            let _ = solve_deals(&[full]);
+            let _ = solve_boards(&[Objective {
+                board,
+                target: Target::Any(None),
+            }]);
+            Ok(())
+        })
+        .expect("spawn worker thread")
+        .join()
+        .expect("worker thread did not overflow its stack")
+        .expect("worker thread succeeded");
+}
+
 /// `analyse_play` with an empty trace returns just the starting DD value.
 ///
 /// DDS reports tricks from declarer's viewpoint — declarer is the RHO of the
@@ -687,6 +819,21 @@ fn current_trick_try_push_refuses_fourth_card() -> Result<(), CurrentTrickError>
     );
     assert_eq!(trick.len(), 3);
     Ok(())
+}
+
+/// `solve_deals` must match sequential `solve_deal` across a batch large
+/// enough to cross at least one internal chunk boundary.  With all five
+/// strains selected, the per-chunk capacity is `MAXNOOFBOARDS / 5`; this
+/// test runs twice that many random deals through the batch path.
+#[test]
+#[cfg_attr(miri, ignore = "dds-bridge-sys performs FFI which Miri cannot execute")]
+fn solve_deals_crosses_chunk_boundary() {
+    const N: usize = dds_bridge_sys::MAXNOOFBOARDS as usize / 5 * 2;
+    let deals: Vec<_> = (0..N).map(|_| full_deal(&mut rand::rng())).collect();
+    let mut solver = Solver::default();
+    let sequential: Vec<_> = deals.iter().map(|&d| solver.solve_deal(d)).collect();
+    let parallel = solve_deals(&deals);
+    assert_eq!(parallel, sequential);
 }
 
 /// `solve_deals` must match sequential `solve_deal` on a large batch.

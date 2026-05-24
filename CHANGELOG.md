@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Three tests ported from sibling crate `ddss` for parity:
+  `solve_deals_batch_matches_sequential` (three deterministic
+  hand-crafted deals, complements the existing 16-deal
+  `solve_deals_parallel_matches_sequential`),
+  `solve_deals_crosses_chunk_boundary` (random deals at
+  `2 * MAXNOOFBOARDS / 5` — large enough to cross at least one
+  internal chunk boundary while staying below the size that triggers
+  the bug in `solve_deals_large_batch_matches_sequential`; ignored
+  under Miri), and `batch_solvers_fit_on_one_megabyte_stack` (1 MB
+  worker thread runs `solve_deals` and `solve_boards` — regression
+  guard for the stack-temp class of bug fixed in `ddss` 0.1.2).
 - `notrump-tricks` example: histogram of notrump tricks across random
   deals (per-seat, right-sided per pair, and per-deal max). Parallels
   the same example in [`ddss`](https://crates.io/crates/ddss), using
