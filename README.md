@@ -59,10 +59,6 @@ assert_eq!(contract.score(10, false), 420);
 [Display]: https://doc.rust-lang.org/std/fmt/trait.Display.html
 [FromStr]: https://doc.rust-lang.org/std/str/trait.FromStr.html
 
-## Minimum supported Rust version
-
-Rust **1.85** (the first release supporting Rust 2024 edition).
-
 ## License
 
 Licensed under the [Apache License, Version 2.0][license].
