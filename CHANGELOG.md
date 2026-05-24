@@ -91,11 +91,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   signature introduced in 0.20. The private `analyse_play_ref` helper is
   folded into `analyse_play` and removed. Call-site migration:
   `analyse_play(t)` → `analyse_play(&t)`.
-- Bumped the `dds-bridge-sys` requirement to `3.1.1`.
+- Bumped the `dds-bridge-sys` requirement to `3.2` and dropped the
+  `[patch.crates-io]` path override that had been sourcing the
+  unreleased changes locally.
 - `solve_deals` and `solve_boards` no longer fan out via Rayon. They
   hand the whole batch to the new `dds_calc_dd_tables_batched` /
   `dds_solve_boards_batched` FFI entry points (see the matching
-  `dds-bridge-sys` Unreleased entry), which own an internal worker
+  `dds-bridge-sys` 3.2.0 entry), which own an internal worker
   pool sized to `std::thread::hardware_concurrency()` and give each
   worker its own `SolverContext`. End-user API is unchanged. This
   ports the structural performance win from the `ddss` fork's
@@ -106,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SolverContext` variant yet.
 - Renamed test `system_info_version_is_2_9_0` →
   `system_info_version_is_3_0_0` and updated its expected version to
-  match the DDS 3.0.0 vendor bump (`dds-bridge-sys` Unreleased).
+  match the DDS 3.0.0 vendor bump (`dds-bridge-sys` 3.2.0).
 - Set `[profile.dev.package."*"]` to `opt-level = 2` (replaces the
   blanket `[profile.dev] opt-level = 2`). Dependencies — most
   importantly `dds-bridge-sys`'s C++ DDS engine via `cc` — stay

@@ -20,7 +20,7 @@ serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "con
 arrayvec = "0.7"
 bitflags = "2"
 contract-bridge = "0.1"
-dds-bridge-sys = "3.1.1"
+dds-bridge-sys = "3.2"
 rayon = "1"
 semver = "1"
 serde = { version = "1", features = ["derive"], optional = true }
@@ -39,6 +39,3 @@ opt-level = 2
 [[bench]]
 name = "solver"
 harness = false
-
-[patch.crates-io]
-dds-bridge-sys = { path = "../dds-bridge-sys" }
