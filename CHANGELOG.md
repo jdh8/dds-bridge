@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Benchmark dashboard published to GitHub Pages on every push to `main`
+  via `benchmark-action/github-action-benchmark`, mirroring sibling crate
+  `ddss`. Results live at <https://jdh8.github.io/dds-bridge/dev/bench/>
+  and a badge on the README links to them. The new `bench` CI job runs
+  `cargo bench --bench solver -- --output-format bencher` and commits
+  the parsed numbers to the `gh-pages` branch under `dev/bench/`.
 - `solve_deal_single` benchmark in `benches/solver.rs` (renamed from
   `batch_solver.rs`): times one `Solver::solve_deal` call per iteration on
   freshly generated random deals via criterion's `iter_batched`, mirroring
