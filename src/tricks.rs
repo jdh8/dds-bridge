@@ -268,10 +268,12 @@ impl From<TrickCountTable> for sys::DdTableResults {
     }
 }
 
-/// Convert a [`Builder`] into the DDS `DdTableDeal`.  `Builder` is
-/// unvalidated, so prefer the [`FullDeal`](contract_bridge::deal::FullDeal)
-/// or [`PartialDeal`](contract_bridge::deal::PartialDeal) entry points
-/// via [`dd_table_deal_from`].
+/// Convert a [`Builder`] into the DDS `DdTableDeal`.
+/// 
+/// `Builder` is unvalidated, so prefer the
+/// [`FullDeal`](contract_bridge::deal::FullDeal) or
+/// [`PartialDeal`](contract_bridge::deal::PartialDeal) entry points via
+/// [`dd_table_deal_from`].
 #[must_use]
 pub fn dd_table_deal_from_builder(builder: Builder) -> sys::DdTableDeal {
     sys::DdTableDeal {
