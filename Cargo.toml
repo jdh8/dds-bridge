@@ -37,7 +37,7 @@ rand = "0.10"
 opt-level = 2
 
 [[bench]]
-name = "batch_solver"
+name = "solver"
 harness = false
 
 [patch.crates-io]

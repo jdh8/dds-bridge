@@ -1,11 +1,13 @@
-//! Benchmarks for the batch solver entry points.
+//! Benchmarks for the solver entry points.
 
 use arrayvec::ArrayVec;
+use contract_bridge::deck::full_deal;
 use contract_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use core::hint::black_box;
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use dds_bridge::{
-    Board, CurrentTrick, Objective, PlayTrace, Target, analyse_plays, solve_boards, solve_deals,
+    Board, CurrentTrick, Objective, PlayTrace, Solver, Target, analyse_plays, solve_boards,
+    solve_deals,
 };
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
@@ -50,6 +52,18 @@ fn board_from(deal: FullDeal) -> Board {
         .expect("start-of-trick NT board")
 }
 
+fn bench_solve_deal_single(c: &mut Criterion) {
+    let mut rng = SmallRng::seed_from_u64(0);
+    let mut solver = Solver::default();
+    c.bench_function("solve_deal_single", |b| {
+        b.iter_batched(
+            || full_deal(&mut rng),
+            |deal| black_box(solver.solve_deal(black_box(deal))),
+            BatchSize::SmallInput,
+        );
+    });
+}
+
 fn bench_solve_deals(c: &mut Criterion) {
     let ds = deals(0);
     let mut group = c.benchmark_group("solve_deals");
@@ -88,6 +102,7 @@ fn bench_analyse_plays(c: &mut Criterion) {
 
 criterion_group!(
     benches,
+    bench_solve_deal_single,
     bench_solve_deals,
     bench_solve_boards,
     bench_analyse_plays,
