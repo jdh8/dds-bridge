@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   freshly generated random deals via criterion's `iter_batched`, mirroring
   the matching benchmark added to sibling crate `ddss`. Surfaces
   single-deal solver regressions without waiting on downstream signal.
+- `solve_deals` and `solve_boards` benchmarks now report criterion
+  `Throughput::Elements`, so results are also expressed in deals-per-second
+  (and boards-per-second). Easier to reason about scaling than raw wall
+  time when comparing batch sizes.
+- Opt-in `large-bench` Cargo feature extends the `solve_deals` and
+  `solve_boards` benchmark groups with `N=200` and `N=1000` cases. The
+  N=32 baseline still runs by default; the larger sizes are gated because
+  they add roughly ten minutes to a full `cargo bench`. Use `cargo bench
+  --features large-bench` to enable them — useful for confirming the
+  batched-FFI scheduling win at batch sizes much larger than
+  `hardware_concurrency()`.
 - Three tests ported from sibling crate `ddss` for parity:
   `solve_deals_batch_matches_sequential` (three deterministic
   hand-crafted deals, complements the existing 16-deal

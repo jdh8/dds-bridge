@@ -4,7 +4,7 @@ use arrayvec::ArrayVec;
 use contract_bridge::deck::full_deal;
 use contract_bridge::{Builder, FullDeal, Hand, Holding, PartialDeal, Seat, Strain};
 use core::hint::black_box;
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, Throughput, criterion_group, criterion_main};
 use dds_bridge::{
     Board, CurrentTrick, Objective, PlayTrace, Solver, Target, analyse_plays, solve_boards,
     solve_deals,
@@ -13,12 +13,10 @@ use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
 
-const N: usize = 32;
-
-/// `N` deterministic random deals from a seeded RNG.
-fn deals(seed: u64) -> Vec<FullDeal> {
+/// `n` deterministic random deals from a seeded RNG.
+fn deals(seed: u64, n: usize) -> Vec<FullDeal> {
     let mut rng = SmallRng::seed_from_u64(seed);
-    (0..N)
+    (0..n)
         .map(|_| {
             #[allow(clippy::cast_possible_truncation)]
             let mut cards: [u8; 52] = core::array::from_fn(|i| i as u8);
@@ -64,31 +62,48 @@ fn bench_solve_deal_single(c: &mut Criterion) {
     });
 }
 
+/// Batch sizes exercised by [`bench_solve_deals`] / [`bench_solve_boards`].
+/// The N=32 baseline always runs; N=200 and N=1000 are gated behind the
+/// opt-in `large-bench` feature so a default `cargo bench` stays quick.
+#[cfg(feature = "large-bench")]
+const SIZES: &[usize] = &[32, 200, 1000];
+#[cfg(not(feature = "large-bench"))]
+const SIZES: &[usize] = &[32];
+
 fn bench_solve_deals(c: &mut Criterion) {
-    let ds = deals(0);
     let mut group = c.benchmark_group("solve_deals");
     group.sample_size(10);
-    group.bench_function("32", |b| {
-        b.iter(|| black_box(solve_deals(black_box(&ds))));
-    });
+    for &n in SIZES {
+        let ds = deals(0, n);
+        group.throughput(Throughput::Elements(n as u64));
+        group.bench_function(n.to_string(), |b| {
+            b.iter(|| black_box(solve_deals(black_box(&ds))));
+        });
+    }
     group.finish();
 }
 
 fn bench_solve_boards(c: &mut Criterion) {
-    let objectives: Vec<Objective> = deals(1)
-        .into_iter()
-        .map(|d| Objective {
-            board: board_from(d),
-            target: Target::Any(None),
-        })
-        .collect();
-    c.bench_function("solve_boards_32", |b| {
-        b.iter(|| black_box(solve_boards(black_box(&objectives))));
-    });
+    let mut group = c.benchmark_group("solve_boards");
+    group.sample_size(10);
+    for &n in SIZES {
+        let objectives: Vec<Objective> = deals(1, n)
+            .into_iter()
+            .map(|d| Objective {
+                board: board_from(d),
+                target: Target::Any(None),
+            })
+            .collect();
+        group.throughput(Throughput::Elements(n as u64));
+        group.bench_function(n.to_string(), |b| {
+            b.iter(|| black_box(solve_boards(black_box(&objectives))));
+        });
+    }
+    group.finish();
 }
 
 fn bench_analyse_plays(c: &mut Criterion) {
-    let traces: Vec<PlayTrace> = deals(2)
+    let traces: Vec<PlayTrace> = deals(2, 32)
         .into_iter()
         .map(|d| PlayTrace {
             board: board_from(d),
