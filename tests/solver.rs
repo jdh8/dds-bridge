@@ -509,9 +509,9 @@ fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
 }
 
 #[test]
-fn system_info_version_is_2_9_0() {
+fn system_info_version_is_3_0_0() {
     let info = system_info();
-    assert_eq!(info.version(), Version::new(2, 9, 0));
+    assert_eq!(info.version(), Version::new(3, 0, 0));
 }
 
 #[test]
@@ -838,18 +838,10 @@ fn solve_deals_crosses_chunk_boundary() {
 
 /// `solve_deals` must match sequential `solve_deal` on a large batch.
 /// Complements [`solve_deals_parallel_matches_sequential`] (16 deals) at
-/// a scale of `2 * MAXNOOFBOARDS`, stressing rayon's worker dispatch
-/// over many independent FFI calls.
-///
-/// Currently ignored: at this N, DDS returns corrupted trick counts
-/// (values > 13), tripping the assertion in `ffi.rs::TrickCount::try_new`.
-/// This looks like a thread-safety issue in DDS itself rather than in
-/// the wrapper — `solve_deal` is `&mut self` and each rayon worker holds
-/// its own `Solver`, so the wrapper-side serialization is correct. Keep
-/// the test in the codebase to surface the bug for a future fix; remove
-/// `#[ignore]` once the underlying issue is resolved.
+/// a scale of `2 * MAXNOOFBOARDS`, stressing the batched FFI's atomic
+/// work-stealing across many independent boards.
 #[test]
-#[ignore = "DDS returns trick counts > 13 under high parallel batch sizes; see comment"]
+#[cfg_attr(miri, ignore = "dds-bridge-sys performs FFI which Miri cannot execute")]
 fn solve_deals_large_batch_matches_sequential() {
     const N: usize = dds_bridge_sys::MAXNOOFBOARDS as usize * 2;
     let deals: Vec<_> = (0..N).map(|_| full_deal(&mut rand::rng())).collect();

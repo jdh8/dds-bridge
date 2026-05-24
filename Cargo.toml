@@ -39,3 +39,6 @@ opt-level = 2
 [[bench]]
 name = "batch_solver"
 harness = false
+
+[patch.crates-io]
+dds-bridge-sys = { path = "../dds-bridge-sys" }

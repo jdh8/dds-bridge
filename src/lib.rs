@@ -182,8 +182,8 @@ impl SolverConfig {
 /// The transposition table is preserved across calls on the same `Solver`,
 /// so reusing one over a batch of related queries amortizes setup cost.
 /// For batches of unrelated queries the free helpers [`solve_deals`] and
-/// [`solve_boards`] fan work across rayon workers with one `Solver` per
-/// worker.
+/// [`solve_boards`] hand the whole batch to a per-worker-context pool inside
+/// `dds-bridge-sys`.
 ///
 /// [`Drop`] calls `dds_solver_context_free`.
 pub struct Solver {
@@ -307,33 +307,75 @@ pub fn system_info() -> SystemInfo {
 
 /// Solve a slice of deals in parallel
 ///
-/// Fans out across rayon workers; each worker owns one [`Solver`] and
-/// reuses its transposition table across the deals it processes.
+/// Hands the whole batch to the `dds-bridge-sys` batched FFI, which owns an
+/// internal worker pool sized to `std::thread::hardware_concurrency()`.  Each
+/// worker owns one [`SolverContext`](sys::DdsSolverContext) (with TT reuse
+/// across the deals it processes) and pulls work via an atomic counter.
 ///
 /// # Panics
 ///
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn solve_deals(deals: &[FullDeal]) -> Vec<TrickCountTable> {
-    deals
-        .par_iter()
-        .map_init(Solver::default, |s, &d| s.solve_deal(d))
-        .collect()
+    if deals.is_empty() {
+        return Vec::new();
+    }
+    let sys_deals: Vec<sys::DdTableDeal> =
+        deals.iter().copied().map(tricks::dd_table_deal_from).collect();
+    let mut results: Vec<sys::DdTableResults> = vec![sys::DdTableResults::default(); deals.len()];
+    let cfg = SolverConfig::default().to_sys();
+    // SAFETY: sys_deals and results are valid, disjoint, and length-matched
+    // for the duration of the call; the FFI owns the worker pool and per-worker
+    // SolverContexts internally.
+    let status = unsafe {
+        sys::dds_calc_dd_tables_batched(
+            c_int::try_from(deals.len()).expect("deals.len() fits in c_int"),
+            sys_deals.as_ptr(),
+            results.as_mut_ptr(),
+            0,
+            &raw const cfg,
+        )
+    };
+    check(status);
+    results.into_iter().map(Into::into).collect()
 }
 
 /// Solve a slice of boards in parallel
 ///
-/// Fans out across rayon workers; each worker owns one [`Solver`] and
-/// reuses its transposition table across the boards it processes.
+/// Hands the whole batch to the `dds-bridge-sys` batched FFI; each worker
+/// owns one [`SolverContext`](sys::DdsSolverContext) and pulls work via an
+/// atomic counter, with `mode = 0` matching [`Solver::solve_board`].
 ///
 /// # Panics
 ///
 /// Not expected — panics here are bugs. See the module-level panic policy.
 #[must_use]
 pub fn solve_boards(args: &[Objective]) -> Vec<FoundPlays> {
-    args.par_iter()
-        .map_init(Solver::default, Solver::solve_board)
-        .collect()
+    if args.is_empty() {
+        return Vec::new();
+    }
+    let deals: Vec<sys::Deal> = args.iter().map(|o| sys::Deal::from(o.board.clone())).collect();
+    let targets: Vec<c_int> = args.iter().map(|o| o.target.target()).collect();
+    let solutions: Vec<c_int> = args.iter().map(|o| o.target.solutions()).collect();
+    let modes: Vec<c_int> = vec![0; args.len()];
+    let mut results: Vec<sys::FutureTricks> = vec![sys::FutureTricks::default(); args.len()];
+    let cfg = SolverConfig::default().to_sys();
+    // SAFETY: all five input arrays and results are length-matched and valid
+    // for the duration of the call; the FFI owns the worker pool internally.
+    let status = unsafe {
+        sys::dds_solve_boards_batched(
+            c_int::try_from(args.len()).expect("args.len() fits in c_int"),
+            deals.as_ptr(),
+            targets.as_ptr(),
+            solutions.as_ptr(),
+            modes.as_ptr(),
+            results.as_mut_ptr(),
+            0,
+            &raw const cfg,
+        )
+    };
+    check(status);
+    results.into_iter().map(FoundPlays::from).collect()
 }
 
 /// One-shot initialization of the legacy DDS thread pool, needed only by the

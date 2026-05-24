@@ -29,14 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `solve_deals_large_batch_matches_sequential` test in `tests/solver.rs`
   (adapted from a `pons` test that originally targeted `ddss`). Runs
   `2 * MAXNOOFBOARDS = 400` random deals through `solve_deals` and
-  asserts equality with sequential `solve_deal`. Currently
-  `#[ignore]`-d: at this scale DDS returns trick counts > 13, tripping
-  the `TrickCount::try_new` assertion. The wrapper-side serialization
-  looks correct (`solve_deal` takes `&mut self`; each rayon worker has
-  its own `Solver` via `map_init`), so the corruption appears to be a
-  thread-safety issue in DDS itself. The test is kept in the codebase
-  to surface the bug; remove `#[ignore]` once the underlying issue is
-  resolved.
+  asserts equality with sequential `solve_deal`. The rayon-driven
+  parallel path tripped `TrickCount::try_new` on trick counts > 13 at
+  this scale (DDS-internal thread-safety issue) and the test was
+  initially landed as `#[ignore]`; switching `solve_deals` to the
+  per-worker-context batched FFI (see *Changed* below) fixed the
+  underlying corruption, and the test is now active.
 - `test-release` CI job that runs `cargo test --release --all-features`
   on ubuntu+stable. Catches the converse of the stack-temp bug class
   fixed in ddss 0.1.2: UB-in-unsafe miscompilations,
@@ -72,6 +70,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   folded into `analyse_play` and removed. Call-site migration:
   `analyse_play(t)` → `analyse_play(&t)`.
 - Bumped the `dds-bridge-sys` requirement to `3.1.1`.
+- `solve_deals` and `solve_boards` no longer fan out via Rayon. They
+  hand the whole batch to the new `dds_calc_dd_tables_batched` /
+  `dds_solve_boards_batched` FFI entry points (see the matching
+  `dds-bridge-sys` Unreleased entry), which own an internal worker
+  pool sized to `std::thread::hardware_concurrency()` and give each
+  worker its own `SolverContext`. End-user API is unchanged. This
+  ports the structural performance win from the `ddss` fork's
+  `CalcAllTablesPBNx` (in-vendor batched scheduling) and also fixes
+  the trick-count corruption that previously kept
+  `solve_deals_large_batch_matches_sequential` `#[ignore]`-d.
+  `analyse_plays` still uses Rayon — `AnalysePlayBin` has no
+  `SolverContext` variant yet.
+- Renamed test `system_info_version_is_2_9_0` →
+  `system_info_version_is_3_0_0` and updated its expected version to
+  match the DDS 3.0.0 vendor bump (`dds-bridge-sys` Unreleased).
 - Set `[profile.dev.package."*"]` to `opt-level = 2` (replaces the
   blanket `[profile.dev] opt-level = 2`). Dependencies — most
   importantly `dds-bridge-sys`'s C++ DDS engine via `cc` — stay
