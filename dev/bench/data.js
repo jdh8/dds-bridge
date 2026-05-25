@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779658636459,
+  "lastUpdate": 1779737848206,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -119,6 +119,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 251148004,
             "range": "± 11821406",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "fdf17b25b311924e8b3ab6d8837b39884482d720",
+          "message": "Lock dds-bridge-sys to 3.2.1 and note the perf / crash-fix in CHANGELOG\n\ndds-bridge-sys 3.2.1 ships a persistent FFI WorkerPool (one long-lived\nSolverContext per worker) and an ab_search inlining +\nshared_ptr<ThreadData>→raw-pointer cleanup in the vendored DDS. The\nCargo.toml requirement was already \"3.2\" so no manifest change is\nneeded; this commit just amends the [Unreleased] entry in CHANGELOG.md\nto record what 3.2.1 brings and the measured impact.\n\nReproduced 3.2.0's SIGSEGV in TransTableL::lookup_suit /\nMoves::MergeSort on this 7950X3D (32 threads, Linux x86_64) — cargo\nbench --bench solver crashed mid-solve_deals/32. Re-ran clean on\n3.2.1; batched-bench timings (solve_deals/200 3669 ms, solve_boards/200\n258 ms) sit within ~2% of the upstream-changelog \"after\" column, so\nthe reported -11% to -14% gain applies here too.\ncargo test --all-features (32 tests, incl.\nsolve_deals_large_batch_matches_sequential) passes.\n\nCo-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-05-26T03:27:15+08:00",
+          "tree_id": "bfb03538913581d7bd70bb1a930f4f442e944b05",
+          "url": "https://github.com/jdh8/dds-bridge/commit/fdf17b25b311924e8b3ab6d8837b39884482d720"
+        },
+        "date": 1779737847677,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 235689916,
+            "range": "± 568219118",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 4677137543,
+            "range": "± 31317166",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 29245526618,
+            "range": "± 181275513",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 340991460,
+            "range": "± 2707197",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 1987515950,
+            "range": "± 6159524",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 216873816,
+            "range": "± 12346982",
             "unit": "ns/iter"
           }
         ]
