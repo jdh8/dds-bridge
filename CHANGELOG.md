@@ -93,7 +93,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `analyse_play(t)` → `analyse_play(&t)`.
 - Bumped the `dds-bridge-sys` requirement to `3.2` and dropped the
   `[patch.crates-io]` path override that had been sourcing the
-  unreleased changes locally.
+  unreleased changes locally. The lockfile then tracked the latest
+  3.2.x patch: 3.2.1 ships a persistent FFI `WorkerPool` (one
+  `SolverContext` per worker, alive for the process lifetime) and
+  `ab_search` inlining + `shared_ptr<ThreadData>`→raw-pointer cleanup
+  in the vendored DDS. Measured locally on a 7950X3D (32 threads,
+  Linux x86_64) the new lock runs `cargo bench --bench solver`
+  cleanly, with timings within ~2% of the 32-core figures in the
+  `dds-bridge-sys` 3.2.1 changelog — i.e. the upstream-reported
+  −11% to −14% gain (e.g. `solve_deals/200` 4153 ms → 3587 ms,
+  `solve_boards/200` 295 ms → 253 ms) applies here too. The same
+  bump also fixes the SIGSEGV in `TransTableL::lookup_suit` /
+  `Moves::MergeSort` that 3.2.0 hit reliably under
+  `solve_deals(N >= 200)` on ≥8-effective-CPU Linux hosts; the
+  crash reproduced on this host against 3.2.0 and is gone under
+  3.2.1.
 - `solve_deals` and `solve_boards` no longer fan out via Rayon. They
   hand the whole batch to the new `dds_calc_dd_tables_batched` /
   `dds_solve_boards_batched` FFI entry points (see the matching
