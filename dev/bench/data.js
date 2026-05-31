@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779737848206,
+  "lastUpdate": 1780270644668,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -179,6 +179,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 216873816,
             "range": "± 12346982",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "844294b51aa5b4ca3e0e660fb014ad8fe1818588",
+          "message": "ci(readme): split benchmark workflow and update badges",
+          "timestamp": "2026-06-01T07:26:28+08:00",
+          "tree_id": "c5797136d88e511f5145e05140f0b6ae17649bfb",
+          "url": "https://github.com/jdh8/dds-bridge/commit/844294b51aa5b4ca3e0e660fb014ad8fe1818588"
+        },
+        "date": 1780270644187,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 217659440,
+            "range": "± 524425966",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 5198416565,
+            "range": "± 36828981",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 32959139875,
+            "range": "± 185434404",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 353797982,
+            "range": "± 2023614",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 2235191936,
+            "range": "± 5287708",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 254767654,
+            "range": "± 10629167",
             "unit": "ns/iter"
           }
         ]
