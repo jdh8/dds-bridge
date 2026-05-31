@@ -1,9 +1,9 @@
 # dds-bridge
 
-[![Build Status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml)
 [![Crates.io](https://img.shields.io/crates/v/dds-bridge.svg)](https://crates.io/crates/dds-bridge)
-[![Docs.rs](https://docs.rs/dds-bridge/badge.svg)](https://docs.rs/dds-bridge)
-[![Benchmarks](https://img.shields.io/badge/benchmarks-published-blue?logo=github)](https://jdh8.github.io/dds-bridge/dev/bench/)
+[![Documentation](https://docs.rs/dds-bridge/badge.svg)](https://docs.rs/dds-bridge)
+[![Build status](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml/badge.svg)](https://github.com/jdh8/dds-bridge/actions/workflows/rust.yml)
+[![Benchmark status](https://github.com/jdh8/dds-bridge/actions/workflows/bench.yml/badge.svg)](https://jdh8.github.io/dds-bridge/dev/bench/)
 
 A Rusty API for DDS, the double-dummy solver for the game of bridge.
 This crate aims to be the building block of computer bridge in Rust.

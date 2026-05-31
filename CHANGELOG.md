@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CI benchmark publishing has been extracted into a dedicated
+  `.github/workflows/bench.yml` workflow (triggered on pushes to `main`
+  and manual dispatch), and the README benchmark badge now reflects that
+  workflow status while still linking to the published dashboard.
 - Benchmark dashboard published to GitHub Pages on every push to `main`
   via `benchmark-action/github-action-benchmark`, mirroring sibling crate
   `ddss`. Results live at <https://jdh8.github.io/dds-bridge/dev/bench/>
