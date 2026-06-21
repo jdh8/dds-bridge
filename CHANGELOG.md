@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-06-22
+
 ### Added
 
 - CI benchmark publishing has been extracted into a dedicated
@@ -146,6 +148,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0 so any stack-temp-class bug in this crate's own code would
   surface under `cargo test`. Matches the profile shape ddss adopted
   after its 0.1.2 release.
+- **Breaking:** `Solver` is redesigned as a per-thread context handle
+  wrapping a DDS `SolverContext`. Construct via
+  `Solver::new(SolverConfig)` or `Solver::default()`. `solve_deal` and
+  `solve_board` now take `&mut self` and preserve the transposition table
+  across calls on the same `Solver`, so reusing one `Solver` over a batch
+  of related queries amortizes setup cost. `Solver` is `Send` and `!Sync`
+  — build one per thread, never share.
+- **Breaking:** `Solver::solve_board` now takes `&Objective` instead of
+  `Objective` by value, avoiding clones in the batch caller.
+- **Breaking:** The batch helpers `solve_deals`, `solve_boards`, and
+  `analyse_plays` are now free functions in the `solver` module rather
+  than methods on `Solver`. They internally fan work across rayon workers
+  using one `Solver` per worker (with `Solver::default`).
+- **Breaking:** `analyse_play` and `system_info` are free functions in
+  the `solver` module, no longer methods on `Solver`. `system_info` no
+  longer requires a `Solver` to call.
+- **Breaking:** `solve_deals` no longer accepts a `NonEmptyStrainFlags`
+  argument. The argument had been informational since 0.19.1 (every solve
+  returned the full 5×4 table regardless); drop it from call sites.
+- Refer to `core::hint::black_box` and `core::error::Error` instead of
+  their `std::` re-exports for consistency with the rest of the crate,
+  which already uses `core::` paths. No behavior change.
 
 ### Fixed
 
@@ -168,37 +192,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drop redundant `pub(super)`/`pub(crate)` qualifiers on items already
   inside private modules (`ffi`, `play`, `tricks`), and annotate the
   bounded `usize → u8` cast in the parallel-deals test.
-
-## [0.20.0]
-
-### Changed
-
-- **Breaking:** `Solver` is redesigned as a per-thread context handle
-  wrapping a DDS `SolverContext`. Construct via
-  `Solver::new(SolverConfig)` or `Solver::default()`. `solve_deal` and
-  `solve_board` now take `&mut self` and preserve the transposition table
-  across calls on the same `Solver`, so reusing one `Solver` over a batch
-  of related queries amortizes setup cost. `Solver` is `Send` and `!Sync`
-  — build one per thread, never share.
-- **Breaking:** `Solver::solve_board` now takes `&Objective` instead of
-  `Objective` by value, avoiding clones in the batch caller.
-- **Breaking:** The batch helpers `solve_deals`, `solve_boards`, and
-  `analyse_plays` are now free functions in the `solver` module rather
-  than methods on `Solver`. They internally fan work across rayon workers
-  using one `Solver` per worker (with `Solver::default`).
-- **Breaking:** `analyse_play` and `system_info` are free functions in
-  the `solver` module, no longer methods on `Solver`. `system_info` no
-  longer requires a `Solver` to call.
-- **Breaking:** `solve_deals` no longer accepts a `NonEmptyStrainFlags`
-  argument. The argument had been informational since 0.19.1 (every solve
-  returned the full 5×4 table regardless); drop it from call sites.
-- Raise MSRV to 1.86 to match the dev-dependency `criterion` 0.8, whose
-  0.8.x releases all require rustc 1.86. The previous `rust-version = "1.85"`
-  was inconsistent with the resolved `criterion@0.8.2` and broke
-  `cargo +1.85` builds with a resolver error.
-- Refer to `core::hint::black_box` and `core::error::Error` instead of
-  their `std::` re-exports for consistency with the rest of the crate,
-  which already uses `core::` paths. No behavior change.
 
 ### Removed
 
