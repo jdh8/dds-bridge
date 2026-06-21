@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782068103853,
+  "lastUpdate": 1782070420177,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -359,6 +359,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 168394714,
             "range": "± 9232682",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "96d7755c6efc7dffe850bf3a12fe008ad38b8808",
+          "message": "Release 0.20.0\n\nSet the crate version to 0.20.0 (the in-development 0.20.1 never shipped)\nand finalize the changelog: the 0.20 cycle's work, previously split across\n[Unreleased] and an undated [0.20.0], is merged into one dated\n[0.20.0] - 2026-06-22 section.\n\nHeadline changes in this release:\n- Solver redesigned as a per-thread context handle (SolverContext folded in;\n  lock / THREAD_POOL / parking_lot removed).\n- solver module promoted to the crate root; bridge data types extracted into\n  the new contract-bridge crate.\n- dds-bridge-sys bumped to 3.3 (upstream DDS develop refresh; jdh8/dds fork\n  retired), with batched FFI for solve_deals / solve_boards. MSRV raised to 1.93.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-06-22T03:24:09+08:00",
+          "tree_id": "6ba3f9e828bd499a2ee27bc0c6bbe65dbfb66bd2",
+          "url": "https://github.com/jdh8/dds-bridge/commit/96d7755c6efc7dffe850bf3a12fe008ad38b8808"
+        },
+        "date": 1782070419929,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 216027682,
+            "range": "± 519353741",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 4501577590,
+            "range": "± 46248973",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 27689167801,
+            "range": "± 93426717",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 318331814,
+            "range": "± 3240470",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 1873398085,
+            "range": "± 12932629",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 209464764,
+            "range": "± 10156615",
             "unit": "ns/iter"
           }
         ]
