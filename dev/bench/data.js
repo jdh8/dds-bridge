@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782066996299,
+  "lastUpdate": 1782068103853,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -299,6 +299,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 205444580,
             "range": "± 11189720",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "6b211fe2d45c9aa09ab2c218d1c3ca068a420bc1",
+          "message": "Drop the [patch.crates-io] override now that dds-bridge-sys 3.3.0 is on crates.io\n\ndds-bridge-sys 3.3.0 is published, so dds-bridge resolves its \"3.3\"\nrequirement from crates.io directly. Removes the temporary git override\nthat sourced the unpublished crate from the GitHub repo.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-06-22T02:46:54+08:00",
+          "tree_id": "0dda1c2515f8a7705b234307d2f4c965ae3ef782",
+          "url": "https://github.com/jdh8/dds-bridge/commit/6b211fe2d45c9aa09ab2c218d1c3ca068a420bc1"
+        },
+        "date": 1782068103205,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 181662504,
+            "range": "± 429562589",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 3507016908,
+            "range": "± 20831065",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 21933563431,
+            "range": "± 62496480",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 253257709,
+            "range": "± 1919340",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 1472052740,
+            "range": "± 2767103",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 168394714,
+            "range": "± 9232682",
             "unit": "ns/iter"
           }
         ]
