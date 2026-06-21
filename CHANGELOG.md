@@ -112,6 +112,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `solve_deals(N >= 200)` on ≥8-effective-CPU Linux hosts; the
   crash reproduced on this host against 3.2.0 and is gone under
   3.2.1.
+- Bumped the `dds-bridge-sys` requirement to `3.3`. 3.3.0 retires the
+  `jdh8/dds` fork and refreshes the vendored DDS to upstream
+  `dds-bridge/dds` `develop` (`v3.0.0-240-g0700b42`): the two fork-only
+  patches behind the 3.2.1 win are now upstream — PR #191's non-owning
+  `SolverContext::thread_ptr()` replaces the `shared_ptr<ThreadData>`
+  churn, and the racing `scheduler.RegisterRun` call is gone from
+  `calc_tables.cpp` — so the −11% to −14% gain and the
+  batched-concurrency crash-fix carry over with no fork-only code. The
+  refresh also pulls upstream `SolverContext` debug-file lifecycle fixes
+  and the scheduler rework. The public DDS ABI (`api/dll.h`) is
+  unchanged, so this crate needs no source changes; all tests, including
+  the `ddss`-parity batch tests, pass against 3.3.0.
 - `solve_deals` and `solve_boards` no longer fan out via Rayon. They
   hand the whole batch to the new `dds_calc_dd_tables_batched` /
   `dds_solve_boards_batched` FFI entry points (see the matching

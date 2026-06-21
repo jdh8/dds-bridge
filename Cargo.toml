@@ -20,7 +20,7 @@ serde = ["dep:serde", "dep:serde_with", "arrayvec/serde", "bitflags/serde", "con
 arrayvec = "0.7"
 bitflags = "2"
 contract-bridge = "0.1"
-dds-bridge-sys = "3.2"
+dds-bridge-sys = "3.3"
 rayon = "1"
 semver = "1"
 serde = { version = "1", features = ["derive"], optional = true }
@@ -39,3 +39,9 @@ opt-level = 2
 [[bench]]
 name = "solver"
 harness = false
+
+# Temporary: source the unpublished dds-bridge-sys 3.3.0 from GitHub. CI does
+# a clean checkout with no sibling, so a `path` override can't work there.
+# Drop this override once dds-bridge-sys 3.3.0 is published to crates.io.
+[patch.crates-io]
+dds-bridge-sys = { git = "https://github.com/jdh8/dds-bridge-sys", branch = "main" }
