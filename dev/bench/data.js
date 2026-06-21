@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780270644668,
+  "lastUpdate": 1782066996299,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -239,6 +239,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 254767654,
             "range": "± 10629167",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "3bda7b69696d53fd85dd9fe8616edf9dfde449fc",
+          "message": "Bump dds-bridge-sys to 3.3.0 (upstream develop refresh, fork retired)\n\n3.3.0 retires the jdh8/dds fork and refreshes the vendored DDS to upstream\ndds-bridge/dds develop (v3.0.0-240-g0700b42). The two fork-only patches\nbehind the 3.2.1 perf/crash-fix are now upstream (PR #191's thread_ptr()\nfor the shared_ptr churn; scheduler.RegisterRun dropped from\ncalc_tables.cpp), so the gain and the batched-concurrency crash-fix carry\nover with no fork code.\n\nThe public DDS ABI (api/dll.h) is unchanged, so dds-bridge needs no source\nchanges; tighten the requirement to \"3.3\". Until 3.3.0 is on crates.io, a\n[patch.crates-io] override sources it from the dds-bridge-sys GitHub repo\n(CI does a clean checkout, so a path override can't work). cargo test\n--all-features passes, including the ddss-parity batch tests.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-06-22T02:17:31+08:00",
+          "tree_id": "ceb89e89e89b855aa8f1a3f3da957e0593c17bb2",
+          "url": "https://github.com/jdh8/dds-bridge/commit/3bda7b69696d53fd85dd9fe8616edf9dfde449fc"
+        },
+        "date": 1782066996023,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 220852464,
+            "range": "± 516473739",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 4500488637,
+            "range": "± 60472555",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 28298826922,
+            "range": "± 223216851",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 313232847,
+            "range": "± 2955410",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 1905270444,
+            "range": "± 30550963",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 205444580,
+            "range": "± 11189720",
             "unit": "ns/iter"
           }
         ]
