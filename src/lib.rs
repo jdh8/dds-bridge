@@ -119,8 +119,13 @@ pub fn calculate_pars(tricks: TrickCountTable, vul: Vulnerability) -> [Par; 2] {
 pub enum TtKind {
     /// Small TT — lower memory footprint
     Small,
-    /// Large TT — higher memory footprint, faster on bigger search trees
+    /// Large TT — paged per-shape entry lists; the pre-0.21 default
     Large,
+    /// Pattern TT — shape → relative-rank patterns; the upstream and
+    /// [`SolverConfig`] default. Same results as [`Large`](Self::Large) at
+    /// parity on ordinary deals, 24–30% faster on void-heavy deals, keeps
+    /// its speed under a tight memory cap, and uses about a third less memory
+    Pattern,
 }
 
 impl TtKind {
@@ -129,6 +134,7 @@ impl TtKind {
         match self {
             Self::Small => sys::DDS_TT_KIND_SMALL as c_int,
             Self::Large => sys::DDS_TT_KIND_LARGE as c_int,
+            Self::Pattern => sys::DDS_TT_KIND_PATTERN as c_int,
         }
     }
 }
@@ -149,7 +155,7 @@ pub struct SolverConfig {
 impl Default for SolverConfig {
     fn default() -> Self {
         Self {
-            tt_kind: TtKind::Large,
+            tt_kind: TtKind::Pattern,
             tt_mem_default_mb: 0,
             tt_mem_maximum_mb: 0,
         }

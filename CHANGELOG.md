@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-07
+
+### Changed
+
+- **Breaking:** `SolverConfig::default()` now selects `TtKind::Pattern`,
+  upstream DDS's new default transposition table, instead of `TtKind::Large`.
+  Results are identical; on a 16-thread Ryzen 7 8700F Pattern is at parity
+  with Large on random deals (within ±4%), 24–30% faster on deals with four
+  or more voids, keeps that speed under a tight `tt_mem_maximum_mb` where
+  Large slows by about 35%, and uses about a third less memory per worker
+  context. Set `tt_kind: TtKind::Large` explicitly to keep the old table.
+- Require `dds-bridge-sys` 3.4, which vendors upstream DDS `b865077`
+  (993 commits newer). Through this crate's API, full DD tables
+  (`Solver::solve_deal`, `solve_deals`) are 22–27% faster single-threaded
+  and on 32-deal batches and 41% faster on 200-deal batches; notrump
+  `solve_boards` and `analyse_plays` are unchanged. The sibling `ddss` crate
+  is still ahead (10% on one thread, 13% on 200 deals, 1.8× on 32 deals).
+- `system_info().version()` now reports upstream's 3.1.0; the test pinning
+  it was updated.
+
+### Added
+
+- `TtKind::Pattern`. Adding a variant to this exhaustive public enum is the
+  reason for the minor-version bump.
+
 ## [0.20.0] - 2026-06-22
 
 ### Added
@@ -413,6 +438,7 @@ The main idea of this release is to let the type system enforce solver precondit
 
 - Documentation fixes.
 
+[0.21.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.21.0
 [0.20.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.20.0
 [0.19.1]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.1
 [0.19.0]: https://github.com/jdh8/dds-bridge/releases/tag/0.19.0

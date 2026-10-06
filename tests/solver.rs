@@ -509,9 +509,9 @@ fn analyse_play_straight_flush_declarer_takes_zero() -> anyhow::Result<()> {
 }
 
 #[test]
-fn system_info_version_is_3_0_0() {
+fn system_info_version_is_3_1_0() {
     let info = system_info();
-    assert_eq!(info.version(), Version::new(3, 0, 0));
+    assert_eq!(info.version(), Version::new(3, 1, 0));
 }
 
 #[test]
