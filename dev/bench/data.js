@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782070420177,
+  "lastUpdate": 1791326623683,
   "repoUrl": "https://github.com/jdh8/dds-bridge",
   "entries": {
     "Benchmark": [
@@ -419,6 +419,66 @@ window.BENCHMARK_DATA = {
             "name": "analyse_plays_32",
             "value": 209464764,
             "range": "± 10156615",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "committer": {
+            "email": "chen.pang.he@jdh8.org",
+            "name": "Chen-Pang He",
+            "username": "jdh8"
+          },
+          "distinct": true,
+          "id": "74b65d16674d15c0b9da7f037714d8be2dd4de11",
+          "message": "Default to the Pattern TT on dds-bridge-sys 3.4 (0.21.0)\n\nRequire dds-bridge-sys 3.4, which vendors upstream DDS b865077. Through\nthis crate, full DD tables are 22-27% faster single-threaded and on\n32-deal batches and 41% faster on 200-deal batches; NT solve_boards and\nanalyse_plays are unchanged.\n\nAdd TtKind::Pattern and make it the SolverConfig default, following\nupstream. Identical results to Large; parity on random deals, 24-30%\nfaster on void-heavy deals, no slowdown under a tight TT memory cap\n(Large loses ~35% there), about a third less RSS per worker context.\nAdding the variant to a public exhaustive enum is the reason for the\nminor bump.\n\nUpstream now reports version 3.1.0; rename and update the system_info\nversion test accordingly.\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>",
+          "timestamp": "2026-10-07T06:37:11+08:00",
+          "tree_id": "7bb731774713a37a6b6c074c6d9002bbaf17baa3",
+          "url": "https://github.com/jdh8/dds-bridge/commit/74b65d16674d15c0b9da7f037714d8be2dd4de11"
+        },
+        "date": 1791326623090,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "solve_deal_single",
+            "value": 119026260,
+            "range": "± 246595243",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/32",
+            "value": 2347936352,
+            "range": "± 19520322",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_deals/200",
+            "value": 13841954643,
+            "range": "± 167123808",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/32",
+            "value": 223837226,
+            "range": "± 3827552",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "solve_boards/200",
+            "value": 1290702047,
+            "range": "± 27620646",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "analyse_plays_32",
+            "value": 140934012,
+            "range": "± 8041501",
             "unit": "ns/iter"
           }
         ]
